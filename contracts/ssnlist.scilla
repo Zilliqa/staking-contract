@@ -352,19 +352,11 @@ end
 (* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
 (* @param initiator: The original caller who called the proxy *)
 transition stake_deposit (initiator: ByStr20)
+  is_paused;
   validate_proxy;
   (* Accept the deposit from SSN and add to contract balance. *)
   (* Transfer back to initiator if any of the validation failed *)
   accept;
-  (* if paused, transfer funds back to initiator *)
-  paused_l <- paused;
-  match paused_l with
-  | False =>
-  | True =>
-    TransferFunds empty_tag _amount initiator;
-    e = mk_contract_freezed_error _sender;
-    throw e
-  end;
   curval <- ssnlist[initiator];
   match curval with
   | None =>
@@ -528,17 +520,8 @@ end
 (* @dev: Move token amount from initiator to recipient i.e. contract address. *)
 (* @param initiator: The original caller who called the proxy *)
 transition deposit_funds (initiator : ByStr20)
+  is_paused;
   validate_proxy;
-  accept;
-  (* if paused, transfer funds back to initiator *)
-  paused_l <- paused;
-  match paused_l with
-  | False =>
-  | True =>
-    TransferFunds empty_tag _amount initiator;
-    e = mk_contract_freezed_error _sender;
-    throw e
-  end;
   accept;
   e = mk_deposit_funds_event initiator;
   event e
