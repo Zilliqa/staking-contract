@@ -1,0 +1,559 @@
+scilla_version 0
+
+import ListUtils IntUtils BoolUtils
+
+(***************************************************)
+(*               Associated library                *)
+(***************************************************)
+library WalletLib
+
+(* Event emitted when the contract is initialized *)
+let mk_contract_initialized_event =
+  { _eventname : "Contract initialized" }
+
+(* Event for communicating a new transaction id *)
+let mk_transaction_added_event =
+  fun (tc : Uint32) =>
+    { _eventname : "Transaction created" ;
+     transactionId : tc }
+
+(* Event for communicating that a transaction was signed *)
+let mk_signed_transaction_event =
+  fun (tc : Uint32) =>
+    { _eventname : "Transaction signed"; transactionId : tc }
+
+(* Event for communicating that a signature was revoked *)
+let mk_signature_revoked_event =
+  fun (tc : Uint32) =>
+    { _eventname : "Signature revoked"; transactionId : tc }
+
+type Error =
+| NonOwnerCannotSign
+| UnknownTransactionId
+| InsufficientFunds
+| NoSignatureListFound
+| AlreadySigned
+| NotAlreadySigned
+| InvalidContract
+| InvalidAmount
+| NotEnoughSignatures
+| SenderMayNotExecute
+| NonOwnerCannotSubmit
+| IncorrectSignatureCount
+
+(* Error events *)
+let mk_error_event =
+  fun (err : Error) =>
+  let err_code =
+    match err with
+    | NonOwnerCannotSign        => Int32 -1
+    | UnknownTransactionId      => Int32 -2
+    | InsufficientFunds         => Int32 -3
+    | NoSignatureListFound      => Int32 -4
+    | AlreadySigned             => Int32 -5
+    | NotAlreadySigned          => Int32 -6
+    | InvalidContract           => Int32 -7
+    | InvalidAmount             => Int32 -8
+    | NotEnoughSignatures       => Int32 -9
+    | SenderMayNotExecute       => Int32 -10
+    | NonOwnerCannotSubmit      => Int32 -11
+    | IncorrectSignatureCount   => Int32 -12
+    end in
+  { _eventname : "WalletError" ; err_code : err_code }
+
+let t = True
+let f = False
+let zero = Uint32 0
+let one = Uint32 1
+let transaction_inc = one
+
+(* Type of Proxy transactions. *)
+(* All calls are made to the proxy contract *)
+type ProxyTransaction =
+(* upgradeTo (newImplementation : ByStr20) *)
+| UpgradeTo of ByStr20
+(* changeProxyAdmin (newAdmin : ByStr20)  *)
+| ChangeProxyAdmin of ByStr20
+(* update_admin(admin : ByStr20)  *)
+| UpdateAdmin of ByStr20
+(* update_verifier (verif : ByStr20)  *)
+| UndateVerifier of ByStr20
+(* drain_contract_balance ()  *)
+| DrainContractBalance
+(* update_minstake (min_stake : Uint128) *)
+| UpdateMinStake of Uint128
+(* update_maxstake (max_stake : Uint128) *)
+| UpdateMaxStake of Uint128
+(* update_contractmaxstake (max_stake : Uint128) *)
+| UpdateContractMaxStake of Uint128
+
+(* Type of (outstanding) transactions *)
+type Transaction =
+(* Transfer of native tokens *)
+| NativeTransaction of ByStr20 Uint128 String
+(* Custom token transactions *)
+| CustomTransaction of ByStr20 ProxyTransaction
+
+(* Make map of owners *)
+let mk_owners_map =
+  fun (owners : List ByStr20) =>
+    let init = Emp ByStr20 Bool in
+    let iter =
+      fun (acc : Map ByStr20 Bool) =>
+      fun (cur_owner : ByStr20) =>
+        (* Add owner unconditionally. We check for duplicates later *)
+        builtin put acc cur_owner t
+        in
+    let folder = @list_foldl ByStr20 (Map ByStr20 Bool) in
+    folder iter init owners
+
+(* Wrap single message into singleton list *)
+let one_msg =
+  fun (msg : Message) =>
+    let nil_msg = Nil {Message} in
+    Cons {Message} msg nil_msg
+
+(* Create native transaction message as singleton list *)
+let native_transaction_msg_as_list =
+  fun (recipient : ByStr20) =>
+  fun (amount : Uint128) =>
+  fun (tag : String) =>
+    let msg = {_tag : tag; _recipient : recipient; _amount : amount } in
+    one_msg msg
+
+(* Create custom transaction message as singleton list *)
+let custom_transaction_msg_as_list =
+  fun (proxyContract : ByStr20) =>
+  fun (proxyTransaction : ProxyTransaction) =>
+    let msg =
+      match proxyTransaction with
+      | UpgradeTo newImplementation =>
+        (* UpgradeTo (newImplementation : ByStr20) *)
+        {_recipient : proxyContract ;
+         _tag : "upgradeTo" ;
+         _amount : Uint128 0 ;
+         newImplementation : newImplementation }
+      | ChangeProxyAdmin newAdmin =>
+        (* changeProxyAdmin(newAdmin : ByStr20)  *)
+        {_recipient : proxyContract ;
+         _tag : "changeProxyAdmin" ;
+         _amount : Uint128 0 ;
+         newAdmin : newAdmin }
+      | UpdateAdmin admin =>
+        (* update_admin(admin : ByStr20)  *)
+        {_recipient : proxyContract;
+         _tag : "update_admin" ;
+         _amount : Uint128 0 ;
+         admin : admin}
+      | UndateVerifier verif =>
+        (* update_verifier(verif : ByStr20)  *)
+        {_recipient : proxyContract ;
+         _tag : "update_verifier" ;
+         _amount : Uint128 0 ;
+         verif : verif}
+      | DrainContractBalance  =>
+        (* drain_contract_balance()  *)
+        {_recipient : proxyContract ;
+         _tag : "drain_contract_balance" ;
+         _amount : Uint128 0}
+      | UpdateMinStake min_stake =>
+        (* update_minstake (min_stake : Uint128)  *)
+        {_recipient : proxyContract ;
+         _tag : "update_minstake" ;
+         _amount : Uint128 0 ;
+         min_stake : min_stake }
+      | UpdateMaxStake max_stake =>
+        (* update_maxstake(max_stake : Uint128)  *)
+        {_recipient : proxyContract ;
+         _tag : "update_maxstake" ;
+         _amount : Uint128 0 ;
+         max_stake : max_stake }
+      | UpdateContractMaxStake max_stake =>
+        (* update_contractmaxstake(max_stake : Uint128) *)
+        {_recipient : proxyContract ;
+         _tag : "update_contractmaxstake" ;
+         _amount : Uint128 0 ;
+         max_stake : max_stake}
+      end
+    in
+    one_msg msg
+
+(***************************************************)
+(*             The contract definition             *)
+(*                                                 *)
+(* This contract holds funds that can be paid out  *)
+(* to arbitrary users, provided that enough people *)
+(* in the collection of owners sign off on the     *)
+(* payout.                                         *)
+(*                                                 *)
+(* The transaction must be added to the contract   *)
+(* before signatures can be collected. Once enough *)
+(* signatures are collected, the recipient can ask *)
+(* for the transaction to be executed and the      *)
+(* money paid out.                                 *)
+(*                                                 *)
+(* If an owner changes his mind about a            *)
+(* transaction, the signature can be revoked until *)
+(* the transaction is executed.                    *)
+(*                                                 *)
+(* This wallet does not allow adding or removing   *)
+(* owners, or changing the number of required      *)
+(* signatures. To do any of those things, perform  *)
+(* the following steps:                            *)
+(*                                                 *)
+(* 1. Deploy a new wallet with owners and          *)
+(*    required_signatures set to the new values.   *)
+(*    MAKE SURE THAT THE NEW WALLET HAS BEEN       *)
+(*    SUCCESFULLY DEPLOYED WITH THE CORRECT        *)
+(*    PARAMETERS BEFORE CONTINUING!                *)
+(* 2. Invoke the SubmitTransaction transition on   *)
+(*    the old wallet with the following            *)
+(*    parameters:                                  *)
+(*    recipient : The address of the new wallet    *)
+(*    amount : The _balance of the old wallet      *)
+(*    tag : "AddFunds"                             *)
+(* 3. Have (a sufficient number of) the owners of  *)
+(*    the old contract invoke the SignTransaction  *)
+(*    transition on the old wallet. The parameter  *)
+(*    transactionId should be set to the Id of the *)
+(*    transaction created in step 2.               *)
+(* 4. Have one of the owners of the old contract   *)
+(*    invoke the ExecuteTransaction transition on  *)
+(*    the old contract. This will cause the entire *)
+(*    balance of the old contract to be            *)
+(*    transferred to the new wallet. Note that no  *)
+(*    un-executed transactions will be transferred *)
+(*    to the new wallet along with the funds.      *)
+(*                                                 *)
+(* WARNING: If a sufficient number of owners lose  *)
+(* their private keys, or for any other reason are *)
+(* unable or unwilling to sign for new             *)
+(* transactions, the funds in the wallet will be   *)
+(* locked forever. It is therefore a good idea to  *)
+(* set required_signatures to a value strictly     *)
+(* less than the number of owners, so that the     *)
+(* remaining owners can retrieve the funds should  *)
+(* such a scenario occur.                          *)
+(*                                                 *)
+(* If an owner loses his private key, the          *)
+(* remaining owners should move the funds to a new *)
+(* wallet (using the workflow described above) to  *)
+(* ensure that funds are not locked if another     *)
+(* owner loses his private key. The owner who      *)
+(* originally lost his private key can generate a  *)
+(* new key, and the corresponding address be added *)
+(* to the new wallet, so that the same set of      *)
+(* persons own the new wallet.                     *)
+(*                                                 *)
+(***************************************************)
+contract Wallet
+(
+owners_list         : List ByStr20,
+required_signatures : Uint32
+)
+with
+  let len = @list_length ByStr20 in
+  let no_of_owners = len owners_list in
+  let owners_ok = builtin lt zero no_of_owners in
+  let required_sigs_not_too_low = builtin lt zero required_signatures in
+  let required_sigs_too_high = builtin lt no_of_owners required_signatures in
+  let required_sigs_not_too_high = negb required_sigs_too_high in
+  let required_sigs_ok = andb required_sigs_not_too_high required_sigs_not_too_low in
+  let all_ok = andb required_sigs_ok owners_ok in
+  (* Building the owners map is expensive, so avoid checking the owners map until *)
+  (* everything else has been checked *)
+  match all_ok with
+  | True =>
+    let owners_map = mk_owners_map owners_list in
+    let size_of_owners_map = builtin size owners_map in
+    builtin eq size_of_owners_map no_of_owners
+  | False =>
+    False
+  end
+=>
+
+(* adr -> True indicates an owner *)
+(* adr not in map indicates non-owner *)
+(* adr -> False is not used *)
+field owners           : Map ByStr20 Bool = mk_owners_map owners_list
+
+field transactionCount : Uint32 = Uint32 0
+
+(* Collected signatures for transactions *)
+field signatures       : Map Uint32 (Map ByStr20 Bool) =
+  Emp Uint32 (Map ByStr20 Bool)
+
+(* Running count of collected signatures for transactions *)
+field signature_counts : Map Uint32 Uint32 =
+  Emp Uint32 Uint32
+
+(* Transactions *)
+field transactions     : Map Uint32 Transaction =
+                           Emp Uint32 Transaction
+
+procedure MakeError (err : Error)
+  e = mk_error_event err;
+  event e
+end
+
+(* Add signature to signature list *)
+procedure AddSignature (transactionId : Uint32, signee : ByStr20)
+  sig <- exists signatures[transactionId][signee];
+  match sig with
+  | False =>
+    count <- signature_counts[transactionId];
+    match count with
+    | None =>
+      (* 0 signatures *)
+      signature_counts[transactionId] := one
+    | Some c =>
+      new_c = builtin add c one;
+      signature_counts[transactionId] := new_c
+    end;
+    signatures[transactionId][signee] := t;
+    e = mk_signed_transaction_event transactionId;
+    event e
+  | True =>
+    (* Already signed *)
+    err = AlreadySigned;
+    MakeError err
+  end
+end
+
+(* Common procedure for all new transactions. *)
+(* Check that the sender is owner. Store and sign the transaction. *)
+procedure SubmitTransaction (transaction : Transaction)
+  sender_is_owner <- exists owners[_sender];
+  match sender_is_owner with
+  | False =>
+    err = NonOwnerCannotSubmit;
+    MakeError err
+  | True =>
+    tc <- transactionCount;
+    transactions[tc] := transaction;
+    (* Sender implicitly signs *)
+    AddSignature tc _sender;
+    (* Increment transaction counter *)
+    tc_new = builtin add tc transaction_inc;
+    (* Update transaction count *)
+    transactionCount := tc_new;
+    (* Create event with transaction Id *)
+    e = mk_transaction_added_event tc;
+    event e
+  end
+end
+
+(* Submit a transaction of native tokens for future signoff *)
+transition SubmitNativeTransaction (recipient : ByStr20, amount : Uint128, tag : String)
+  zero = Uint128 0;
+  amount_is_zero = builtin eq amount zero;
+  match amount_is_zero with
+  | True =>
+    (* Illegal transaction *)
+    err = InvalidAmount;
+    MakeError err
+  | False =>
+    transaction = NativeTransaction recipient amount tag;
+    SubmitTransaction transaction
+  end
+end
+
+(* Common submit procedure for custom transactions *)
+procedure SubmitCustomTransaction (proxyContract : ByStr20, proxyTransaction : ProxyTransaction)
+  transaction = CustomTransaction proxyContract proxyTransaction;
+  SubmitTransaction transaction
+end
+
+(* Submit a new UpgradeTo transaction for future signoff *)
+transition SubmitCustomUpgradeToTransaction (proxyContract : ByStr20, newImplementation : ByStr20)
+  transaction = UpgradeTo newImplementation;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new ChangeProxyAdmin transaction for future signoff *)
+transition SubmitCustomChangeProxyAdminTransaction (proxyContract : ByStr20, newAdmin : ByStr20)
+  transaction = ChangeProxyAdmin newAdmin;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateAdmin transaction for future signoff *)
+transition SubmitCustomUpdateAdminTransaction (proxyContract : ByStr20, admin : ByStr20)
+  transaction = UpdateAdmin admin;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateVerifier transaction for future signoff *)
+transition SubmitCustomUpdateVerifierTransaction (proxyContract : ByStr20, verif : ByStr20)
+  transaction = UndateVerifier verif;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new DrainContractBalance transaction for future signoff *)
+transition SubmitDrainContractBalanceTransaction (proxyContract : ByStr20)
+  transaction = DrainContractBalance;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateMinStake transaction for future signoff *)
+transition SubmitUpdateMinStakeTransaction (proxyContract : ByStr20, min_stake : Uint128)
+  transaction = UpdateMinStake min_stake;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateMaxStake transaction for future signoff *)
+transition SubmitUpdateMaxStakeTransaction (proxyContract : ByStr20, max_stake : Uint128)
+  transaction = UpdateMaxStake max_stake;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new ContractMaxStake transaction for future signoff *)
+transition SubmitCustomMintTransaction (proxyContract : ByStr20, max_stake : Uint128)
+  transaction = UpdateContractMaxStake max_stake;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Sign off on an existing transaction *)
+transition SignTransaction (transactionId : Uint32)
+  (* Only owners are allowed to sign off transactions *)
+  sender_is_owner <- exists owners[_sender];
+  match sender_is_owner with
+  | False =>
+    err = NonOwnerCannotSign;
+    MakeError err
+  | True =>
+    (* Transaction must have been submitted *)
+    transaction <- transactions[transactionId];
+    match transaction with
+    | None =>
+      err = UnknownTransactionId;
+      MakeError err
+    | Some _ =>
+      (* Remaining error cases handled by AddSignature *)
+      AddSignature transactionId _sender
+    end
+  end
+end
+
+(* Revoke signature of existing transaction, if it has not yet been executed. *)
+transition RevokeSignature (transactionId : Uint32)
+  sig <- exists signatures[transactionId][_sender];
+  match sig with
+  | False =>
+    err = NotAlreadySigned;
+    MakeError err
+  | True =>
+    count <- signature_counts[transactionId];
+    match count with
+    | None =>
+      err = IncorrectSignatureCount;
+      MakeError err
+    | Some c =>
+      c_is_zero = builtin eq c zero;
+      match c_is_zero with
+      | True =>
+        err = IncorrectSignatureCount;
+        MakeError err
+      | False =>
+        new_c = builtin sub c one;
+        signature_counts[transactionId] := new_c;
+        delete signatures[transactionId][_sender];
+        e = mk_signature_revoked_event transactionId;
+        event e
+      end
+    end
+  end
+end
+
+(* Delete transaction and signatures *)
+procedure DeleteTransaction (transactionId : Uint32)
+  delete transactions[transactionId];
+  delete signatures[transactionId];
+  delete signature_counts[transactionId]
+end
+
+(* Execute native token transaction. *)
+(* Checks permission to execute, and checks for sufficient balance. *)
+(* Assumes the transaction has been signed off by enough owners. *)
+procedure ExecuteNativeTransaction (recipient : ByStr20, amount : Uint128, tag : String)
+  (* Only the recipient or an owner can execute the transaction *)
+  recipient_is_sender = builtin eq recipient _sender;
+  sender_is_owner <- exists owners[_sender];
+  sender_may_execute = orb recipient_is_sender sender_is_owner;
+  match sender_may_execute with
+  | False =>
+    err = SenderMayNotExecute;
+    MakeError err
+  | True =>
+    (* Check for sufficient funds  *)
+    bal <- _balance;
+    not_enough_money = builtin lt bal amount;
+    match not_enough_money with
+    | True =>
+      err = InsufficientFunds;
+      MakeError err
+    | False =>
+      (* Transaction approved, and enough money available. *)
+      (* Execute transaction *)
+      msgs = native_transaction_msg_as_list recipient amount tag;
+      send msgs
+    end
+  end
+end
+
+(* Execute custom transaction. *)
+(* Checks permission to execute. *)
+(* Assumes the transaction has been signed off by enough owners. *)
+procedure ExecuteCustomTransaction (proxyContract : ByStr20, proxyTransaction : ProxyTransaction)
+  (* Only owners may execute *)
+  sender_is_owner <- exists owners[_sender];
+  match sender_is_owner with
+  | False =>
+    err = SenderMayNotExecute;
+    MakeError err
+  | True =>
+    as_msg = custom_transaction_msg_as_list proxyContract proxyTransaction;
+    send as_msg
+  end
+end
+
+(* Execute signed-off transaction *)
+transition ExecuteTransaction (transactionId : Uint32)
+  transaction_opt <- transactions[transactionId];
+  match transaction_opt with
+  | None =>
+    (* Transaction was not found. *)
+    err = UnknownTransactionId;
+    MakeError err
+  | Some transaction =>
+    sig_count_opt <- signature_counts[transactionId];
+    match sig_count_opt with
+    | None =>
+      (* Signature count not found, even though the transaction exists.*)
+      err = NoSignatureListFound;
+      MakeError err
+    | Some sig_count =>
+      not_enough_signatures = builtin lt sig_count required_signatures;
+      match not_enough_signatures with
+      | True =>
+        err = NotEnoughSignatures;
+        MakeError err
+      | False =>
+        match transaction with
+        | NativeTransaction recipient amount tag =>
+          ExecuteNativeTransaction recipient amount tag
+        | CustomTransaction proxyContract proxyTransaction =>
+          ExecuteCustomTransaction proxyContract proxyTransaction
+        end;
+        (* Remove transaction and signatures. *)
+        (* Note: The transaction may have failed, but without a callback *)
+        (* we have no way of detecting whether it did *)
+        DeleteTransaction transactionId
+      end
+    end
+  end
+end
+
+(* Add native funds to wallet *)
+transition AddFunds ()
+  accept
+end

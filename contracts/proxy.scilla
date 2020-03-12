@@ -1,0 +1,197 @@
+scilla_version 0
+
+library SSNListProxy
+
+let zero = Uint128 0
+
+let one_msg =
+  fun (m : Message) =>
+    let e = Nil {Message} in
+    Cons {Message} m e
+
+type SsnRewardShare =
+| SsnRewardShare of ByStr20 Uint128
+
+(***************************************************)
+(*             The contract definition             *)
+(***************************************************)
+
+contract SSNListProxy(
+  init_implementation : ByStr20,
+  init_admin : ByStr20
+)
+
+(* Mutable fields *)
+
+field implementation : ByStr20 = init_implementation
+field admin : ByStr20 = init_admin
+
+transition upgradeTo(newImplementation : ByStr20)
+    currentAdmin <- admin;
+    isAdmin = builtin eq currentAdmin _sender;
+    match isAdmin with
+    | True =>
+      implementation := newImplementation;
+      e = {_eventname : "Upgraded"; implementation_address : newImplementation};
+      event e
+    | False =>
+      e = {_eventname : "upgradeTo FailedNotAdmin"; newImplementation : newImplementation};
+      event e
+    end
+end
+
+transition changeProxyAdmin(newAdmin : ByStr20)
+    currentAdmin <- admin;
+    isAdmin = builtin eq currentAdmin _sender;
+    match isAdmin with
+    | True =>
+      admin := newAdmin;
+      e = {_eventname : "AdminChanged"; oldAdmin : currentAdmin; newAdmin : newAdmin};
+      event e
+    | False =>
+      e = {_eventname : "changeAdmin FailedNotAdmin"; newAdmin : newAdmin};
+      event e
+    end
+end
+
+transition pause()
+    current_impl <- implementation;
+    msg = {_tag : "pause"; _recipient : current_impl; _amount : zero; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition unpause()
+    current_impl <- implementation;
+    msg = {_tag : "unpause"; _recipient : current_impl; _amount : zero; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+
+transition update_admin (admin : ByStr20)
+    current_impl <- implementation;
+    msg = {_tag : "update_admin"; _recipient : current_impl; _amount : zero; admin : admin; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Set the verifier of contract. Used by admin only. *)
+(* @param verif: New verifier value *)
+transition update_verifier (verif : ByStr20)
+    current_impl <- implementation;
+    msg = {_tag : "update_verifier"; _recipient : current_impl; _amount : zero; verif : verif; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Set the admin of contract. Used by current admin only. *)
+transition drain_contract_balance ()
+    current_impl <- implementation;
+    msg = {_tag : "drain_contract_balance"; _recipient : current_impl; _amount : zero; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Set the minstake of contract. Used by admin only. *)
+(* @param min_stake: New minstake value *)
+transition update_minstake (min_stake : Uint128)
+    current_impl <- implementation;
+    msg = {_tag : "update_minstake"; _recipient : current_impl; _amount : zero; min_stake: min_stake; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Set the maxstake of contract. Used by admin only. *)
+(* @param max_stake: New maxstake value *)
+transition update_maxstake (max_stake : Uint128)
+    current_impl <- implementation;
+    msg = {_tag : "update_maxstake"; _recipient : current_impl; _amount : zero; max_stake: max_stake; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Set the maxstake of contract. Used by admin only. *)
+(* @param max_stake: New maxstake value *)
+transition update_contractmaxstake (max_stake : Uint128)
+    current_impl <- implementation;
+    msg = {_tag : "update_contractmaxstake"; _recipient : current_impl; _amount : zero; max_stake: max_stake; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Adds new ssn to ssnlist. Used by verifier only. *)
+(* @param ssnaddr: Address of the ssn to be added *)
+(* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
+(* @param urlapi: string representing url exposed by ssn serving public api request *)
+(* @param buffered_deposit: Any buffered stake deposit *)
+
+(* @dev: Adds new ssn to ssnlist. Used by admin only. *)
+(* @param ssnaddr: Address of the ssn to be added *)
+(* @param stake_amount: Stake amount of ssn *)
+(* @param rewards: Rewards of the ssn to be added *)
+(* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
+(* @param urlapi: string representing url exposed by ssn serving public api request *)
+(* @param buffered_deposit: Any buffered stake deposit *)
+transition add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
+    current_impl <- implementation;
+    msg = {_tag : "add_ssn"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amount: stake_amount; rewards: rewards; urlraw: urlraw; urlapi: urlapi; buffered_deposit: buffered_deposit; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Remove a specific ssn from ssnlist. Used by verifier only. *)
+(* @param ssnaddr: Address of the ssn to be removed *)
+transition remove_ssn (ssnaddr : ByStr20)
+    current_impl <- implementation;
+    msg = {_tag : "remove_ssn"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+
+(* @dev: Moves an amount tokens from _sender to the recipient. Used by token_owner. i.e. ssn *)
+(* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0.
+         Balance of contract account will increase. Balance of _sender will decrease.      *)
+transition stake_deposit (initiator: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag : "stake_deposit"; _recipient : current_impl; _amount : _amount; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
+(* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param reward_blocknum: tx block num when ssns were verified *)
+transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32)
+    current_impl <- implementation;
+    msg = {_tag : "assign_stake_reward"; _recipient : current_impl; _amount : zero; ssnreward_list: ssnreward_list; reward_blocknum : reward_blocknum; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+
+(* @dev: Withdraw stake reward. Used by ssn only. *)
+transition withdraw_stake_rewards ()
+    current_impl <- implementation;
+    msg = {_tag : "withdraw_stake_rewards"; _recipient : current_impl; _amount : zero; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Move token amount from contract account to _sender. Used by ssn only. *)
+(* @param amount: token amount to be withdrawed *)
+transition withdraw_stake_amount (amount : Uint128 )
+    current_impl <- implementation;
+    msg = {_tag : "withdraw_stake_amount"; _recipient : current_impl; _amount : zero; amount: amount; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Move token amount from _sender to recipient i.e. contract address. *)
+transition deposit_funds ()
+    current_impl <- implementation;
+    msg = {_tag : "deposit_funds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
