@@ -155,6 +155,7 @@ end
          Balance of contract account will increase. Balance of _sender will decrease.      *)
 transition stake_deposit (initiator: ByStr20)
     current_impl <- implementation;
+    accept;
     msg = {_tag : "stake_deposit"; _recipient : current_impl; _amount : _amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
@@ -191,6 +192,7 @@ end
 (* @dev: Move token amount from _sender to recipient i.e. contract address. *)
 transition deposit_funds ()
     current_impl <- implementation;
+    accept;
     msg = {_tag : "deposit_funds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs

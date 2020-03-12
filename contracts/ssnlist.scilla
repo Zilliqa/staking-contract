@@ -352,11 +352,23 @@ end
 (* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
 (* @param initiator: The original caller who called the proxy *)
 transition stake_deposit (initiator: ByStr20)
-  is_paused;
   validate_proxy;
+  (* Accept the deposit from SSN and add to contract balance. *)
+  (* Transfer back to initiator if any of the validation failed *)
+  accept;
+  (* if paused, transfer funds back to initiator *)
+  paused_l <- paused;
+  match paused_l with
+  | False =>
+  | True =>
+    TransferFunds empty_tag _amount initiator;
+    e = mk_contract_freezed_error _sender;
+    throw e
+  end;
   curval <- ssnlist[initiator];
   match curval with
   | None =>
+    TransferFunds empty_tag _amount initiator;
     e = mk_ssn_not_exists_event initiator;
     event e
   | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit) =>
@@ -368,12 +380,14 @@ transition stake_deposit (initiator: ByStr20)
     pass = builtin lt new_stake_amount minstake_l;
     match pass with
     | True => (* stake deposit below minstake limit *)
+      TransferFunds empty_tag _amount initiator;
       e = mk_stake_deposit_below_stake_limit_event initiator new_stake_amount minstake_l;
       event e
     | False =>
       pass = builtin lt maxstake_l new_stake_amount;
       match pass with
       | True => (* stake deposit above maxstake limit *)
+        TransferFunds empty_tag _amount initiator;
         e = mk_stake_deposit_above_stake_limit_event initiator new_stake_amount maxstake_l;
         event e
       | False =>
@@ -383,6 +397,7 @@ transition stake_deposit (initiator: ByStr20)
         pass = builtin lt contractmaxstake_l newStakeDeposit;
         match pass with
         | True => (* total stake deposit for contract goes above contractmaxstake limit *)
+          TransferFunds empty_tag _amount initiator;
           e = mk_total_stake_deposit_above_contract_stake_limit_event initiator new_stake_amount contractmaxstake_l;
           event e
         | False =>
@@ -399,8 +414,6 @@ transition stake_deposit (initiator: ByStr20)
             ssn = Ssn bool_active stake_amount rewards urlraw urlapi new_buff_amount;
             ssnlist[initiator] := ssn
           end;
-          (* Accept the deposit from SSN and add to contract balance *)
-          accept;
           (* Update the new total stake deposit of contract *)
           totalstakedeposit := newStakeDeposit
         end
@@ -515,8 +528,17 @@ end
 (* @dev: Move token amount from initiator to recipient i.e. contract address. *)
 (* @param initiator: The original caller who called the proxy *)
 transition deposit_funds (initiator : ByStr20)
-  is_paused;
   validate_proxy;
+  accept;
+  (* if paused, transfer funds back to initiator *)
+  paused_l <- paused;
+  match paused_l with
+  | False =>
+  | True =>
+    TransferFunds empty_tag _amount initiator;
+    e = mk_contract_freezed_error _sender;
+    throw e
+  end;
   accept;
   e = mk_deposit_funds_event initiator;
   event e
