@@ -252,7 +252,7 @@ transition update_verifier (verif : ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
-(* @dev: Set the admin of contract. Used by current admin only. *)
+(* @dev: Drain the entire contract balance. Used by current admin only. *)
 (* @param initiator: The original caller who called the proxy *)
 transition drain_contract_balance (initiator : ByStr20)
   validate_proxy;
