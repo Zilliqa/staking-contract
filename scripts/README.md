@@ -1,6 +1,6 @@
 ### 1. Ensure you have [zli](https://github.com/Zilliqa/zli) installed
 
-can you following command to test:
+can use following command to test:
 
 ```shell script
 zli -h
@@ -33,7 +33,7 @@ zli wallet init -p your_private_key
 Above two commands will generate a file located at ~/.zilliqa, try to edit it directly if you want to change api url or chain
 id.
 
-<b>All following will use the private key you generated above, if you want to override it, just use `-k another_private_key`</b>
+<b>All following commands will use the private key you generated above, if you want to override it, just use `-k another_private_key`</b>
 
 like `zli contract deploy -c ../contracts/proxy.scilla -i proxy.json -k 38f3715e7ef9b5a5080171dca4cb37b05eaa7e3b0d9a9427a11e021e1029525d`.
 
@@ -43,9 +43,9 @@ But we still need to make `~/.zilliqa` exist, because we need `api url` and `cha
 
 Run `sh ./deploy_proxy.sh`
 
-Make sure `proxy.json` contains an correct `init_admin`, usually from your config wallet, can use `zli wallet echo` to get.
+Make sure `proxy.json` contain an correct `init_admin`, usually from your config wallet, can use `zli wallet echo` to get.
 No need to modify `init_implementation`, will `upgrade` later. Both transaction id and contract address will be print on
-standard output. Could be double checked.
+standard output.
 
 #### 4. Deploy sshlist contract
 
@@ -59,10 +59,10 @@ Run `zli contract call -a 0x09710e00256db2e3db4b44f597f17f3d97f06318 -t upgradeT
 
 or `sh ./upgradeTo.sh`
 
-This allow you to make your proxy point the actual sshlist contract.
+This allow you to make your proxy point to actual sshlist contract.
 
 #### 6. Others
 
-After doing deploy and upgrade, you can run any others script to call transactions. Just keep in mind <b>do not mess up
+After doing deploy and upgrade, you can run any others script to call transitions. Just keep in mind <b>do not mess up
 
-contract address, always modify the script to your own contract address</b>
+contract address, always modify the scripts to your own contract address</b>
