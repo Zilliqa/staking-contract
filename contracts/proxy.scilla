@@ -153,8 +153,9 @@ end
 (* @dev: Moves an amount tokens from _sender to the recipient. Used by token_owner. i.e. ssn *)
 (* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0.
          Balance of contract account will increase. Balance of _sender will decrease.      *)
-transition stake_deposit (initiator: ByStr20)
+transition stake_deposit ()
     current_impl <- implementation;
+    accept;
     msg = {_tag : "stake_deposit"; _recipient : current_impl; _amount : _amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
@@ -191,6 +192,7 @@ end
 (* @dev: Move token amount from _sender to recipient i.e. contract address. *)
 transition deposit_funds ()
     current_impl <- implementation;
+    accept;
     msg = {_tag : "deposit_funds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
