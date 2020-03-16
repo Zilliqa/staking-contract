@@ -11,6 +11,7 @@ import (
 	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -58,11 +59,11 @@ func DeployAndUpgrade(private string) (error, string, string) {
 		},
 	}
 	data, _ := json.Marshal(proxyInit)
-	jsonPath := "./contracts/proxy" + adminAddr + ".json"
+	jsonPath := "../contracts/proxy" + adminAddr + ".json"
 	_ = ioutil.WriteFile(jsonPath, data, 0644)
 	if err, output := ExecZli("contract", "deploy",
 		"-k", private,
-		"-c", "./contracts/proxy.scilla",
+		"-c", "../contracts/proxy.scilla",
 		"-i", jsonPath); err != nil {
 		return err, "", ""
 	} else {
@@ -74,6 +75,8 @@ func DeployAndUpgrade(private string) (error, string, string) {
 	proxyBech32, _ := bech32.ToBech32Address(proxyAddr)
 	fmt.Printf("proxy address = %s, bech32 = %s\n", proxyAddr, proxyBech32)
 	fmt.Println("------------------------ end deploy proxy ------------------------")
+
+	_ = os.Remove(jsonPath)
 
 	// 2. deploy ssnlist contract with private key and proxy address
 	fmt.Println("------------------------ begin deploy sshlist ------------------------")
@@ -94,13 +97,13 @@ func DeployAndUpgrade(private string) (error, string, string) {
 	}
 	data, _ = json.Marshal(implInit)
 	fmt.Println(string(data))
-	jsonPath = "./contracts/ssnlist" + adminAddr + ".json"
+	jsonPath = "../contracts/ssnlist" + adminAddr + ".json"
 	_ = ioutil.WriteFile(jsonPath, data, 0644)
 	var sshlistAddr string
 
 	if err, output := ExecZli("contract", "deploy",
 		"-k", private,
-		"-c", "./contracts/ssnlist.scilla",
+		"-c", "../contracts/ssnlist.scilla",
 		"-i", jsonPath); err != nil {
 		return err, "", ""
 	} else {
@@ -112,6 +115,8 @@ func DeployAndUpgrade(private string) (error, string, string) {
 	sshlistBech32, _ := bech32.ToBech32Address(sshlistAddr)
 	fmt.Printf("ssnlist address = %s, bech32 = %s\n", sshlistAddr, sshlistBech32)
 	fmt.Println("------------------------ end deploy sshlist ------------------------")
+
+	_ = os.Remove(jsonPath)
 
 	// 3. upgrade to actual implement
 	fmt.Println("------------------------ start upgrade ------------------------")
@@ -176,7 +181,7 @@ func main() {
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
 
-	p := NewProxy("https://dev-api.zilliqa.com", proxy, impl)
+	p := NewProxy("https://staking7-l2api.dev.z7a.xyz/", proxy, impl)
 	//p := NewProxy("https://dev-api.zilliqa.com", "8adbd96a351cd89a286e69502ee2b641d2e03ac0", "b83c4bf4fc17054f53b86e9aa662610a2983f283")
 
 	// test ChangeProxyAdmin
@@ -216,7 +221,6 @@ func NewProxy(url, proxy, impl string) *Proxy {
 	}
 }
 
-
 func (p *Proxy) UpdateContractMaxStake(valid, invalid string) {
 	err := p.updateContractMaxStake(invalid)
 	if err == nil {
@@ -233,7 +237,6 @@ func (p *Proxy) UpdateContractMaxStake(valid, invalid string) {
 	fmt.Println("update contract max stake with valid key succeed")
 
 }
-
 
 func (p *Proxy) updateContractMaxStake(private string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
