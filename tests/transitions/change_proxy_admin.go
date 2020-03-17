@@ -57,6 +57,7 @@ func (p *Proxy) changeProxyAdmin(oldPrivateKey, newPrivateKey string) error {
 		"-k", oldPrivateKey,
 		"-a", proxy,
 		"-t", "changeProxyAdmin",
+		"-f","true",
 		"-r", string(args)); err2 != nil {
 		return err2
 	} else {

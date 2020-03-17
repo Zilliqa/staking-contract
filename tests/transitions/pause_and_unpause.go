@@ -49,6 +49,7 @@ func (p *Proxy) pause(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "pause",
+		"-f","true",
 		"-r", "[]"); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {
@@ -70,6 +71,7 @@ func (p *Proxy) unpause(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "unpause",
+		"-f","true",
 		"-r", "[]"); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {

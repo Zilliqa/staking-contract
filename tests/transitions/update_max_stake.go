@@ -42,6 +42,7 @@ func (p *Proxy) updateMaxStake(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "update_maxstake",
+		"-f","true",
 		"-r", string(args)); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {

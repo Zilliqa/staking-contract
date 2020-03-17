@@ -107,6 +107,7 @@ func DeployAndUpgrade(private string) (error, string, string) {
 	if err2, output := ExecZli("contract", "call",
 		"-k", private,
 		"-a", proxyBech32,
+		"-f","true",
 		"-t", "upgradeTo",
 		"-r", string(args)); err2 != nil {
 		return err2, "", ""

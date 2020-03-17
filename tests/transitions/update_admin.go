@@ -15,7 +15,7 @@ func (p *Proxy) UpdateAdmin(oldPrivateKey, newPrivateKey string) {
 	fmt.Println("------------------------ begin update admin ------------------------")
 	err := p.updateAdmin(oldPrivateKey, newPrivateKey)
 	if err != nil {
-		panic("update admin with admin permission succeed" + err.Error())
+		panic("update admin with admin permission failed" + err.Error())
 	}
 	fmt.Println("update admin with admin permission succeed")
 	err2 := p.updateAdmin(oldPrivateKey, newPrivateKey)
@@ -47,6 +47,7 @@ func (p *Proxy) updateAdmin(oldPrivateKey, newPrivateKey string) error {
 		"-k", oldPrivateKey,
 		"-a", proxy,
 		"-t", "update_admin",
+		"-f","true",
 		"-r", string(args)); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {
