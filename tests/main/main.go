@@ -8,10 +8,8 @@ import (
 func main() {
 	// 0. prepare two private keys, recommend to use your own, in case conflicts
 	// we need the second private key, as we need to test non-admin permission or something similar
-	//pri1 := "55d256f225a0a552dc9c8158c87c460f92f9f18f4ae0f2ba104a69bf3ab7ed73"
-	//pri2 := "c25755f01577cb2d1c6a412ee8bfe2f98de0ed580844e5d7ae03bf0621c6b47e"
-	pri1 := "33cdbb9fb7778838e7160ed2b93b06d24d9ed2d7646967ccb10f22e234dc9376"
-	pri2 := "eee52417bf6917729031445dca814ef4d4354abf94312621a35b1cef81232afd"
+	pri1 := "55d256f225a0a552dc9c8158c87c460f92f9f18f4ae0f2ba104a69bf3ab7ed73"
+	pri2 := "c25755f01577cb2d1c6a412ee8bfe2f98de0ed580844e5d7ae03bf0621c6b47e"
 	api := "https://staking7-l2api.dev.z7a.xyz/"
 	// 1. make sure zli is already installed
 	if err, output := transitions.ExecZli("-h"); err != nil {
@@ -35,8 +33,6 @@ func main() {
 		fmt.Println(output)
 	}
 
-	// deploy proxy and ssshlist, and do upgrade
-	//  55d256f225a0a552dc9c8158c87c460f92f9f18f4ae0f2ba104a69bf3ab7ed73
 	err, proxy, impl := transitions.DeployAndUpgrade(pri1)
 	if err != nil {
 		panic("got error = " + err.Error())
@@ -44,8 +40,7 @@ func main() {
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
 
-	p := transitions.NewProxy("https://staking7-l2api.dev.z7a.xyz/", proxy, impl)
-	//p := NewProxy("https://dev-api.zilliqa.com", "8adbd96a351cd89a286e69502ee2b641d2e03ac0", "b83c4bf4fc17054f53b86e9aa662610a2983f283")
+	p := transitions.NewProxy(api, proxy, impl)
 
 	// test ChangeProxyAdmin
 	p.ChangeProxyAdmin(pri1, pri2)
