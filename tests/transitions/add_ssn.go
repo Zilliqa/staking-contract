@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"strings"
 )
 
@@ -23,9 +25,23 @@ func TestAddSSN(pri1, pri2 string, api string) {
 }
 
 func (p *Proxy) AddSSN(pri1, pri2 string) {
-	// 1. as non-verifier, should fail
+	// 0. setup minstake maxstake contractmaxstake
+	err := p.updateContractMaxStake(pri1)
+	if err != nil {
+		panic("update contract max stake failed: " + err.Error())
+	}
+	err = p.updateMinStake(pri1)
+	if err != nil {
+		panic("update min stake failed: " + err.Error())
+	}
+	err = p.updateMaxStake(pri1)
+	if err != nil {
+		panic("update max stake failed: " + err.Error())
+	}
+
+	// 1. as non-verifier to add ssn, should fail
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	ssnaddr := "0x53e954391539f276c36a09167b795ab7e654fdb7"
+	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 	parameters := []contract2.Value{
 		{
 			VName: "ssnaddr",
@@ -72,20 +88,43 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if success {
-			panic("add ssn with non-verifier failed")
+			panic("test add ssn with non-verifier failed")
+		} else {
+			fmt.Println("test add ssn with non-verifier succeed")
 		}
 	}
 
-	// 2. as verifier
-	// 2.1 update verifier
-	err := p.updateVerifier(pri1)
+	//// 2. stake 100
+	//if err4, output := ExecZli("contract", "call",
+	//	"-k", pri2,
+	//	"-a", proxy,
+	//	"-t", "stake_deposit",
+	//	"-m", "100",
+	//	"-f", "true",
+	//	"-r", string(args)); err4 != nil {
+	//	panic("call deposit stake transaction error: " + err4.Error())
+	//} else {
+	//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+	//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+	//	receipt := payload["receipt"].(map[string]interface{})
+	//	success := receipt["success"].(bool)
+	//	if success {
+	//		panic("test stake less than min stake failed")
+	//	} else {
+	//		fmt.Println("test stake less then min stake succeed")
+	//	}
+	//}
+
+	// 3. as verifier to add ssn
+	// 3.1 update verifier
+	err = p.updateVerifier(pri2)
 	if err != nil {
 		panic("update verifier error: " + err.Error())
 	}
 
-	// 2.2
+	// 3.2 add account2 to ssn list
 	if err3, output := ExecZli("contract", "call",
-		"-k", pri1,
+		"-k", pri2,
 		"-a", proxy,
 		"-t", "add_ssn",
 		"-f", "true",
@@ -100,19 +139,103 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 			sshList, ok := res["ssnlist"]
 			if !ok {
-				panic("check state failed: no ssnlist")
+				panic("test add ssn with verifier failed check state failed: no ssnlist")
 			}
-			ssn,ok := sshList.(map[string]interface{})[ssnaddr]
+			ssn, ok := sshList.(map[string]interface{})[ssnaddr]
 			if !ok {
-				panic("check state failed: no such ssn")
+				panic("test add ssn with verifier failed check state failed: no such ssn")
 			}
 			deposit := ssn.(map[string]interface{})["arguments"].([]interface{})[1].(string)
 			if deposit != "0" {
-				panic("check state failed: deposit not equal to zero")
+				panic("test add ssn with verifier failed check state failed: deposit not equal to zero")
+			}
+
+			inactive := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"]
+			if inactive != "True" {
+				panic("test add ssn with verifier failed check state failed: deposit not active")
+			} else {
+				fmt.Println("test add ssn with verifier succeed")
 			}
 		} else {
-			panic("add ssn with verifier failed")
+			panic("test add ssn with verifier failed")
 		}
+
+		//// 4. stake 100 (less then min stake, should fail)
+		//if err4, output := ExecZli("contract", "call",
+		//	"-k", pri2,
+		//	"-a", proxy,
+		//	"-t", "stake_deposit",
+		//	"-m", "100",
+		//	"-f", "true",
+		//	"-r", string(args)); err4 != nil {
+		//	panic("call deposit stake transaction error: " + err4.Error())
+		//} else {
+		//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		//	receipt := payload["receipt"].(map[string]interface{})
+		//	success := receipt["success"].(bool)
+		//	if success {
+		//		panic("test stake less than min stake failed")
+		//	} else {
+		//		fmt.Println("test stake less then min stake succeed")
+		//	}
+		//}
+
+		// 3.3 add ssn once again
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri2,
+			"-a", proxy,
+			"-t", "add_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			if success {
+				panic("test add ssn twice failed")
+			} else {
+				fmt.Println("test add ssn twice succeed")
+			}
+		}
+
+		// 3.4 remove an nonexistent
+		parameters := []contract2.Value{
+			{
+				VName: "ssnaddr",
+				Type:  "ByStr20",
+				Value: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+		}
+		args, _ := json.Marshal(parameters)
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri2,
+			"-a", proxy,
+			"-t", "remove_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			eventLogs := receipt["event_logs"].([]interface{})[0]
+			if success {
+				events := eventLogs.(map[string]interface{})
+				eventName := events["_eventname"].(string)
+				if eventName == "SSN already exists" {
+					fmt.Println("test add ssn twice succeed")
+				} else {
+					panic("test add ssn twice failed")
+				}
+			} else {
+				panic("test add ssn twice failed")
+			}
+		}
+
 	}
 
 	fmt.Println("------------------------ end   AddSSN ------------------------")

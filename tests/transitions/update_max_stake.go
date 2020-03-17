@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
-	"math/rand"
 	"strings"
 )
 
@@ -29,7 +28,8 @@ func (p *Proxy) UpdateMaxStake(valid, invalid string) {
 
 func (p *Proxy) updateMaxStake(private string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	stakeNum := fmt.Sprintf("%d", rand.Int())
+	//stakeNum := fmt.Sprintf("%d", rand.Int())
+	stakeNum := "5000000000"
 	parameters := []contract2.Value{
 		{
 			VName: "max_stake",
@@ -42,7 +42,7 @@ func (p *Proxy) updateMaxStake(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "update_maxstake",
-		"-f","true",
+		"-f", "true",
 		"-r", string(args)); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
-	"math/rand"
 	"strings"
 )
 
@@ -29,7 +28,7 @@ func (p *Proxy) UpdateMinStake(valid, invalid string) {
 
 func (p *Proxy) updateMinStake(private string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	stakeNum := fmt.Sprintf("%d", rand.Int())
+	stakeNum := "1000000000"
 	parameters := []contract2.Value{
 		{
 			VName: "min_stake",
@@ -42,7 +41,7 @@ func (p *Proxy) updateMinStake(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "update_minstake",
-		"-f","true",
+		"-f", "true",
 		"-r", string(args)); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {
