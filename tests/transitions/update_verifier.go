@@ -25,14 +25,14 @@ func (p *Proxy) UpdateVerifier(valid, invalid string) {
 	fmt.Println("update verifier with invalid admin succeed")
 }
 
-func (p *Proxy) updateVerifier(private string) error {
+func (p *Proxy) updateVerifierTo(private string, newVerifier string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	operator := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(private))
+
 	parameters := []contract2.Value{
 		{
 			VName: "verif",
 			Type:  "ByStr20",
-			Value: operator,
+			Value: newVerifier,
 		},
 	}
 	args, _ := json.Marshal(parameters)
@@ -40,7 +40,7 @@ func (p *Proxy) updateVerifier(private string) error {
 		"-k", private,
 		"-a", proxy,
 		"-t", "update_verifier",
-		"-f","true",
+		"-f", "true",
 		"-r", string(args)); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())
 	} else {
@@ -57,7 +57,7 @@ func (p *Proxy) updateVerifier(private string) error {
 				return errors.New("verifier is none")
 			}
 			arg := arguments.(string)
-			if arg == operator {
+			if arg == newVerifier {
 				return nil
 			} else {
 				return errors.New("update state failed")
@@ -66,4 +66,9 @@ func (p *Proxy) updateVerifier(private string) error {
 			return errors.New("transaction failed")
 		}
 	}
+}
+
+func (p *Proxy) updateVerifier(private string) error {
+	operator := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(private))
+	return p.updateVerifierTo(private, operator)
 }

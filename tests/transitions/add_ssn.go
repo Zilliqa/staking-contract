@@ -25,20 +25,6 @@ func TestAddSSN(pri1, pri2 string, api string) {
 }
 
 func (p *Proxy) AddSSN(pri1, pri2 string) {
-	// 0. setup minstake maxstake contractmaxstake
-	err := p.updateContractMaxStake(pri1)
-	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
-	}
-	err = p.updateMinStake(pri1)
-	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
-	err = p.updateMaxStake(pri1)
-	if err != nil {
-		panic("update max stake failed: " + err.Error())
-	}
-
 	// 1. as non-verifier to add ssn, should fail
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
@@ -94,37 +80,16 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 		}
 	}
 
-	//// 2. stake 100
-	//if err4, output := ExecZli("contract", "call",
-	//	"-k", pri2,
-	//	"-a", proxy,
-	//	"-t", "stake_deposit",
-	//	"-m", "100",
-	//	"-f", "true",
-	//	"-r", string(args)); err4 != nil {
-	//	panic("call deposit stake transaction error: " + err4.Error())
-	//} else {
-	//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-	//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
-	//	receipt := payload["receipt"].(map[string]interface{})
-	//	success := receipt["success"].(bool)
-	//	if success {
-	//		panic("test stake less than min stake failed")
-	//	} else {
-	//		fmt.Println("test stake less then min stake succeed")
-	//	}
-	//}
-
 	// 3. as verifier to add ssn
 	// 3.1 update verifier
-	err = p.updateVerifier(pri2)
+	err := p.updateVerifier(pri1)
 	if err != nil {
 		panic("update verifier error: " + err.Error())
 	}
 
 	// 3.2 add account2 to ssn list
 	if err3, output := ExecZli("contract", "call",
-		"-k", pri2,
+		"-k", pri1,
 		"-a", proxy,
 		"-t", "add_ssn",
 		"-f", "true",
@@ -160,60 +125,11 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			panic("test add ssn with verifier failed")
 		}
 
-		//// 4. stake 100 (less then min stake, should fail)
-		//if err4, output := ExecZli("contract", "call",
-		//	"-k", pri2,
-		//	"-a", proxy,
-		//	"-t", "stake_deposit",
-		//	"-m", "100",
-		//	"-f", "true",
-		//	"-r", string(args)); err4 != nil {
-		//	panic("call deposit stake transaction error: " + err4.Error())
-		//} else {
-		//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
-		//	receipt := payload["receipt"].(map[string]interface{})
-		//	success := receipt["success"].(bool)
-		//	if success {
-		//		panic("test stake less than min stake failed")
-		//	} else {
-		//		fmt.Println("test stake less then min stake succeed")
-		//	}
-		//}
-
 		// 3.3 add ssn once again
 		if err3, output := ExecZli("contract", "call",
-			"-k", pri2,
+			"-k", pri1,
 			"-a", proxy,
 			"-t", "add_ssn",
-			"-f", "true",
-			"-r", string(args)); err3 != nil {
-			panic("call transaction error: " + err3.Error())
-		} else {
-			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
-			receipt := payload["receipt"].(map[string]interface{})
-			success := receipt["success"].(bool)
-			if success {
-				panic("test add ssn twice failed")
-			} else {
-				fmt.Println("test add ssn twice succeed")
-			}
-		}
-
-		// 3.4 remove an nonexistent
-		parameters := []contract2.Value{
-			{
-				VName: "ssnaddr",
-				Type:  "ByStr20",
-				Value: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			},
-		}
-		args, _ := json.Marshal(parameters)
-		if err3, output := ExecZli("contract", "call",
-			"-k", pri2,
-			"-a", proxy,
-			"-t", "remove_ssn",
 			"-f", "true",
 			"-r", string(args)); err3 != nil {
 			panic("call transaction error: " + err3.Error())
@@ -229,13 +145,93 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 				if eventName == "SSN already exists" {
 					fmt.Println("test add ssn twice succeed")
 				} else {
-					panic("test add ssn twice failed")
+					panic("test add ssn twice succeed failed")
 				}
 			} else {
-				panic("test add ssn twice failed")
+				panic("test add ssn twice succeed failed")
 			}
 		}
 
+		// 3.4 remove an nonexistent
+		parameters := []contract2.Value{
+			{
+				VName: "ssnaddr",
+				Type:  "ByStr20",
+				Value: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+		}
+		args, _ := json.Marshal(parameters)
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri1,
+			"-a", proxy,
+			"-t", "remove_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			eventLogs := receipt["event_logs"].([]interface{})[0]
+			if success {
+				events := eventLogs.(map[string]interface{})
+				eventName := events["_eventname"].(string)
+				if eventName == "SSN doesn't exist" {
+					fmt.Println("test remove nonexistent ssn succeed")
+				} else {
+					panic("test remove nonexistent ssn failed")
+				}
+			} else {
+				panic("test remove nonexistent ssn failed")
+			}
+		}
+
+		// 4 remove with admin
+		// 4.1 change admin to pri2
+		err := p.updateAdmin(pri1, pri2)
+		if err != nil {
+			panic("change admin error: " + err.Error())
+		}
+
+		// 4.2 remove exist ssn
+		parameters = []contract2.Value{
+			{
+				VName: "ssnaddr",
+				Type:  "ByStr20",
+				Value: ssnaddr,
+			},
+		}
+		args, _ = json.Marshal(parameters)
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri2,
+			"-a", proxy,
+			"-t", "remove_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			if success {
+				res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+				r, _ := json.Marshal(res)
+				fmt.Println(string(r))
+				ssnList, _ := res["ssnlist"]
+				ssnMap := ssnList.(map[string]interface{})
+				ssn := ssnMap[ssnaddr]
+				if ssn == nil {
+					fmt.Println("test remove ssn succees")
+				} else {
+					fmt.Println("test remove ssn failed: check state failed")
+				}
+
+			} else {
+				panic("test remove ssn failed")
+			}
+		}
 	}
 
 	fmt.Println("------------------------ end   AddSSN ------------------------")
