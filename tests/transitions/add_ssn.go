@@ -25,7 +25,7 @@ func TestAddSSN(pri1, pri2 string, api string) {
 func (p *Proxy) AddSSN(pri1, pri2 string) {
 	// 1. as non-verifier, should fail
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	ssnaddr := "0xced263257fa2d12ed0d1fad74ac036162cec9876"
+	ssnaddr := "0x53e954391539f276c36a09167b795ab7e654fdb7"
 	parameters := []contract2.Value{
 		{
 			VName: "ssnaddr",
@@ -102,12 +102,14 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			if !ok {
 				panic("check state failed: no ssnlist")
 			}
-			lists, err := json.Marshal(sshList)
-			if err != nil {
-				panic("check list failed: " + err.Error())
+			ssn,ok := sshList.(map[string]interface{})[ssnaddr]
+			if !ok {
+				panic("check state failed: no such ssn")
 			}
-			fmt.Println(string(lists))
-
+			deposit := ssn.(map[string]interface{})["arguments"].([]interface{})[1].(string)
+			if deposit != "0" {
+				panic("check state failed: deposit not equal to zero")
+			}
 		} else {
 			panic("add ssn with verifier failed")
 		}
