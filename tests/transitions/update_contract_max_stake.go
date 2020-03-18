@@ -10,14 +10,14 @@ import (
 )
 
 func (p *Proxy) UpdateContractMaxStake(valid, invalid string) {
-	err := p.updateContractMaxStake(invalid)
+	err := p.updateContractMaxStake(invalid, "100000000000000000")
 	if err == nil {
 		panic("update contract max stake with invalid key failed")
 	}
 
 	fmt.Println("update contract max stake with invalid key succeed")
 
-	err2 := p.updateContractMaxStake(valid)
+	err2 := p.updateContractMaxStake(valid, "100000000000000000")
 	if err2 != nil {
 		panic("update contract max stake with valid key failed")
 	}
@@ -26,9 +26,9 @@ func (p *Proxy) UpdateContractMaxStake(valid, invalid string) {
 
 }
 
-func (p *Proxy) updateContractMaxStake(private string) error {
+//	stakeNum := "100000000000000000"
+func (p *Proxy) updateContractMaxStake(private string, stakeNum string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	stakeNum := "100000000000000000"
 	parameters := []contract2.Value{
 		{
 			VName: "max_stake",

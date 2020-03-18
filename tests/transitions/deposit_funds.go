@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-func (p *Proxy) TransferFunds(pri string) {
+func (p *Proxy) TransferFunds(pri, funds string) {
 	fmt.Println("------------------------ start transfer funds  ------------------------")
-	err := p.transferFunds(pri)
+	err := p.transferFunds(pri, funds)
 	if err != nil {
 		panic("test transfer funds failed")
 	} else {
@@ -19,7 +19,7 @@ func (p *Proxy) TransferFunds(pri string) {
 
 }
 
-func (p *Proxy) transferFunds(pri string) error {
+func (p *Proxy) transferFunds(pri, funds string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 	r := m["balance"].(string)
@@ -32,7 +32,7 @@ func (p *Proxy) transferFunds(pri string) error {
 		"-k", pri,
 		"-a", proxy,
 		"-t", "deposit_funds",
-		"-m", "10000",
+		"-m", funds,
 		"-f", "true",
 		"-r", "[]"); err2 != nil {
 		return errors.New("call transition error: " + err2.Error())

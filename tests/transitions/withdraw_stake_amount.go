@@ -1,0 +1,180 @@
+package transitions
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/Zilliqa/gozilliqa-sdk/bech32"
+	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
+	"strconv"
+	"strings"
+)
+
+// pri1 => admin
+// pri2 => operator
+func TestWithdrawStakeRewards(pri1, pri2, api string) {
+	fmt.Println("------------------------ start WithdrawStakeRewards ------------------------")
+	// 0. setup
+	err, proxy, impl := DeployAndUpgrade(pri1)
+	if err != nil {
+		panic("got error = " + err.Error())
+	}
+	fmt.Println("proxy = ", proxy)
+	fmt.Println("impl = ", impl)
+	p := NewProxy(api, proxy, impl)
+
+	//minstake := "10000000000000000000"
+	minstake := "100"
+
+	err = p.updateMinStake(pri1, minstake)
+	if err != nil {
+		panic("update min stake failed: " + err.Error())
+	}
+
+	err = p.updateMaxStake(pri1, "20000000000000000000")
+	if err != nil {
+		panic("update max stake failed: " + err.Error())
+	}
+
+	err = p.updateContractMaxStake(pri1, "700000000000000000000")
+	if err != nil {
+		panic("update contract max stake failed: " + err.Error())
+	}
+
+	// 1. no such ssn
+	err1, event := p.withdrawRewards(pri2)
+	if err1 != nil || event != "SSN doesn't exist" {
+		msg := ""
+		if err1 != nil {
+			msg = err1.Error()
+		}
+		panic("test withdraw stake rewards (no such ssn) failed" + msg)
+	} else {
+		fmt.Println("test withdraw stake rewards (no such ssn) succeed")
+	}
+
+	// 2
+	// 2.1 update verifier
+	err2 := p.updateVerifier(pri1)
+	if err2 != nil {
+		panic("test withdraw stake rewards failed: update verifier error: " + err2.Error())
+	}
+
+	// 2.2 add ssn
+	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
+	parameters := []contract2.Value{
+		{
+			VName: "ssnaddr",
+			Type:  "ByStr20",
+			Value: ssnaddr,
+		},
+		{
+			VName: "stake_amount",
+			Type:  "Uint128",
+			Value: "0",
+		},
+		{
+			VName: "rewards",
+			Type:  "Uint128",
+			Value: "0",
+		},
+		{
+			VName: "urlraw",
+			Type:  "String",
+			Value: "devapiziiliqacom",
+		},
+		{
+			VName: "urlapi",
+			Type:  "String",
+			Value: "ziiliqacom",
+		},
+		{
+			VName: "buffered_deposit",
+			Type:  "Uint128",
+			Value: "0",
+		},
+	}
+	args, _ := json.Marshal(parameters)
+	if err2, output := ExecZli("contract", "call",
+		"-k", pri1,
+		"-a", proxy,
+		"-t", "add_ssn",
+		"-f", "true",
+		"-r", string(args)); err2 != nil {
+		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		if success {
+			fmt.Println("test withdraw stake rewards failed: add ssn succeed")
+		} else {
+			panic("test withdraw stake rewards failed: add ssn failed")
+		}
+	}
+
+	// 2.3 stake deposit
+	m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+	r := m["balance"].(string)
+	old, err := strconv.ParseInt(r, 10, 64)
+	if err != nil {
+		panic("test withdraw stake rewards failed: parse balance error: " + err.Error())
+	}
+	if err2, output := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-f", "true",
+		"-m", minstake,
+		"-r", "[]"); err2 != nil {
+		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	} else {
+		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+		r := m["balance"].(string)
+		newbalance, err := strconv.ParseInt(r, 10, 64)
+		if err != nil {
+			panic("test withdraw stake rewards failed: parse balance error: " + err.Error())
+		}
+		delta := newbalance - old
+		d := strconv.FormatInt(delta, 10)
+		if d != minstake {
+			panic("test withdraw stake rewards failed: check state failed")
+		} else {
+			fmt.Println("test withdraw stake rewards succeed")
+		}
+	}
+
+	// 2.4 deposit fund
+	err = p.transferFunds(pri1, "10000")
+	if err != nil {
+		panic("deposit funds failed: " + err.Error())
+	}
+
+}
+
+func (p *Proxy) withdrawRewards(operator string) (error, string) {
+	proxy, _ := bech32.ToBech32Address(p.Addr)
+	if err2, output := ExecZli("contract", "call",
+		"-k", operator,
+		"-a", proxy,
+		"-t", "withdraw_stake_rewards",
+		"-f", "true",
+		"-r", "[]"); err2 != nil {
+		return errors.New("call transition error: " + err2.Error()), ""
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		if success {
+			eventLogs := receipt["event_logs"].([]interface{})[0].(map[string]interface{})
+			eventName := eventLogs["_eventname"].(string)
+			return nil, eventName
+		} else {
+			return errors.New("transaction failed"), ""
+		}
+	}
+}

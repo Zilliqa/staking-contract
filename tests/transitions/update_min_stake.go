@@ -10,14 +10,14 @@ import (
 )
 
 func (p *Proxy) UpdateMinStake(valid, invalid string) {
-	err := p.updateMinStake(invalid)
+	err := p.updateMinStake(invalid,"1000000000")
 	if err == nil {
 		panic("update min stake with invalid key failed")
 	}
 
 	fmt.Println("update min stake with invalid key succeed")
 
-	err2 := p.updateMinStake(valid)
+	err2 := p.updateMinStake(valid,"1000000000")
 	if err2 != nil {
 		panic("update min stake with valid key failed")
 	}
@@ -26,9 +26,8 @@ func (p *Proxy) UpdateMinStake(valid, invalid string) {
 
 }
 
-func (p *Proxy) updateMinStake(private string) error {
+func (p *Proxy) updateMinStake(private string, stakeNum string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	stakeNum := "1000000000"
 	parameters := []contract2.Value{
 		{
 			VName: "min_stake",
