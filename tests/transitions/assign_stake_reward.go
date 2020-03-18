@@ -31,15 +31,19 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	ssn1 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri1))
 	ssn2 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 
-	// 1. assign ssn, should fail
-	err1 := p.assignStakeReward(pri1, ssn1,"500000")
+	// 1. assign ssn1, should fail
+	err1 := p.assignStakeReward(pri1, ssn1, "50")
 	if err1 != nil {
 		panic("test assign stake with non-ssn reward failed")
 	} else {
-		fmt.Println("test assign stake with non-ssn reward succeed")
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
-		fmt.Println(res)
-		//todo
+		sshmap := res["ssnlist"].(map[string]interface{})
+		ssn := sshmap[ssn1]
+		if ssn == nil {
+			fmt.Println("test assign stake with non-ssn reward succeed")
+		} else {
+			panic("test assign stake with non-ssn reward failed")
+		}
 	}
 
 	// 2. add ssn1, ssn2
@@ -52,7 +56,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		{
 			VName: "stake_amount",
 			Type:  "Uint128",
-			Value: "0",
+			Value: "100000000000",
 		},
 		{
 			VName: "rewards",
@@ -104,7 +108,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		{
 			VName: "stake_amount",
 			Type:  "Uint128",
-			Value: "0",
+			Value: "100000000000",
 		},
 		{
 			VName: "rewards",
@@ -148,22 +152,63 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	}
 
 	// 3. reward ssn1
-	err = p.assignStakeReward(pri1, ssn1,"500000")
+	err = p.assignStakeReward(pri1, ssn1, "50")
 	if err != nil {
 		panic("reward ssn1 failed: " + err.Error())
 	}
 	res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
-	fmt.Println(res)
-	// todo
+	sshmap := res["ssnlist"].(map[string]interface{})
+	ssn := sshmap[ssn1]
+	if ssn == nil {
+		panic("reward ssn1 failed")
+	} else {
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
+		if arguments != "50000000000" {
+			panic("reward ssn1 failed: state check error")
+		} else {
+			fmt.Println("reward ssn1 succeed")
+		}
+	}
+
+	ssn = sshmap[ssn2]
+	if ssn == nil {
+		panic("_reward ssn2 failed")
+	} else {
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
+		if arguments == "0" {
+			fmt.Println("reward ssn2 succeed")
+		} else {
+			panic("_reward ssn2 failed: state check error")
+		}
+	}
+
+	// 4. reward ssn2
+	err = p.assignStakeReward(pri1, ssn2, "50")
+	if err != nil {
+		panic("reward ssn1 failed: " + err.Error())
+	}
+	res = p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+	sshmap = res["ssnlist"].(map[string]interface{})
+	ssn = sshmap[ssn2]
+	if ssn == nil {
+		panic("reward ssn2 failed")
+	} else {
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
+		if arguments != "50000000000" {
+			panic("reward ssn2 failed: state check error")
+		} else {
+			fmt.Println("reward ssn2 succeed")
+		}
+	}
 }
 
-func (p *Proxy) assignStakeReward(pri, ssn, rewards string) error {
+func (p *Proxy) assignStakeReward(pri, ssn, percent string) error {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	val := []Val{
 		{
 			Constructor: "SsnRewardShare",
 			ArgTypes:    make([]interface{}, 0),
-			Arguments:   []string{ssn, rewards},
+			Arguments:   []string{ssn, percent},
 		},
 	}
 	parameters := []contract2.Value{
