@@ -162,8 +162,8 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	if ssn == nil {
 		panic("reward ssn1 failed")
 	} else {
-		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
-		if arguments != "50000000000" {
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
+		if arguments != "5000" {
 			panic("reward ssn1 failed: state check error")
 		} else {
 			fmt.Println("reward ssn1 succeed")
@@ -174,7 +174,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	if ssn == nil {
 		panic("_reward ssn2 failed")
 	} else {
-		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
 		if arguments == "0" {
 			fmt.Println("reward ssn2 succeed")
 		} else {
@@ -193,8 +193,8 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	if ssn == nil {
 		panic("reward ssn2 failed")
 	} else {
-		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[5].(string)
-		if arguments != "50000000000" {
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
+		if arguments != "5000" {
 			panic("reward ssn2 failed: state check error")
 		} else {
 			fmt.Println("reward ssn2 succeed")
