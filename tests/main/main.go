@@ -64,8 +64,12 @@ func main() {
 	p.UpdateContractMaxStake(pri1, pri2)
 
 	// test deposit
-	p.TransferFunds(pri1)
+	p.TransferFunds(pri1,"5000")
 
 	// test AddSSN
 	transitions.TestAddSSN(pri1, pri2, api)
+
+	transitions.TestWithdrawStakeRewards(pri1, pri2, api)
+
+	transitions.TestAssignStakeReward(pri1, pri2, api)
 }

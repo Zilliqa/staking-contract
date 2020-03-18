@@ -176,7 +176,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	} else {
 		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
 		if arguments == "0" {
-			fmt.Println("reward ssn2 succeed")
+			fmt.Println("_reward ssn2 succeed")
 		} else {
 			panic("_reward ssn2 failed: state check error")
 		}
@@ -185,7 +185,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	// 4. reward ssn2
 	err = p.assignStakeReward(pri1, ssn2, "50")
 	if err != nil {
-		panic("reward ssn1 failed: " + err.Error())
+		panic("reward ssn2 failed: " + err.Error())
 	}
 	res = p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 	sshmap = res["ssnlist"].(map[string]interface{})

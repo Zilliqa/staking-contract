@@ -43,8 +43,9 @@ func (p *Proxy) transferFunds(pri, funds string) error {
 		if err != nil {
 			return errors.New("parse balance error: " + err.Error())
 		}
-		delta := newbalance - old
-		if delta != 10000 {
+		d := newbalance - old
+		delta := strconv.FormatInt(d, 10)
+		if delta != funds {
 			return errors.New("check state failed")
 		} else {
 			return nil

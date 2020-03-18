@@ -25,8 +25,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	fmt.Println("impl = ", impl)
 	p := NewProxy(api, proxy, impl)
 
-	//minstake := "10000000000000000000"
-	minstake := "100"
+	minstake := "100000000000"
 
 	err = p.updateMinStake(pri1, minstake)
 	if err != nil {
@@ -110,7 +109,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if success {
-			fmt.Println("test withdraw stake rewards failed: add ssn succeed")
+			fmt.Println("test withdraw stake rewards succeed: add ssn succeed")
 		} else {
 			panic("test withdraw stake rewards failed: add ssn failed")
 		}
@@ -123,7 +122,116 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	if err != nil {
 		panic("test withdraw stake rewards failed: parse balance error: " + err.Error())
 	}
-	if err2, output := ExecZli("contract", "call",
+
+	if err2, _ := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-f", "true",
+		"-m", minstake,
+		"-r", "[]"); err2 != nil {
+		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	} else {
+		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+		r := m["balance"].(string)
+		newbalance, err := strconv.ParseInt(r, 10, 64)
+		if err != nil {
+			panic("test withdraw stake rewards failed: parse balance error: " + err.Error())
+		}
+		delta := newbalance - old
+		d := strconv.FormatInt(delta, 10)
+		if d != minstake {
+			panic("test withdraw stake rewards failed: check state failed")
+		} else {
+			fmt.Println("test withdraw stake rewards succeed: stake deposit succeed")
+		}
+	}
+
+	// 2.4 deposit fund(rewards)
+	err = p.transferFunds(pri1, "5000")
+	if err != nil {
+		panic("deposit funds failed: " + err.Error())
+	}
+
+	// 2.5 reward
+	err = p.assignStakeReward(pri1, ssnaddr, "50")
+	if err != nil {
+		panic("reward failed: " + err.Error())
+	}
+
+	// 2.6 withdraw 100000000000 and rewards
+	parameters = []contract2.Value{
+		{
+			VName: "amount",
+			Type:  "Uint128",
+			Value: "100000000000",
+		},
+	}
+	args, _ = json.Marshal(parameters)
+	if err2, _ := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "withdraw_stake_amount",
+		"-f", "true",
+		"-r", string(args)); err2 != nil {
+		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	} else {
+		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+		j, _ := json.Marshal(res)
+		fmt.Println(string(j))
+		balance := res["_balance"].(string)
+		ssnmap := res["ssnlist"].(map[string]interface{})
+		ssn := ssnmap[ssnaddr]
+		if ssn != nil && balance == "5000" {
+			fmt.Println("test withdraw all succeed")
+		} else {
+			panic("test withdraw all failed: state check failed")
+		}
+	}
+
+	if err2, _ := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "withdraw_stake_rewards",
+		"-f", "true",
+		"-r", "[]"); err2 != nil {
+		panic("test withdraw stake rewards failed: withdraw rewards error: " + err2.Error())
+	} else {
+		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+		j, _ := json.Marshal(res)
+		fmt.Println(string(j))
+		ssnmap := res["ssnlist"].(map[string]interface{})
+		ssn := ssnmap[ssnaddr]
+		if ssn != nil {
+			// todo active status
+			fmt.Println("test withdraw stake rewards succeed")
+		} else {
+			panic("test withdraw stake rewards failed: check ssn list state failed")
+		}
+	}
+
+	// 2.7 add ssn
+	//if err2, output := ExecZli("contract", "call",
+	//	"-k", pri1,
+	//	"-a", proxy,
+	//	"-t", "add_ssn",
+	//	"-f", "true",
+	//	"-r", string(args)); err2 != nil {
+	//	panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	//} else {
+	//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+	//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+	//	receipt := payload["receipt"].(map[string]interface{})
+	//	success := receipt["success"].(bool)
+	//	if success {
+	//		fmt.Println("test withdraw stake rewards succeed: add ssn succeed")
+	//	} else {
+	//		panic("test withdraw stake rewards failed: add ssn failed")
+	//	}
+	//}
+
+	// 2.8 deposit stake
+	if err2, _ := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
@@ -147,10 +255,42 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		}
 	}
 
-	// 2.4 deposit fund
-	err = p.transferFunds(pri1, "10000")
+	// 2.4 deposit fund(rewards)
+	err = p.transferFunds(pri1, "5000")
 	if err != nil {
 		panic("deposit funds failed: " + err.Error())
+	}
+
+	// 2.5 reward
+	err = p.assignStakeReward(pri1, ssnaddr, "50")
+	if err != nil {
+		panic("reward failed: " + err.Error())
+	}
+
+	// 2.9 withdraw rewards
+	if err2, _ := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "withdraw_stake_rewards",
+		"-f", "true",
+		"-r", "[]"); err2 != nil {
+		panic("test withdraw stake rewards failed: withdraw rewards error: " + err2.Error())
+	} else {
+		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+		j, _ := json.Marshal(res)
+		fmt.Println(string(j))
+		ssnmap := res["ssnlist"].(map[string]interface{})
+		ssn := ssnmap[ssnaddr]
+		if ssn == nil {
+			panic("test withdraw stake rewards failed: check ssn list state failed")
+		} else {
+			arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
+			if arguments == "0" {
+				fmt.Println("test withdraw stake rewards succeed")
+			} else {
+				panic("test withdraw stake rewards failed: check ssn rewards failed")
+			}
+		}
 	}
 
 }
