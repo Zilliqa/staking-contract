@@ -27,7 +27,7 @@ Transfer some zils your account before making any transaction.
 If you already have one with zils, then can use that private key to init your wallet config:
 
 ```shell script
-zli wallet init -p your_private_key
+zli wallet from -p your_private_key
 ```
 
 Above two commands will generate a file located at ~/.zilliqa, try to edit it directly if you want to change api url or chain
