@@ -116,8 +116,8 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			}
 
 			inactive := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"]
-			if inactive != "True" {
-				panic("test add ssn with verifier failed check state failed: deposit not active")
+			if inactive == "True" {
+				panic("test add ssn with verifier failed check state failed: deposit are active,should be inactive")
 			} else {
 				fmt.Println("test add ssn with verifier succeed")
 			}
