@@ -18,8 +18,9 @@ import (
 // preset scenarios before testing stake_deposit
 // adjust the values according to values in updateMinStake() and updateMaxStake() calls
 const (
-	MAX_STAKE = 5000000000
-	MIN_STAKE = 1000000000
+	CONTRACT_MAX_STAKE = 100000000000000000
+	MAX_STAKE          = 5000000000
+	MIN_STAKE          = 1000000000
 )
 
 func TestStakeDeposit(pri1, pri2 string, api string) {
@@ -30,11 +31,13 @@ func TestStakeDeposit(pri1, pri2 string, api string) {
 	}
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
+	// proxy := "3314b0525d05ba6aab0e97f31dad4b1b23b661c7"
+	// impl := "b3ba7e04ddd20b099267ba9fc8a6daa447443962"
 	p := NewProxy(api, proxy, impl)
-	p.StakeDeposit(pri1, pri2)
+	p.StakeDeposit(pri1, pri2, api)
 }
 
-func (p *Proxy) StakeDeposit(pri1, pri2 string) {
+func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 	// 0. setup minstake maxstake contractmaxstake
 	err := p.updateContractMaxStake(pri1)
 	if err != nil {
@@ -55,6 +58,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string) {
 
 	// 1. non-ssn transfer min_stake amount into contract
 	proxy, _ := bech32.ToBech32Address(p.Addr)
+	// proxy := "zil1xv2tq5jaqkax42cwjle3mt2trv3mvcw8tu7g27"
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
@@ -75,16 +79,14 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string) {
 			if eventName == "SSN doesn't exist" {
 				fmt.Println("test stake deposit non-registered ssn succeed")
 			} else {
-				panic("test stake deposit non-registered ssn failed")
+				panic("test stake deposit non-registered ssn failed, tx:" + tx)
 			}
 		} else {
-			panic("test stake deposit non-registered ssn failed")
+			panic("test stake deposit non-registered ssn failed, tx:" + tx)
 		}
 	}
 
 	// 2. as ssn1 (pri2), add amount below min stake
-	// must perform add_ssn first
-
 	// 2.1. add pri2 as ssn
 	p.RegisterSSN(pri1, pri2)
 
@@ -110,10 +112,10 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string) {
 			if eventName == "SSN stake deposit below min_stake limit" {
 				fmt.Println("test stake deposit below min stake limit succeed")
 			} else {
-				panic("test stake deposit below min stake limit failed")
+				panic("test stake deposit below min stake limit failed, tx:" + tx)
 			}
 		} else {
-			panic("test stake deposit below min stake limit error")
+			panic("test stake deposit below min stake limit error, tx:" + tx)
 		}
 	}
 
@@ -146,50 +148,151 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string) {
 	}
 
 	// 4. as ssn, first time stake deposit (MIN_STAKE + 1)
-	// NO SUCCESS OR FAIL EVENT?
-	// if err3, output := ExecZli("contract", "call",
-	// 	"-k", pri2,
-	// 	"-a", proxy,
-	// 	"-t", "stake_deposit",
-	// 	"-m", strconv.Itoa(MIN_STAKE+1),
-	// 	"-f", "true",
-	// 	"-r", "[]"); err3 != nil {
-	// 	panic("call transaction error: " + err3.Error())
-	// } else {
-	// 	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-	// 	fmt.Println(tx)
-	// 	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
-	// 	receipt := payload["receipt"].(map[string]interface{})
-	// 	success := receipt["success"].(bool)
-	// 	eventLogs := receipt["event_logs"].([]interface{})[0]
-	// 	if success {
-	// 		events := eventLogs.(map[string]interface{})
-	// 		eventName := events["_eventname"].(string)
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MIN_STAKE+1),
+		"-f", "true",
+		"-r", "[]"); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println(tx)
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		eventLogs := receipt["event_logs"].([]interface{})[0]
+		if success {
+			events := eventLogs.(map[string]interface{})
+			eventName := events["_eventname"].(string)
 
-	// 		if eventName == "SSN updated stake" {
-	// 			ssnAddr := events["ssn_address"].(string)
-	// 			newStakeAmount := events["new_stake_amount"].(string)
-	// 			expectedSSNAddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
-	// 			expectedStakeAmount := strconv.Itoa(MIN_STAKE + 1)
+			if eventName == "SSN updated stake" {
+				ssnAddr := events["params"].([]interface{})[0].(map[string]interface{})["value"].(string)
+				newStakeAmount := events["params"].([]interface{})[1].(map[string]interface{})["value"].(string)
+				expectedSSNAddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
+				expectedStakeAmount := strconv.Itoa(MIN_STAKE + 1)
 
-	// 			if ssnAddr != expectedSSNAddr {
-	// 				panic("test first time stake deposit failed, tx:" + tx + " , returned ssn: " + ssnAddr + " , expected ssn: " + expectedSSNAddr)
-	// 			}
-	// 			if newStakeAmount != expectedStakeAmount {
-	// 				panic("test first time stake deposit failed, tx:" + tx + " , returned stake amount: " + newStakeAmount + " , expected stake amount: " + expectedStakeAmount)
-	// 			}
-	// 			fmt.Println("test first time stake deposit succeed")
-	// 		} else {
-	// 			panic("test first time stake deposit failed, tx:" + tx)
-	// 		}
-	// 	} else {
-	// 		panic("test stake deposit below min stake limit error, tx:" + tx)
-	// 	}
-	// }
+				if ssnAddr != expectedSSNAddr {
+					panic("test first time stake deposit failed, tx:" + tx + " , returned ssn: " + ssnAddr + " , expected ssn: " + expectedSSNAddr)
+				}
+				if newStakeAmount != expectedStakeAmount {
+					panic("test first time stake deposit failed, tx:" + tx + " , returned stake amount: " + newStakeAmount + " , expected stake amount: " + expectedStakeAmount)
+				}
 
-	// 5. as ssn, after first time deposit, deposit max_stake + 1
+				// check ssn active status
+				res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+				ssnmap := res["ssnlist"].(map[string]interface{})
+				ssn := ssnmap[ssnAddr]
+
+				if ssn == nil {
+					panic("test first time stake deposit failed, tx:" + tx)
+				} else {
+					ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
+					if ssnStatus == "True" {
+						fmt.Println("test first time stake deposit succeed")
+					} else {
+						panic("test first time stake deposit failed, tx:" + tx)
+					}
+				}
+
+			} else {
+				panic("test first time stake deposit failed, tx:" + tx)
+			}
+		} else {
+			panic("test stake deposit below min stake limit error, tx:" + tx)
+		}
+	}
+
+	// 5. as ssn, after first time deposit, deposit contract_max_stake + 1
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MAX_STAKE+1),
+		"-f", "true",
+		"-r", "[]"); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		eventLogs := receipt["event_logs"].([]interface{})[0]
+		if success {
+			events := eventLogs.(map[string]interface{})
+			eventName := events["_eventname"].(string)
+
+			if eventName == "SSN stake deposit above max_stake limit" {
+				// check ssn active status
+				res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+				ssnmap := res["ssnlist"].(map[string]interface{})
+				ssnAddr := events["params"].([]interface{})[0].(map[string]interface{})["value"].(string)
+				ssn := ssnmap[ssnAddr]
+
+				if ssn == nil {
+					panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
+				} else {
+					ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
+					if ssnStatus == "True" {
+						fmt.Println("test stake deposit (after first time deposit) above max stake limit succeed")
+					} else {
+						panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
+					}
+				}
+
+			} else {
+				panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
+			}
+		} else {
+			panic("test stake deposit (after first time deposit) above max stake limit error, tx:" + tx)
+		}
+	}
 
 	// 6. as ssn1, after first time deposit, deposit min_stake + 1
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MIN_STAKE+1),
+		"-f", "true",
+		"-r", "[]"); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		if success {
+			// no event output after the first time stake deposit
+			// check ssn active status
+			res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+			totalStakeDeposit := res["totalstakedeposit"].(string)
+			expectedTotalStakeDeposit := strconv.Itoa((MIN_STAKE + 1) * 2)
+			ssnmap := res["ssnlist"].(map[string]interface{})
+			ssnAddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
+			ssn := ssnmap[ssnAddr]
+
+			// this is the second time depositing (min stake + 1)
+			if totalStakeDeposit != expectedTotalStakeDeposit {
+				panic("test stake deposit (after first time deposit) failed, tx:" + tx + " , total stake deposit:" + totalStakeDeposit + " , expected:" + expectedTotalStakeDeposit)
+			}
+
+			if ssn == nil {
+				panic("test stake deposit (after first time deposit) error, tx:" + tx)
+			} else {
+				ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
+				if ssnStatus == "True" {
+					fmt.Println("test stake deposit (after first time deposit) succeed")
+				} else {
+					panic("test stake deposit (after first time deposit) error, tx:" + tx)
+				}
+			}
+
+		} else {
+			panic("test stake deposit (after first time deposit) error, tx:" + tx)
+		}
+	}
 
 	fmt.Println("------------------------ end StakeDeposit ------------------------")
 }
