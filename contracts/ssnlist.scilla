@@ -309,12 +309,10 @@ transition add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128
     e = mk_ssn_already_exists_event ssnaddr;
     event e
   | False =>
-    status = bool_active;
     pass = builtin eq stake_amount uint128_zero;
+    (* set status as inactive if stake_amount is 0 *)
+    status = negb pass;
     match pass with
-    | True =>
-      (* stake amount is 0, so set status as inactive *)
-      status = bool_inactive
     | False =>
       (* Update the total stake deposit *)
       totalstakedeposit_l <- totalstakedeposit;
