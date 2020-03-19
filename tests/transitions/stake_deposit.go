@@ -17,16 +17,10 @@ import (
 
 // preset scenarios before testing stake_deposit
 // adjust the values according to values in updateMinStake() and updateMaxStake() calls
-<<<<<<< HEAD
 // set the contract max stake to be lesser than max stake on purpose to trigger the above contract max stake event
 const (
 	CONTRACT_MAX_STAKE = 3000000000
 	MAX_STAKE          = 4000000000
-=======
-const (
-	CONTRACT_MAX_STAKE = 100000000000000000
-	MAX_STAKE          = 5000000000
->>>>>>> 77dea69290df979bdd0d1e4b9be5494442d1d5a6
 	MIN_STAKE          = 1000000000
 )
 
@@ -38,18 +32,12 @@ func TestStakeDeposit(pri1, pri2 string, api string) {
 	}
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
-<<<<<<< HEAD
-=======
-	// proxy := "3314b0525d05ba6aab0e97f31dad4b1b23b661c7"
-	// impl := "b3ba7e04ddd20b099267ba9fc8a6daa447443962"
->>>>>>> 77dea69290df979bdd0d1e4b9be5494442d1d5a6
 	p := NewProxy(api, proxy, impl)
 	p.StakeDeposit(pri1, pri2, api)
 }
 
 func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 	// 0. setup minstake maxstake contractmaxstake
-<<<<<<< HEAD
 	err := p.updateContractMaxStake(pri1, strconv.Itoa(CONTRACT_MAX_STAKE))
 	if err != nil {
 		panic("update contract max stake failed: " + err.Error())
@@ -59,17 +47,6 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("update min stake failed: " + err.Error())
 	}
 	err = p.updateMaxStake(pri1, strconv.Itoa(MAX_STAKE))
-=======
-	err := p.updateContractMaxStake(pri1)
-	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
-	}
-	err = p.updateMinStake(pri1)
-	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
-	err = p.updateMaxStake(pri1)
->>>>>>> 77dea69290df979bdd0d1e4b9be5494442d1d5a6
 	if err != nil {
 		panic("update max stake failed: " + err.Error())
 	}
@@ -80,11 +57,6 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 
 	// 1. non-ssn transfer min_stake amount into contract
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-<<<<<<< HEAD
-
-=======
-	// proxy := "zil1xv2tq5jaqkax42cwjle3mt2trv3mvcw8tu7g27"
->>>>>>> 77dea69290df979bdd0d1e4b9be5494442d1d5a6
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
@@ -320,7 +292,6 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		}
 	}
 
-<<<<<<< HEAD
 	// 7. as ssn, after second time, deposit (MAX_STAKE) - 1
 	// current contract state deposit: (MIN_STAKE+1)*2 + (MAX_STAKE-1)
 	// invoke CONTRACT_MAX_STAKE
@@ -351,8 +322,6 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		}
 	}
 
-=======
->>>>>>> 77dea69290df979bdd0d1e4b9be5494442d1d5a6
 	fmt.Println("------------------------ end StakeDeposit ------------------------")
 }
 
