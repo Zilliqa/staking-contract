@@ -17,9 +17,10 @@ import (
 
 // preset scenarios before testing stake_deposit
 // adjust the values according to values in updateMinStake() and updateMaxStake() calls
+// set the contract max stake to be lesser than max stake on purpose to trigger the above contract max stake event
 const (
-	CONTRACT_MAX_STAKE = 100000000000000000
-	MAX_STAKE          = 5000000000
+	CONTRACT_MAX_STAKE = 3000000000
+	MAX_STAKE          = 4000000000
 	MIN_STAKE          = 1000000000
 )
 
@@ -31,23 +32,21 @@ func TestStakeDeposit(pri1, pri2 string, api string) {
 	}
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
-	// proxy := "3314b0525d05ba6aab0e97f31dad4b1b23b661c7"
-	// impl := "b3ba7e04ddd20b099267ba9fc8a6daa447443962"
 	p := NewProxy(api, proxy, impl)
 	p.StakeDeposit(pri1, pri2, api)
 }
 
 func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 	// 0. setup minstake maxstake contractmaxstake
-	err := p.updateContractMaxStake(pri1)
+	err := p.updateContractMaxStake(pri1, strconv.Itoa(CONTRACT_MAX_STAKE))
 	if err != nil {
 		panic("update contract max stake failed: " + err.Error())
 	}
-	err = p.updateMinStake(pri1)
+	err = p.updateMinStake(pri1, strconv.Itoa(MIN_STAKE))
 	if err != nil {
 		panic("update min stake failed: " + err.Error())
 	}
-	err = p.updateMaxStake(pri1)
+	err = p.updateMaxStake(pri1, strconv.Itoa(MAX_STAKE))
 	if err != nil {
 		panic("update max stake failed: " + err.Error())
 	}
@@ -58,7 +57,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 
 	// 1. non-ssn transfer min_stake amount into contract
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	// proxy := "zil1xv2tq5jaqkax42cwjle3mt2trv3mvcw8tu7g27"
+
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
@@ -291,6 +290,36 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 
 		} else {
 			panic("test stake deposit (after first time deposit) error, tx:" + tx)
+		}
+	}
+
+	// 7. as ssn, after second time, deposit (MAX_STAKE) - 1
+	// current contract state deposit: (MIN_STAKE+1)*2 + (MAX_STAKE-1)
+	// invoke CONTRACT_MAX_STAKE
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri2,
+		"-a", proxy,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MIN_STAKE+1),
+		"-f", "true",
+		"-r", "[]"); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		eventLogs := receipt["event_logs"].([]interface{})[0]
+		if success {
+			events := eventLogs.(map[string]interface{})
+			eventName := events["_eventname"].(string)
+			if eventName == "SSN stake deposit will result in contract stake deposit go above limit" {
+				fmt.Println("test stake deposit above contract max stake limit succeed")
+			} else {
+				panic("test stake deposit above contract max stake limit failed, tx:" + tx)
+			}
+		} else {
+			panic("test stake deposit above contract max stake limit error, tx:" + tx)
 		}
 	}
 
