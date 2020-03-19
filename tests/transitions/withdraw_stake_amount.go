@@ -22,7 +22,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	fmt.Println("impl = ", impl)
 	p := NewProxy(api, proxy, impl)
 
-	minstake := "1000"
+	minstake := "100000000000"
 
 	err = p.updateMinStake(pri1, minstake)
 	if err != nil {
@@ -133,11 +133,11 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		if d != minstake {
 			panic("test withdraw amount failed: check state failed")
 		} else {
-			fmt.Println("test withdraw amount failed: stake deposit succeed")
+			fmt.Println("test withdraw amount succeed: stake deposit succeed")
 		}
 	}
 
-	// 3. deposit again
+	// 3. deposit again to gain buffered deposit
 	m = p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 	r = m["balance"].(string)
 	old, err = strconv.ParseInt(r, 10, 64)
@@ -165,16 +165,41 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		}
 	}
 
-
 	// 4. withdraw
-	err2, event2 := p.withdrawAmount(pri2, minstake)
-	fmt.Println(err2.Error())
-	fmt.Println(event2)
+	_, event2 := p.withdrawAmount(pri2, minstake)
 	if event2 == "SSN withdrawal not allowed when some deposit is bufferred" {
 		fmt.Println("test withdraw amount (no such ssn) succeed")
 	} else {
 		panic("test withdraw amount (no such ssn) failed: event error")
 	}
+
+	// 5 use assign reward to make buffered deposit complete
+	err3 := p.assignStakeReward(pri1, ssnaddr, "50")
+	if err3 != nil {
+		panic("assign reward failed")
+	}
+	m = p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+	j, _ := json.Marshal(m)
+	fmt.Println(string(j))
+
+	// 6 withdraw reward
+	err, event = p.withdrawRewards(pri2)
+	if err != nil || event != "SSN withdraw reward" {
+		fmt.Println("err: " + err.Error())
+		fmt.Println("event: " + event)
+		panic("withdraw reward error")
+	} else {
+		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+		ssnmap := res["ssnlist"].(map[string]interface{})
+		ssn := ssnmap[ssnaddr]
+		arguments := ssn.(map[string]interface{})["arguments"].([]interface{})[2].(string)
+		if arguments == "0" {
+			fmt.Println("withdraw reward succeed")
+		} else {
+			panic("withdraw reward error: rewards should be 0")
+		}
+	}
+
 	fmt.Println("------------------------ end TestWithdrawAamount ------------------------")
 
 }

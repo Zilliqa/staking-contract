@@ -1,5 +1,7 @@
 scilla_version 0
 
+import BoolUtils
+
 library SSNList
 
 let one_msg =
@@ -109,6 +111,7 @@ type SsnRewardShare =
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
+
 
 contract SSNList(
   init_admin : ByStr20,
@@ -313,6 +316,7 @@ transition add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128
     (* set status as inactive if stake_amount is 0 *)
     status = negb pass;
     match pass with
+    | True =>
     | False =>
       (* Update the total stake deposit *)
       totalstakedeposit_l <- totalstakedeposit;

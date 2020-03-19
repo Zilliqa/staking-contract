@@ -74,4 +74,6 @@ func main() {
 	transitions.TestWithdrawStakeRewards(pri1, pri2, api)
 
 	transitions.TestAssignStakeReward(pri1, pri2, api)
+
+	transitions.TestWithdrawAmount(pri1,pri2,api)
 }
