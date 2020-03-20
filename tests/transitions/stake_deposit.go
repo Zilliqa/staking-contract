@@ -25,7 +25,7 @@ const (
 )
 
 func TestStakeDeposit(pri1, pri2 string, api string) {
-	// fmt.Println("------------------------ start stakeDeposit ------------------------")
+	fmt.Println("------------------------ start stakeDeposit ------------------------")
 	err, proxy, impl := DeployAndUpgrade(pri1)
 	if err != nil {
 		panic("got error = " + err.Error())
