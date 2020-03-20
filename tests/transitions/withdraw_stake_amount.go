@@ -22,7 +22,12 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	fmt.Println("impl = ", impl)
 	p := NewProxy(api, proxy, impl)
 
-	minstake := "100000000000"
+	min := 100000000000
+	half := 50000000000
+	minstake := strconv.FormatInt(int64(min), 10)
+	halfstake := strconv.FormatInt(int64(half), 10)
+	therestake := strconv.FormatInt(int64(min*3), 10)
+	onehalfstake := strconv.FormatInt(int64(min+half), 10)
 
 	err = p.updateMinStake(pri1, minstake)
 	if err != nil {
@@ -161,7 +166,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		if d != minstake {
 			panic("test withdraw amount failed: check state failed")
 		} else {
-			fmt.Println("test withdraw amount failed: stake deposit succeed")
+			fmt.Println("test withdraw amount succeed: stake deposit succeed")
 		}
 	}
 
@@ -182,6 +187,12 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	j, _ := json.Marshal(m)
 	fmt.Println(string(j))
 
+	// deposit rewards
+	err = p.transferFunds(pri1, "5000")
+	if err != nil {
+		panic("transfer funds failed")
+	}
+
 	// 6 withdraw reward
 	err, event = p.withdrawRewards(pri2)
 	if err != nil || event != "SSN withdraw reward" {
@@ -200,8 +211,49 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		}
 	}
 
-	fmt.Println("------------------------ end TestWithdrawAamount ------------------------")
+	// 7 withdraw 3 * min stake: emit above error
+	_, event = p.withdrawAmount(pri2, therestake)
+	if event != "SSN withdrawal above stake" {
+		fmt.Println("event: " + event)
+		panic("withdraw amount failed: should emit above error")
+	} else {
+		fmt.Println("withdraw amount succeed: should emit above error")
+	}
 
+	// 8 withdraw 1.5 * min stake: emit below error
+	_, event8 := p.withdrawAmount(pri2, onehalfstake)
+	if event8 != "SSN withdrawal below min_stake limit" {
+		fmt.Println("event: " + event8)
+		panic("withdraw amount failed: should emit below error")
+	} else {
+		fmt.Println("withdraw amount succeed: should emit below error")
+	}
+
+	// 9 withdraw half min stake: remain 1.5 min stake
+	err9, _ := p.withdrawAmount(pri2, halfstake)
+	if err9 != nil {
+		fmt.Println("err: " + err9.Error())
+		panic("withdraw amount failed: should remain 1.5 min stake")
+	} else {
+		fmt.Println("withdraw amount succeed: should remain 1.5 min stake")
+	}
+
+	// 10 withdraw the rest one and half: should be removed
+	err10, _ := p.withdrawAmount(pri2, onehalfstake)
+	if err10 != nil {
+		fmt.Println("err: " + err10.Error())
+		//panic("withdraw amount failed: should remain 1.5 min stake")
+	} else {
+		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+		ssnmap := res["ssnlist"].(map[string]interface{})
+		ssn := ssnmap[ssnaddr]
+		if ssn == nil {
+			fmt.Println("withdraw amount succeed: should be removed")
+		} else {
+			panic("withdraw amount failed: should be removed")
+		}
+	}
+	fmt.Println("------------------------ end TestWithdrawAmount ------------------------")
 }
 
 func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
@@ -244,7 +296,7 @@ func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
 			fmt.Println(string(j))
 			balance := res["_balance"].(string)
 			newBalance, _ := strconv.ParseInt(balance, 10, 64)
-			m := newBalance - old
+			m := old - newBalance
 			expected := strconv.FormatInt(m, 10)
 			if expected == amount {
 				return nil, ename
@@ -254,6 +306,5 @@ func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
 		} else {
 			return errors.New("transaction failed"), ""
 		}
-
 	}
 }
