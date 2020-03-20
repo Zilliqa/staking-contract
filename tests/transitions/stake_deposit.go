@@ -25,7 +25,7 @@ const (
 )
 
 func TestStakeDeposit(pri1, pri2 string, api string) {
-	fmt.Println("------------------------ start stakeDeposit ------------------------")
+	// fmt.Println("------------------------ start stakeDeposit ------------------------")
 	err, proxy, impl := DeployAndUpgrade(pri1)
 	if err != nil {
 		panic("got error = " + err.Error())
@@ -57,6 +57,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 
 	// 1. non-ssn transfer min_stake amount into contract
 	proxy, _ := bech32.ToBech32Address(p.Addr)
+
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
@@ -390,8 +391,8 @@ func (p *Proxy) RegisterSSN(pri1, pri2 string) {
 			}
 
 			inactive := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"]
-			if inactive != "True" {
-				panic("register ssn with verifier failed check state failed: deposit not active, tx:" + tx)
+			if inactive == "True" {
+				panic("register ssn with verifier failed check state failed: deposit are active, should be inactive tx:" + tx)
 			} else {
 				fmt.Println("register ssn with verifier succeed")
 			}
