@@ -202,35 +202,71 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		fmt.Println(string(j))
 		ssnmap := res["ssnlist"].(map[string]interface{})
 		ssn := ssnmap[ssnaddr]
-		if ssn != nil {
-			// todo active status
+		if ssn == nil {
 			fmt.Println("test withdraw stake rewards succeed")
 		} else {
 			panic("test withdraw stake rewards failed: check ssn list state failed")
 		}
 	}
 
+	parameters2 := []contract2.Value{
+		{
+			VName: "ssnaddr",
+			Type:  "ByStr20",
+			Value: ssnaddr,
+		},
+		{
+			VName: "stake_amount",
+			Type:  "Uint128",
+			Value: "0",
+		},
+		{
+			VName: "rewards",
+			Type:  "Uint128",
+			Value: "0",
+		},
+		{
+			VName: "urlraw",
+			Type:  "String",
+			Value: "devapiziiliqacom",
+		},
+		{
+			VName: "urlapi",
+			Type:  "String",
+			Value: "ziiliqacom",
+		},
+		{
+			VName: "buffered_deposit",
+			Type:  "Uint128",
+			Value: "0",
+		},
+	}
+	args2, _ := json.Marshal(parameters2)
+
 	// 2.7 add ssn
-	//if err2, output := ExecZli("contract", "call",
-	//	"-k", pri1,
-	//	"-a", proxy,
-	//	"-t", "add_ssn",
-	//	"-f", "true",
-	//	"-r", string(args)); err2 != nil {
-	//	panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
-	//} else {
-	//	tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-	//	payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
-	//	receipt := payload["receipt"].(map[string]interface{})
-	//	success := receipt["success"].(bool)
-	//	if success {
-	//		fmt.Println("test withdraw stake rewards succeed: add ssn succeed")
-	//	} else {
-	//		panic("test withdraw stake rewards failed: add ssn failed")
-	//	}
-	//}
+	if err2, output := ExecZli("contract", "call",
+		"-k", pri1,
+		"-a", proxy,
+		"-t", "add_ssn",
+		"-f", "true",
+		"-r", string(args2)); err2 != nil {
+		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		if success {
+			fmt.Println("test withdraw stake rewards succeed: add ssn succeed")
+		} else {
+			panic("test withdraw stake rewards failed: add ssn failed")
+		}
+	}
 
 	// 2.8 deposit stake
+	m2 := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+	r2 := m2["balance"].(string)
+	old, _ = strconv.ParseInt(r2, 10, 64)
 	if err2, _ := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
@@ -255,13 +291,11 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		}
 	}
 
-	// 2.4 deposit fund(rewards)
-	err = p.transferFunds(pri1, "5000")
+	err = p.transferFunds(pri1, "50000")
 	if err != nil {
 		panic("deposit funds failed: " + err.Error())
 	}
 
-	// 2.5 reward
 	err = p.assignStakeReward(pri1, ssnaddr, "50")
 	if err != nil {
 		panic("reward failed: " + err.Error())
