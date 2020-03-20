@@ -445,10 +445,10 @@ transition withdraw_stake_rewards (initiator : ByStr20)
       (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
       delete ssnlist[initiator]
     | False =>
+      (* Update state to have 0 rewards. *)
+      ssn = Ssn active_status stake_amount uint128_zero urlraw urlapi buffereddeposit;
+      ssnlist[initiator] := ssn
     end;
-    (* Update state to have 0 rewards. *)
-    ssn = Ssn active_status stake_amount uint128_zero urlraw urlapi buffereddeposit;
-    ssnlist[initiator] := ssn;
     TransferFunds empty_tag rewards initiator;
     e = mk_withdraw_stake_rewards_event initiator rewards;
     event e
