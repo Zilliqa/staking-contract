@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-zli contract call -a 0x09710e00256db2e3db4b44f597f17f3d97f06318 -t upgradeTo -r "[{\"vname\":\"newImplementation\",\"type\":\"ByStr20\",\"value\":\"0x1256e7c364d4f5b4b579541d1483f4be9ab5bc3d\"}]" -f true
+source config.sh
+
+zli contract call -a ${STAKING_ADDRESS_PROXY} -t upgradeTo -r "[{\"vname\":\"newImplementation\",\"type\":\"ByStr20\",\"value\":\"0x${STAKING_ADDRESS_SSNLIST}\"}]" -f true
