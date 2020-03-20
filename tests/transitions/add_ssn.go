@@ -25,7 +25,7 @@ func TestAddSSN(pri1, pri2 string, api string) {
 }
 
 func (p *Proxy) AddSSN(pri1, pri2 string) {
-	// 1. as non-verifier to add ssn, should fail
+	// 1. as and non-admin to add ssn, should fail
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 	parameters := []contract2.Value{
@@ -62,7 +62,7 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 	}
 	args, _ := json.Marshal(parameters)
 	if err2, output := ExecZli("contract", "call",
-		"-k", pri1,
+		"-k", pri2,
 		"-a", proxy,
 		"-t", "add_ssn",
 		"-f", "true",
@@ -80,14 +80,7 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 		}
 	}
 
-	// 3. as verifier to add ssn
-	// 3.1 update verifier
-	err := p.updateVerifier(pri1)
-	if err != nil {
-		panic("update verifier error: " + err.Error())
-	}
-
-	// 3.2 add account2 to ssn list
+	// 3.1 add account2 to ssn list
 	if err3, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
@@ -236,4 +229,3 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 
 	fmt.Println("------------------------ end   AddSSN ------------------------")
 }
-
