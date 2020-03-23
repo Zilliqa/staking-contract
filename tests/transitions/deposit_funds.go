@@ -7,15 +7,22 @@ import (
 	"strconv"
 )
 
-func (p *Proxy) TransferFunds(pri, funds string) {
-	fmt.Println("------------------------ start transfer funds  ------------------------")
+func (p *Proxy) TransferFundsAndDrainBalance(pri, funds string) {
+	fmt.Println("------------------------ start transfer funds and drain balance ------------------------")
 	err := p.transferFunds(pri, funds)
 	if err != nil {
 		panic("test transfer funds failed")
 	} else {
 		fmt.Println("test transfer funds succeed")
 	}
-	fmt.Println("------------------------ end transfer funds ------------------------")
+
+	err2 := p.drainContractBalance(pri)
+	if err2 != nil {
+		panic("test drain balance failed")
+	} else {
+		fmt.Println("test drain balance succeed")
+	}
+	fmt.Println("------------------------ end transfer funds and drain balance ------------------------")
 
 }
 
