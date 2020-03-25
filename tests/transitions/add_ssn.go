@@ -3,11 +3,12 @@ package transitions
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
 	"github.com/Zilliqa/gozilliqa-sdk/keytools"
 	"github.com/Zilliqa/gozilliqa-sdk/util"
-	"strings"
 )
 
 // since this serial of test is complicated, so we test them on new fresh contracts
@@ -223,6 +224,35 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 
 			} else {
 				panic("test remove ssn failed")
+			}
+		}
+
+		// 4.3 remove the same ssn again, reuse the same parameters as (4.2)
+		args, _ = json.Marshal(parameters)
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri2,
+			"-a", proxy,
+			"-t", "remove_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			eventLogs := receipt["event_logs"].([]interface{})[0]
+
+			if success {
+				events := eventLogs.(map[string]interface{})
+				eventName := events["_eventname"].(string)
+				if eventName == "SSN doesn't exist" {
+					fmt.Println("test remove same ssn address succeed")
+				} else {
+					panic("test remove same ssn address failed")
+				}
+			} else {
+				panic("test remove same ssn address failed")
 			}
 		}
 	}
