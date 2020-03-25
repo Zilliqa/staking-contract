@@ -3,11 +3,12 @@ package transitions
 import (
 	"errors"
 	"fmt"
-	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	"strconv"
+
+	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 )
 
-func (p *Proxy) TransferFundsAndDrainBalance(pri, funds string) {
+func (p *Proxy) TransferFundsAndDrainBalance(pri, pri2, funds string) {
 	fmt.Println("------------------------ start transfer funds and drain balance ------------------------")
 	err := p.transferFunds(pri, funds)
 	if err != nil {
@@ -16,12 +17,20 @@ func (p *Proxy) TransferFundsAndDrainBalance(pri, funds string) {
 		fmt.Println("test transfer funds succeed")
 	}
 
+	err3 := p.drainContractBalance(pri2)
+	if err3 == nil {
+		panic("test drain balance invalid admin failed")
+	} else {
+		fmt.Println("test drain balance invalid admin succeed")
+	}
+
 	err2 := p.drainContractBalance(pri)
 	if err2 != nil {
 		panic("test drain balance failed")
 	} else {
 		fmt.Println("test drain balance succeed")
 	}
+
 	fmt.Println("------------------------ end transfer funds and drain balance ------------------------")
 
 }
