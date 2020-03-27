@@ -89,6 +89,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -141,6 +142,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -235,6 +237,7 @@ func (p *Proxy) assignStakeReward(pri, ssn, percent string) error {
 		return errors.New("call transition error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)

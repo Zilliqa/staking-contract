@@ -3,14 +3,16 @@ package main
 import (
 	"Zilliqa/stake-test/transitions"
 	"fmt"
+	"time"
 )
 
 func main() {
 	// 0. prepare two private keys, recommend to use your own, in case conflicts
 	// we need the second private key, as we need to test non-admin permission or something similar
-	pri1 := "55d256f225a0a552dc9c8158c87c460f92f9f18f4ae0f2ba104a69bf3ab7ed73"
-	pri2 := "c25755f01577cb2d1c6a412ee8bfe2f98de0ed580844e5d7ae03bf0621c6b47e"
-	api := "https://staking7-l2api.dev.z7a.xyz/"
+	fromTime := time.Now()
+	pri1 := "33cdbb9fb7778838e7160ed2b93b06d24d9ed2d7646967ccb10f22e234dc9376"
+	pri2 := "eee52417bf6917729031445dca814ef4d4354abf94312621a35b1cef81232afd"
+	api := "https://staking10-l2api.dev.z7a.xyz/"
 	// 1. make sure zli is already installed
 	if err, output := transitions.ExecZli("-h"); err != nil {
 		fmt.Println(err.Error())
@@ -64,7 +66,7 @@ func main() {
 	p.UpdateContractMaxStake(pri1, pri2)
 
 	// test deposit
-	p.TransferFunds(pri1, "5000")
+	p.TransferFundsAndDrainBalance(pri1, pri2, "5000")
 
 	// test AddSSN
 	transitions.TestAddSSN(pri1, pri2, api)
@@ -75,5 +77,9 @@ func main() {
 
 	transitions.TestAssignStakeReward(pri1, pri2, api)
 
-	transitions.TestWithdrawAmount(pri1,pri2,api)
+	transitions.TestWithdrawAmount(pri1, pri2, api)
+
+	endTime := time.Now()
+	interval := endTime.Sub(fromTime).Minutes()
+	fmt.Printf("The whole test cost %f minutes, oh my!\n", interval)
 }

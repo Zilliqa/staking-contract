@@ -100,6 +100,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		panic("call transaction error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -118,7 +119,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		panic("test withdraw amount failed: parse balance error: " + err.Error())
 	}
 
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
@@ -127,6 +128,8 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw amount failed: call transaction error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 		r := m["balance"].(string)
 		newbalance, err := strconv.ParseInt(r, 10, 64)
@@ -146,7 +149,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	m = p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 	r = m["balance"].(string)
 	old, err = strconv.ParseInt(r, 10, 64)
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
@@ -155,6 +158,8 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw amount failed: call transaction error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 		r := m["balance"].(string)
 		newbalance, err := strconv.ParseInt(r, 10, 64)
@@ -278,6 +283,7 @@ func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
 		return err2, ""
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
