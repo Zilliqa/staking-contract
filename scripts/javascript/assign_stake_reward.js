@@ -57,7 +57,7 @@ async function main() {
                 version: VERSION,
                 amount: new BN(0),
                 gasPrice: GAS_PRICE,
-                gasLimit: Long.fromNumber(30000)
+                gasLimit: Long.fromNumber(10000)
             },
             33,
             1000,
