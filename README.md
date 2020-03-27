@@ -41,7 +41,7 @@ The table below lists the parameters that are defined at the contract deployment
 
 ## Mutable Fields
 
-The table below presents the mutable fields of the contract and their initial values. In the table, we use a custom ADT type `Ssn` defined as follows: 
+The contract defines and uses a custom ADT named `Ssn` defined as follows: 
 
 ```
 type Ssn = 
@@ -53,6 +53,8 @@ type Ssn =
 (* The fifth argument of type String represents the URL API endpoint for the SSN *)
 (* The sixth and the last argument of type String represents the deposit made by the SSN that cannot be considered for reward calculations. *)
 ```
+
+The table below presents the mutable fields of the contract and their initial values. 
 
 | Name        | Type       | Initial Value                           | Description                                        |
 | ----------- | --------------------|--------------- | -------------------------------------------------- |
