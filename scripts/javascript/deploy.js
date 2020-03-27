@@ -1,5 +1,6 @@
 /*
  * deploy
+ * deploys the proxy, staking contract, and upgrades the implementation
  */
 const fs = require('fs');
 const path = require('path');
@@ -7,71 +8,73 @@ const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypto');
 
-const zilliqa = new Zilliqa('https://dev-api.zilliqa.com');
-const CHAIN_ID = 2;
+// change the following parameters
+const API = 'http://localhost:5555'
+const CHAIN_ID = 1;
+const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89';
+
+const zilliqa = new Zilliqa(API);
 const MSG_VERSION = 1;
 const VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
-
-const PRIVATE_KEY = '';
 const GAS_PRICE = units.toQa('1000', units.Units.Li);
 
-const PROXY_CONTRACT_PATH = "./proxy.scilla";
-const SSNLIST_CONTRACT_PATH = "./ssnlist.scilla";
+const PROXY_CONTRACT_PATH = "../../contracts/proxy.scilla";
+const SSNLIST_CONTRACT_PATH = "../../contracts/ssnlist.scilla";
+
 
 async function main() {
-    zilliqa.wallet.addByPrivateKey(PRIVATE_KEY);
-    const address = getAddressFromPrivateKey(PRIVATE_KEY);
-
-    console.log("Invoking deploy...");
-    console.log("Your account address is:");
-    console.log(`${address}`);
-
     try {
-        // console.log(`Deploying proxy contract....` + PROXY_CONTRACT_PATH);
-        // const code = fs.readFileSync(path.join(__dirname, PROXY_CONTRACT_PATH), 'ascii');
+        zilliqa.wallet.addByPrivateKey(PRIVATE_KEY);
+        const address = getAddressFromPrivateKey(PRIVATE_KEY);
     
-        // const init = [
-        //   // this parameter is mandatory for all init arrays
-        //   {
-        //       vname: "_scilla_version",
-        //       type: "Uint32",
-        //       value: "0",
-        //   },
-        //   {
-        //       vname: "init_admin",
-        //       type: "ByStr20",
-        //       value: `${address}`
-        //   },
-        //   {
-        //       vname: "init_implementation",
-        //       type: "ByStr20",
-        //       value: `${address}`
-        //   }
-        // ];
-        // const contract = zilliqa.contracts.new(code, init);
-        // const [deployTx, proxy] = await contract.deploy(
-        //     {
-        //         version: VERSION,
-        //         gasPrice: GAS_PRICE,
-        //         gasLimit: Long.fromNumber(10000)
-        //     },
-        //     33,
-        //     1000,
-        //     false
-        // );
+        console.log("Your account address is:");
+        console.log(`${address}`);
+        console.log("------------------------ begin deploy proxy ------------------------\n");
+        console.log(`Deploying proxy contract: ` + PROXY_CONTRACT_PATH);
+        const code = fs.readFileSync(path.join(__dirname, PROXY_CONTRACT_PATH), 'ascii');
+    
+        const init = [
+          {
+              vname: "_scilla_version",
+              type: "Uint32",
+              value: "0",
+          },
+          {
+              vname: "init_admin",
+              type: "ByStr20",
+              value: `${address}`
+          },
+          {
+              vname: "init_implementation",
+              type: "ByStr20",
+              value: `${address}`
+          }
+        ];
+        const contract = zilliqa.contracts.new(code, init);
+        const [deployTx, proxy] = await contract.deploy(
+            {
+                version: VERSION,
+                amount: new BN(0),
+                gasPrice: GAS_PRICE,
+                gasLimit: Long.fromNumber(10000)
+            },
+            33,
+            1000,
+            true
+        );
 
-        // check the pending status
-        // const pendingStatus = await zilliqa.blockchain.getPendingTxn(deployTx.id);
-        // console.log(`Pending status is: `);
-        // console.log(pendingStatus.result);
-
-        // process confirm
-        // console.log(`The transaction id is:`, deployTx.id);
-        // console.log('The contract address is: %o', proxy.address);
+        // Introspect the state of the underlying transaction
+        console.log(`Deployment Transaction ID: ${deployTx.id}`);
+        console.log(`Deployment Transaction Receipt`);
+        console.log(deployTx.txParams.receipt);
+        console.log('proxy address: %o', proxy.address);
+        console.log("------------------------ end deploy proxy ------------------------\n");
 
         // deploy ssnlist contract
-        console.log(`Deploying a ssnlist contract....` + SSNLIST_CONTRACT_PATH);
+        console.log("------------------------ begin deploy ssnlist ------------------------\n");
+        console.log(`Deploying a ssnlist contract: %o`, SSNLIST_CONTRACT_PATH);
         const code2 = fs.readFileSync(path.join(__dirname, SSNLIST_CONTRACT_PATH), 'ascii');
+
         const init2 = [
             {
                 vname: "_scilla_version",
@@ -81,12 +84,12 @@ async function main() {
             {
                 vname: "init_admin",
                 type: "ByStr20",
-                value: "0x1234567890123456789012345678901234567890"
+                value: `${address}`
             },
             {
                 vname: "proxy_address",
                 type: "ByStr20",
-                value: "0x1234567890123456789012345678901234567890"
+                value: `${proxy.address}`
             }
         ];
 
@@ -94,25 +97,45 @@ async function main() {
         const [deployTx2, ssnlist] = await contract2.deploy(
             {
                 version: VERSION,
+                amount: new BN(0),
                 gasPrice: GAS_PRICE,
-                gasLimit: Long.fromNumber(10000)
+                gasLimit: Long.fromNumber(30000)
             },
             33,
             1000,
-            false
+            true
         );
 
-        // check the pending status
-        // const pendingStatus2 = await zilliqa.blockchain.getPendingTxn(deployTx2.id);
-        // console.log(`Pending status is: `);
-        // console.log(pendingStatus2.result);
-
-        // process confirm
-        console.log(`The transaction id is:`, deployTx2.id);
-        console.log('The ssnlist contract address is: %o', ssnlist.address);
+        console.log(`Deployment ssnlist transaction ID: ${deployTx2.id}`);
+        console.log(`Deployment ssnlist transaction receipt:`);
+        console.log(deployTx2.txParams.receipt);
+        console.log('ssnlist contract address: %o', ssnlist.address);
+        console.log("------------------------ end deploy ssnlist ------------------------\n");
 
         // upgrade proxy contract with ssn implementation
-
+        console.log("------------------------ start upgrade ------------------------\n");
+        const callTx = await proxy.call(
+            'upgradeTo',
+            [
+                {
+                    vname: 'newImplementation',
+                    type: 'ByStr20',
+                    value: `${ssnlist.address}`
+                }
+            ],
+            {
+                version: VERSION,
+                amount: new BN(0),
+                gasPrice: GAS_PRICE,
+                gasLimit: Long.fromNumber(30000)
+            },
+            33,
+            1000,
+            true
+        );
+        console.log("transaction: %o", callTx.id);
+        console.log(JSON.stringify(callTx.receipt, null, 4));
+        console.log("------------------------ end upgrade ------------------------\n");
     } catch (err) {
         console.log(err);
     }

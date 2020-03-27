@@ -5,47 +5,46 @@ const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypto');
 
-const zilliqa = new Zilliqa('https://dev-api.zilliqa.com');
+// change the following parameters
+const API = 'http://localhost:5555'
+const CHAIN_ID = 1;
+const PRIVATE_KEY = 'd96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba';
+const STAKING_PROXY_ADDR = toBech32Address("0x26b628F7a15584e2c6578B8B6572ae226c25bA3D"); // checksum proxy address
+
 const zilliqa = new Zilliqa(API);
-const CHAIN_ID = 2;
 const MSG_VERSION = 1;
 const VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
-
-const PRIVATE_KEY = '';
 const GAS_PRICE = units.toQa('1000', units.Units.Li);
 
-const STAKING_PROXY_ADDR = toBech32Address("0123456789012345678901234567890123456789");
 
 async function main() {
     zilliqa.wallet.addByPrivateKey(PRIVATE_KEY);
     const address = getAddressFromPrivateKey(PRIVATE_KEY);
+    console.log("Your account address is: %o", `${address}`);
+    console.log("proxy: %o\n", STAKING_PROXY_ADDR);
 
-    console.log("Invoking pause at: %o", STAKING_PROXY_ADDR);
-    console.log("Network: %o", API);
-    console.log("Private key: %o", PRIVATE_KEY);
-    console.log("Account address: %o", `${address}`);
-
+    console.log("------------------------ begin pause ------------------------\n");
     try {
-        const balance = await zilliqa.blockchain.getBalance(address);
-        const nonce = balance.result;
-
         const contract = zilliqa.contracts.at(STAKING_PROXY_ADDR);
         const callTx = await contract.call(
-            'unpause',
+            'pause',
             [],
             {
                 version: VERSION,
                 amount: new BN(0),
                 gasPrice: GAS_PRICE,
                 gasLimit: Long.fromNumber(10000),
-                nonce: (nonce + 1)
             },
+            33,
+            1000,
             true
         );
+        console.log("transaction: %o", callTx.id);
         console.log(JSON.stringify(callTx.receipt, null, 4));
     } catch (err) {
         console.log(err);
     }
+    console.log("------------------------ end pause ------------------------\n");
 }
 
 main();
