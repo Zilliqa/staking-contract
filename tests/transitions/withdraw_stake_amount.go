@@ -244,13 +244,11 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 10 withdraw the rest one and half: should be removed
-	err10, output := p.withdrawAmount(pri2, onehalfstake)
+	err10, _ := p.withdrawAmount(pri2, onehalfstake)
 	if err10 != nil {
 		fmt.Println("err: " + err10.Error())
 		//panic("withdraw amount failed: should remain 1.5 min stake")
 	} else {
-		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		fmt.Println("transaction id = ", tx)
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 		ssnmap := res["ssnlist"].(map[string]interface{})
 		ssn := ssnmap[ssnaddr]
