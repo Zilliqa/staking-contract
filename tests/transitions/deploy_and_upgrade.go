@@ -114,7 +114,7 @@ func DeployAndUpgrade(private string) (error, string, string) {
 	} else {
 		//fmt.Println(output)
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		fmt.Println(tx)
+		fmt.Println("transaction id = ", tx)
 		fmt.Println("------------------------ end upgrade ------------------------")
 		return nil, proxyAddr, sshlistAddr
 	}

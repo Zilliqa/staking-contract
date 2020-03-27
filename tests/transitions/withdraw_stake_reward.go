@@ -105,6 +105,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -123,7 +124,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		panic("test withdraw stake rewards failed: parse balance error: " + err.Error())
 	}
 
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
@@ -132,6 +133,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 		r := m["balance"].(string)
 		newbalance, err := strconv.ParseInt(r, 10, 64)
@@ -168,7 +171,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		},
 	}
 	args, _ = json.Marshal(parameters)
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "withdraw_stake_amount",
@@ -176,6 +179,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		"-r", string(args)); err2 != nil {
 		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 		j, _ := json.Marshal(res)
 		fmt.Println(string(j))
@@ -189,7 +194,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		}
 	}
 
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "withdraw_stake_rewards",
@@ -197,6 +202,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw stake rewards failed: withdraw rewards error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 		j, _ := json.Marshal(res)
 		fmt.Println(string(j))
@@ -253,6 +260,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -267,7 +275,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	m2 := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 	r2 := m2["balance"].(string)
 	old, _ = strconv.ParseInt(r2, 10, 64)
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
@@ -276,6 +284,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw stake rewards failed: call transaction error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 		r := m["balance"].(string)
 		newbalance, err := strconv.ParseInt(r, 10, 64)
@@ -302,7 +312,7 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	}
 
 	// 2.9 withdraw rewards
-	if err2, _ := ExecZli("contract", "call",
+	if err2, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "withdraw_stake_rewards",
@@ -310,6 +320,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		"-r", "[]"); err2 != nil {
 		panic("test withdraw stake rewards failed: withdraw rewards error: " + err2.Error())
 	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 		j, _ := json.Marshal(res)
 		fmt.Println(string(j))
@@ -340,6 +352,7 @@ func (p *Proxy) withdrawRewards(operator string) (error, string) {
 		return errors.New("call transition error: " + err2.Error()), ""
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)

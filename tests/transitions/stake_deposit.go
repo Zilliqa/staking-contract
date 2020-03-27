@@ -68,6 +68,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -100,7 +101,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		fmt.Println(tx)
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -129,6 +130,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -157,7 +159,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		fmt.Println(tx)
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -214,6 +216,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -259,6 +262,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -306,6 +310,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("call transaction error: " + err3.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
@@ -371,7 +376,7 @@ func (p *Proxy) RegisterSSN(pri1, pri2 string) {
 		panic("call transaction error: " + err2.Error())
 	} else {
 		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
-		fmt.Println(tx)
+		fmt.Println("transaction id = ", tx)
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
