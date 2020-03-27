@@ -125,7 +125,7 @@ field contractmaxstake : Uint128 = Uint128 0
 field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
 field lastrewardblocknum : Uint32 = Uint32 0
-field paused : Bool = False
+field paused : Bool = True
 
 (* Procedures *)
 
