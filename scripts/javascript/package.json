@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@zilliqa-js/zilliqa": "^0.8.9",
+    "@zilliqa-js/zilliqa": "^0.9.0",
     "bn.js": "^5.1.1",
     "tslib": "^1.11.1"
   }

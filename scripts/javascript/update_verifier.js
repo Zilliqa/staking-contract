@@ -8,7 +8,7 @@ const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypt
 // change the following parameters
 const API = 'http://localhost:5555'
 const CHAIN_ID = 1;
-const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89';
+const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89'; // admin
 const STAKING_PROXY_ADDR = toBech32Address("0xDB5Dc7118765A84B6c6A582280fA37A1DD2d9f69"); // checksum proxy address
 const NEW_VERIFIER = '0x381f4008505e940ad7681ec3468a719060caf796'; // new verifier checksum address with '0x'
 
