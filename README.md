@@ -19,7 +19,7 @@ The table below summarizes the three contracts that ZIP-3 will broadly use:
 The SSNList contract is the main contract that is central to the entire staking infrastructure. 
 
 
-## Role and Privileges
+## Roles and Privileges
 
 The table below describes the roles and privileges that this contract defines:
 
@@ -127,7 +127,7 @@ Each of these category of transitions are presented in further details below.
 
 `SSNListProxy` contract is a relay contract that redirects calls to it to the `SSNList` contract.
 
-## Role and Privileges
+## Roles and Privileges
 
 The table below describes the roles and privileges that this contract defines:
 
