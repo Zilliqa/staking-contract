@@ -122,3 +122,72 @@ Each of these category of transitions are presented in further details below.
 | Non-zero | Zero | `True`|
 | Non-zero | Non-zero | `True`|
 | Zero | Zero | `Removed`|
+
+# SSNListProxy Contract Specification
+
+`SSNListProxy` contract is a relay contract that redirects calls to it to the `SSNList` contract.
+
+## Role and Privileges
+
+The table below describes the roles and privileges that this contract defines:
+
+| Role | Description & Privileges|                                    
+| --------------- | ------------------------------------------------- |
+| `init_admin`           | The initial admin of the contract which is usually the creator of the contract. `init_admin` is also the initial value of admin |                                 |
+| `admin`    | Current `admin` of the contract initialized to `init_admin`. Certain critical actions can only be performed by the `admin`, e.g., changing the current implementation of the `SSNList` contract. |
+|`initiator` | The user who calls the `SSNListProxy` contract that in turns call the `SSNList` contract. |
+
+## Immutable Parameters
+
+The table below lists the parameters that are defined at the contrat deployment time and hence cannot be changed later on.
+
+| Name | Type | Description |
+|--|--|--|
+|`init_implementation`| `ByStr20` | The address of the `SSNList` contract. |
+|`init_admin`| `ByStr20` | The address of the admin. |
+
+### Mutable Fields
+
+The table below presents the mutable fields of the contract and their initial values.
+
+| Name | Type | Initial Value |Description |
+|--|--|--|--|
+|`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
+|`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+
+
+### Transitions
+
+All the transitions in the contract can be categorized into two categories:
+- _housekeeping transitions_ meant to facilitate basic admin related tasks.
+- _relay transitions_ to redirect calls to the `SSNList` contract.
+
+#### Housekeeping Transitions
+
+| Name | Params | Description |
+|--|--|--|
+|`upgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
+|`changeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+
+### Relay Transitions
+
+
+These transitions are meant to redirect calls to the corresponding `SSNList` contract and hence their names have an added prefix `proxy`. While, redirecting the contract prepares the `initiator` value that is the address of the caller of the `SSNListProxy` contract.
+
+| Transition signature in the `SSNListProxy` contract  | Target transition in the `SSNList` contract |
+|--|--|
+|`pause()` | `pause(initiator : ByStr20)` |
+|`unpause()` | `unpause(initiator : ByStr20)` |
+|`update_admin(admin: ByStr20)` | `update_admin(admin: ByStr20, initiator : ByStr20)`|
+|`update_verifier(verif : ByStr20)` | `update_verifier (verif : ByStr20, initiator: ByStr20)`|
+|`drain_contract_balance()` | `drain_contract_balance(initiator : ByStr20)`|
+|`update_minstake (min_stake : Uint128)` | `update_minstake (min_stake : Uint128, initiator : ByStr20)`|
+|`update_maxstake (min_stake : Uint128)` | `update_maxstake (max_stake : Uint128, initiator : ByStr20)`|
+|`update_contractmaxstake (max_stake : Uint128)` | `update_contractmaxstake (max_stake : Uint128, initiator : ByStr20)`|
+|`add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
+|`remove_ssn (ssnaddr : ByStr20)` | `remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)`|
+|`stake_deposit()` | `stake_deposit (initiator: ByStr20)`|
+|`assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32)` | `assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)`|
+|`withdraw_stake_rewards()` | `withdraw_stake_rewards (initiator : ByStr20)`|
+|`withdraw_stake_amount (amount : Uint128)` | `withdraw_stake_amount (amount : Uint128, initiator: ByStr20)`|
+|`deposit_funds()` | `deposit_funds (initiator : ByStr20)`|
