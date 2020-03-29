@@ -51,7 +51,7 @@ type Ssn =
 (* The third argument of type Uint128 represents the rewards that this SSN can withdraw. *)
 (* The fourth argument of type String represents the raw URL for the SSN *)
 (* The fifth argument of type String represents the URL API endpoint for the SSN *)
-(* The sixth and the last argument of type String represents the deposit made by the SSN that cannot be considered for reward calculations. *)
+(* The sixth and the last argument of type Uint128 represents the deposit made by the SSN that cannot be considered for reward calculations. *)
 ```
 
 The table below presents the mutable fields of the contract and their initial values. 
