@@ -63,7 +63,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `minstake`  | `Uint128` | `Uin128 0`       | Minimum `stake_amount` required to activate an SSN. |
 | `maxstake`  | `Uint128`  | `Uint128 0`                         | Maximum stake allowed for each SSN. |
 | `contractmaxstake`  | `Uint128`  | `Uint128 0` | The maximum amount that can ever be staked across all SSNs. |
-| `totalstakeddeposit`  | `Uint128`  | `Uint128 0` | The total amount that currently staked in the contract. |
+| `totalstakeddeposit`  | `Uint128`  | `Uint128 0` | The total amount that is currently staked in the contract. |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
 
