@@ -4,6 +4,26 @@ Seed node staking in [Zilliqa](https://www.zilliqa.com) as described in [ZIP-3](
 
 In the sections below, we describe in detail: 1) the purpose of each contract, 2) their structure and specifications, 3) running unit tests for the contracts.
 
+# Table of Content
+
+- [Overview](#overview)
+- [SSNList Contract Specification](#ssnlist-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges)
+  * [Immutable Parameters](#immutable-parameters)
+  * [Mutable Fields](#mutable-fields)
+  * [Transitions](#transitions)
+    + [Housekeeping Transitions:](#housekeeping-transitions-)
+    + [Pause Transitions](#pause-transitions)
+    + [SSN Operation Transitions](#ssn-operation-transitions)
+- [SSNListProxy Contract Specification](#ssnlistproxy-contract-specification)
+  * [Roles and Privileges](#roles-and-privileges-1)
+  * [Immutable Parameters](#immutable-parameters-1)
+  * [Mutable Fields](#mutable-fields-1)
+  * [Transitions](#transitions-1)
+      + [Housekeeping Transitions](#housekeeping-transitions)
+      + [Relay Transitions](#relay-transitions)
+
+
 # Overview
 
 The table below summarizes the three contracts that ZIP-3 will broadly use:
@@ -109,8 +129,8 @@ Each of these category of transitions are presented in further details below.
 | `remove_ssn` | `ssnaddr : ByStr20, initiator : ByStr20`| Remove a given SSN with address `ssnaddr`. <br>  :warning: **Note:** `initiator` must be the current `admin` of the contract.  | <center>:x:</center> |
 | `stake_deposit` | `initiator : ByStr20` | Accept the deposit of ZILs from the `initiator` which should be a registered SSN in the contract. | <center>:x:</center> | 
 | `assign_stake_reward` | `ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator : ByStr20` | To assign rewards to the SSNs based on their performance. Performance checks happen off-the-chain. <br>  :warning: **Note:** `initiator` must be the current `verifier` of the contract. | <center>:x:</center> |
-| `withdraw_stake_rewards` | `initiator : ByStr20` | A registered SSN (`initiator`) can all this transition to withdraw its stake rewards. Stake rewards represent the rewards that an SSN has earned based on its performance. If the SSN has already withdrawn its deposit, then the SSN is removed. | <center>:x:</center> |
-| `withdraw_stake_amount` | `amount : Uint128, initiator : ByStr20` | A registered SSN (`initiator`) can all this transition to withdraw its deposit. The amount to be withdrawn is the input value `amount`. Stake amount represents the deposit that an SSN has made so far.   <br> :warning: **Note:** 1) Any partial withdrawal should ensure that the remaining deposit is greater than `min_stake`. Partial withdrawals that push the deposit amount to be lower than `min_stake` are denied, 2) In case there is a non-zero buffereddeposit, withdrawal is denied. 3) If the withdrawal is for the entire deposit and if the rewards have also been withdrawn then remove the SSN.   | <center>:x:</center> |
+| `withdraw_stake_rewards` | `initiator : ByStr20` | A registered SSN (`initiator`) can call this transition to withdraw its stake rewards. Stake rewards represent the rewards that an SSN has earned based on its performance. If the SSN has already withdrawn its deposit, then the SSN is removed. | <center>:x:</center> |
+| `withdraw_stake_amount` | `amount : Uint128, initiator : ByStr20` | A registered SSN (`initiator`) can call this transition to withdraw its deposit. The amount to be withdrawn is the input value `amount`. Stake amount represents the deposit that an SSN has made so far.   <br> :warning: **Note:** 1) Any partial withdrawal should ensure that the remaining deposit is greater than `min_stake`. Partial withdrawals that push the deposit amount to be lower than `min_stake` are denied, 2) In case there is a non-zero buffereddeposit, withdrawal is denied. 3) If the withdrawal is for the entire deposit and if the rewards have also been withdrawn then remove the SSN.   | <center>:x:</center> |
 | `deposit_funds` | `initiator : ByStr20` | Deposit ZILs to the contract.  | <center>:x:</center> |
 
 
@@ -146,7 +166,7 @@ The table below lists the parameters that are defined at the contrat deployment 
 |`init_implementation`| `ByStr20` | The address of the `SSNList` contract. |
 |`init_admin`| `ByStr20` | The address of the admin. |
 
-### Mutable Fields
+## Mutable Fields
 
 The table below presents the mutable fields of the contract and their initial values.
 
@@ -156,13 +176,13 @@ The table below presents the mutable fields of the contract and their initial va
 |`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
 
 
-### Transitions
+## Transitions
 
 All the transitions in the contract can be categorized into two categories:
 - _housekeeping transitions_ meant to facilitate basic admin related tasks.
 - _relay transitions_ to redirect calls to the `SSNList` contract.
 
-#### Housekeeping Transitions
+### Housekeeping Transitions
 
 | Name | Params | Description |
 |--|--|--|
