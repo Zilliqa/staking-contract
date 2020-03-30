@@ -86,6 +86,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `totalstakeddeposit`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
+|`lastrewardblocknum` | `Uint32` | `Uint32 0` | The block number when the last reward was distributed. |
 
 ## Transitions 
 
@@ -125,8 +126,8 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `add_ssn` | `ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20`| Add a new SSN with the passed values. <br>  :warning: **Note:** `initiator` must be the current `admin` of the contract.  | <center>:x:</center> | 
-| `remove_ssn` | `ssnaddr : ByStr20, initiator : ByStr20`| Remove a given SSN with address `ssnaddr`. <br>  :warning: **Note:** `initiator` must be the current `admin` of the contract.  | <center>:x:</center> |
+| `add_ssn` | `ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20`| Add a new SSN with the passed values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> | 
+| `remove_ssn` | `ssnaddr : ByStr20, initiator : ByStr20`| Remove a given SSN with address `ssnaddr`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> |
 | `stake_deposit` | `initiator : ByStr20` | Accept the deposit of ZILs from the `initiator` which should be a registered SSN in the contract. | <center>:x:</center> | 
 | `assign_stake_reward` | `ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator : ByStr20` | To assign rewards to the SSNs based on their performance. Performance checks happen off the chain. <br>  :warning: **Note:** `initiator` must be the current `verifier` of the contract. | <center>:x:</center> |
 | `withdraw_stake_rewards` | `initiator : ByStr20` | A registered SSN (`initiator`) can call this transition to withdraw its stake rewards. Stake rewards represent the rewards that an SSN has earned based on its performance. If the SSN has already withdrawn its deposit, then the SSN is removed. | <center>:x:</center> |
@@ -209,3 +210,92 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`withdraw_stake_rewards()` | `withdraw_stake_rewards (initiator : ByStr20)`|
 |`withdraw_stake_amount (amount : Uint128)` | `withdraw_stake_amount (amount : Uint128, initiator: ByStr20)`|
 |`deposit_funds()` | `deposit_funds (initiator : ByStr20)`|
+
+# Multi-signature Wallet Contract Specification
+
+This contract has two main roles. First, it holds funds that can be paid out to arbitrary users, provided that enough people from a pre-defined set of owners have signed off on the payout.
+
+Second, and more generally, it also represents a group of users that can invoke a transition in another contract only if enough people in that group have signed off on it. In the staking context, it represents the `admin` in the `SSNList` contract. This provides added security for the privileged `admin` role.
+
+## General Flow
+
+Any transaction request (whether transfer of payments or invocation of a foreign transition) must be added to the contract before signatures can be collected. Once enough signatures are collected, the recipient (in case of payments) and/or any of the owners (in the general case) can ask for the transaction to be executed.
+
+If an owner changes his mind about a transaction, the signature can be revoked until the transaction is executed.
+
+This wallet does not allow adding or removing owners, or changing the number of required signatures. To do any of those, perform the following steps:
+
+1. Deploy a new wallet with `owners` and `required_signatures` set to the new values. `MAKE SURE THAT THE NEW WALLET HAS BEEN SUCCESFULLY DEPLOYED WITH THE CORRECT PARAMETERS BEFORE CONTINUING!`
+2. Invoke the `SubmitTransaction` transition on the old wallet with the following parameters:
+   - `recipient` : The `address` of the new wallet
+   - `amount` : The `_balance` of the old wallet
+   - `tag` : `AddFunds`
+3. Have (a sufficient number of) the owners of the old contract invoke the `SignTransaction` transition on the old wallet. The parameter `transactionId` should be set to the `Id` of the transaction created in step 2.
+4. Have one of the owners of the old contract invoke the `ExecuteTransaction` transition on the old contract. This will cause the entire balance of the old contract to be transferred to the new wallet. Note that no un-executed transactions will be transferred to the new wallet along with the funds.
+
+> WARNING: If a sufficient number of owners lose their private keys, or for any other reason are unable or unwilling to sign for new transactions, the funds in the wallet will be locked forever. It is therefore a good idea to set required_signatures to a value strictly less than the number of owners, so that the remaining owners can retrieve the funds should such a scenario occur.
+<br> <br> If an owner loses his private key, the remaining owners should move the funds to a new wallet (using the workflow described above) to  ensure that funds are not locked if another owner loses his private key. The owner who originally lost his private key can generate a new key, and the corresponding address be added to the new wallet, so that the same set of people own the new wallet.
+
+## Roles and Privileges
+
+The table below list the different roles defined in the contract.
+
+| Name | Description & Privileges |
+|--|--|
+|`owners` | The users who own this contract. |
+
+## Immutable Parameters
+
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
+
+| Name | Type | Description |
+|--|--|--|
+|`owners_list`| `List ByStr20` | List of initial owners. |
+|`required_signatures`| `Uint32` | Minimum amount of signatures to execute a transaction. |
+
+## Mutable Fields
+
+The table below presents the mutable fields of the contract and their initial values.
+
+| Name | Type | Initial Value | Description |
+|--|--|--|--|
+|`owners`| `Map ByStr20 Bool` | `owners_list` | Map of owners. |
+|`transactionCount`| `Uint32` | `0` | The number of of transactions  requests submitted so far. |
+|`signatures`| `Map Uint32 (Map ByStr20 Bool)` | `Emp Uint32 (Map ByStr20 Bool)` | Collected signatures for transactions by transaction ID. |
+|`signature_counts`| `Map Uint32 Uint32` | `Emp Uint32 Uint32` | Running count of collected signatures for transactions. |
+|`transactions`| `Map Uint32 Transaction` | `Emp Uint32 Transaction` | Transactions that have been submitted but not exected yet. |
+
+## Transitions
+
+All the transitions in the contract can be categorized into three categories:
+- **Submit Transitions:** Create transactions for future signoff.
+- **Action Transitions:** Let owners sign, revoke or execute submitted transactions.
+- The `_balance` field keeps the amount of funds held by the contract and can be freely read within the implementation. `AddFunds transition` are used for adding native funds(ZIL) to the wallet from incoming messages by using `accept` keyword.
+
+### Submit Transitions
+
+The first transition is meant to submit request for transfer of native ZILs while the other are meant to submit a request to invoke transitions in the `SSNListProxy` contract.
+
+| Name | Params | Description |
+|--|--|--|
+|`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transafer of native tokens for future signoffs. |
+|`SubmitCustomUpgradeToTransaction`| `proxyContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `upgradeTo` transition in the `SSNListProxy` contract. |
+|`SubmitCustomChangeProxyAdminTransaction`| `proxyContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `changeProxyAdmin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateAdminTransaction`| `proxyContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `update_admin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `update_verifier` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateMinStakeTransaction`| `proxyContract : ByStr20, min_stake : Uint128` | Submit a request to invoke the `update_minstake` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_maxstake` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateContractMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_contractmaxstake` transition in the `SSNListProxy` contract. |
+|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `drain_contract_balance` transition in the `SSNListProxy` contract. |
+|`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
+|`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
+
+
+
+### Action Transitions
+
+| Name | Params | Description |
+|--|--|--|
+|`SignTransaction`| `transactionId : Uint32` | Sign off on an existing transaction. |
+|`RevokeSignature`| `transactionId : Uint32` | Revoke signature of an existing transaction, if it has not yet been executed. |
+|`ExecuteTransaction`| `transactionId : Uint32` | Execute signed-off transaction. |
