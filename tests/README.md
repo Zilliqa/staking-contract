@@ -6,7 +6,7 @@ Golang (minimum version: go.1.12):
 
 Zilliqa command tool [zli](https://github.com/Zilliqa/zli)
 
-### Test private keys
+### Private keys for unit tests
 
 We are using an isolated server to run our tests, some of the tests require a large amount of ZILs to be executed. Instead of letting you generate your own private keys, we have prepared two private keys for you and will send them privately to you.
 
