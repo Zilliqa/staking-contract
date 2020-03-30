@@ -8,25 +8,21 @@ Zilliqa command tool [zli](https://github.com/Zilliqa/zli)
 
 ### Test private keys
 
-Since we will use isolated server to run our tests, and some of the tests need a large number of zils to complete, so we
+We are using an isolated server to run our tests, some of the tests require a large amount of ZILs to be executed. Instead of letting you generate your own private keys, we have prepared two private keys for you and will send them privately to you.
 
-won't let you to generate private keys yourselves, instead, we will prepare two private keys for you and send you privately.
+Let's name these two private keys as `pri1` and `pri2` in the following context.
 
-Let's name them as `pri1` and `pri2` in the following context.
-
-### Setup zli
+### Setup zli command tool
 
 #### 1. Init wallet configuration with specific private key
 
-Please run following command to init your configuration for using zli:
+Run the following command to init your wallet with the provided private key:
 
 ```shell script
 zli wallet from -p `pri1`
 ```
 
-A file names `.zilliqa` will be generated after running this. You can checkout this either by using `cat ~/.zilliqa` or 
-
-`zli wallet echo`, you will see something like the following:
+A `.zilliqa` file containing the wallet configuration will be generated under your `USERS` directory after running this. You can checkout this either by using `cat ~/.zilliqa` or `zli wallet echo`, you will see something like the following:
 
 ```json
 {"api":"https://dev-api.zilliqa.com/","chain_id":333,"default_account":{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"},"accounts":[{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"}]}
@@ -35,9 +31,12 @@ A file names `.zilliqa` will be generated after running this. You can checkout t
 
 #### 2. Modify `api` and `chain_id`
 
-Since we use the `isolated server` rather than `community devnet`, we need rewrite parameters `api` and `chain_id` from `.zilliqa`,
+Since we are using the `isolated server` rather than `community devnet`, we need to rewrite the parameters `api` and `chain_id` in `.zilliqa`:
 
-the value should be `https://zilliqa-isolated-server.zilliqa.com/` and `1` respectively. The changed file should be like:
+    "api": "https://zilliqa-isolated-server.zilliqa.com/",
+    "chain_id": 1,
+
+The changed file should looked similar to the following:
 
 ```json
 {"api":"https://zilliqa-isolated-server.zilliqa.com/","chain_id":1,"default_account":{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"},"accounts":[{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"}]}
