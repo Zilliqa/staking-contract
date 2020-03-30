@@ -86,6 +86,10 @@ type ProxyTransaction =
 | UpdateMaxStake of Uint128
 (* update_contractmaxstake (max_stake : Uint128) *)
 | UpdateContractMaxStake of Uint128
+(* add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
+| AddSsn of ByStr20 Uint128 Uint128 String String Uint128
+(*remove_ssn (ssnaddr : ByStr20) *)
+| RemoveSsn of ByStr20 
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -174,6 +178,23 @@ let custom_transaction_msg_as_list =
          _tag : "update_contractmaxstake" ;
          _amount : Uint128 0 ;
          max_stake : max_stake}
+      | AddSsn ssnaddr stake_amount rewards urlraw urlapi buffered_deposit =>
+        (* ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128*)
+        {_recipient : proxyContract ;
+         _tag : "add_ssn" ;
+         _amount : Uint128 0 ;
+         ssnaddr : ssnaddr;
+         stake_amount : stake_amount;
+         rewards : rewards;
+         urlraw : urlraw;
+         urlapi : urlapi;
+         buffered_deposit : buffered_deposit}
+      | RemoveSsn ssnaddr =>
+        (* update_contractmaxstake(max_stake : Uint128) *)
+        {_recipient : proxyContract ;
+         _tag : "remove_ssn" ;
+         _amount : Uint128 0 ;
+         ssnaddr : ssnaddr}   
       end
     in
     one_msg msg
@@ -389,29 +410,40 @@ transition SubmitCustomUpdateVerifierTransaction (proxyContract : ByStr20, verif
 end
 
 (* Submit a new DrainContractBalance transaction for future signoff *)
-transition SubmitDrainContractBalanceTransaction (proxyContract : ByStr20)
+transition SubmitCustomDrainContractBalanceTransaction (proxyContract : ByStr20)
   transaction = DrainContractBalance;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new UpdateMinStake transaction for future signoff *)
-transition SubmitUpdateMinStakeTransaction (proxyContract : ByStr20, min_stake : Uint128)
+transition SubmitCustomUpdateMinStakeTransaction (proxyContract : ByStr20, min_stake : Uint128)
   transaction = UpdateMinStake min_stake;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new UpdateMaxStake transaction for future signoff *)
-transition SubmitUpdateMaxStakeTransaction (proxyContract : ByStr20, max_stake : Uint128)
+transition SubmitCustomUpdateMaxStakeTransaction (proxyContract : ByStr20, max_stake : Uint128)
   transaction = UpdateMaxStake max_stake;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new ContractMaxStake transaction for future signoff *)
-transition SubmitCustomMintTransaction (proxyContract : ByStr20, max_stake : Uint128)
+transition SubmitCustomUpdateContractMaxStakeTransaction (proxyContract : ByStr20, max_stake : Uint128)
   transaction = UpdateContractMaxStake max_stake;
   SubmitCustomTransaction proxyContract transaction
 end
 
+(* Submit a new AddSsn transaction for future signoff *)
+transition SubmitCustomAddSsnTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
+  transaction = AddSsn ssnaddr stake_amount rewards urlraw urlapi buffered_deposit;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new AddSsn transaction for future signoff *)
+transition SubmitCustomRemoveSsnTransaction (proxyContract : ByStr20, ssnaddr : ByStr20)
+  transaction = RemoveSsn ssnaddr;
+  SubmitCustomTransaction proxyContract transaction
+end
 (* Sign off on an existing transaction *)
 transition SignTransaction (transactionId : Uint32)
   (* Only owners are allowed to sign off transactions *)

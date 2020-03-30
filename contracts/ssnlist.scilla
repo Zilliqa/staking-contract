@@ -422,7 +422,8 @@ transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blo
   is_paused;
   validate_proxy;
   validate_verifier initiator;
-  forall ssnreward_list update_stake_reward
+  forall ssnreward_list update_stake_reward;
+  lastrewardblocknum := reward_blocknum
 end
 
 (* @dev: Withdraw stake reward. Used by ssn only. *)
