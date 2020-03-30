@@ -11,11 +11,13 @@ Golang (minimum version: go.1.12):
 
 Zilliqa command tool [zli](https://github.com/Zilliqa/zli)
 
-### Private keys for unit tests
+### Generation of keypairs for unit tests
 
-We are using an isolated server to run our tests, some of the tests require a large amount of ZILs to be executed. Instead of letting you generate your own private keys, we have prepared two private keys for you and will send them privately to you.
+some of the tests will require a large amount of ZILs. If you wish to run the test, you can either
+1. Generate your own keypairs (2 keypairs) and requests a large amount of test ZILs from us
+2. Get two pair of keypairs with test ZILs pre-loaded from us
 
-Let's name these two private keys as `pri1` and `pri2` in the following context.
+For the rest of this document, we will name the the private key of the keypairs as `pri1` and `pri2`. 
 
 ### Setup zli command tool
 
