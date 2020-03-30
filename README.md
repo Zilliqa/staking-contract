@@ -22,6 +22,14 @@ In the sections below, we describe in detail: 1) the purpose of each contract, 2
   * [Transitions](#transitions-1)
       + [Housekeeping Transitions](#housekeeping-transitions)
       + [Relay Transitions](#relay-transitions)
+- [Multi-signature Wallet Contract Specification](#multi-signature-wallet-contract-specification)
+  * [General Flow](#general-flow)
+  * [Roles and Privileges](#roles-and-privileges-2)
+  * [Immutable Parameters](#immutable-parameters-2)
+  * [Mutable Fields](#mutable-fields-2)
+  * [Transitions](#transitions-2)
+    + [Submit Transitions](#submit-transitions)
+    + [Action Transitions](#action-transitions)
 
 
 # Overview
