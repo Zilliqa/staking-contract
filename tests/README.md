@@ -1,6 +1,8 @@
 ## Testing using Zilliqa Isolated Server
 The Zilliqa isolated server is a simulated environment for smart contract testing. It uses the `accountstore` and scilla interpreter to run smart contract transactions in the absense of consensus protocol. This enables more rapid testing for smart contracts.
 
+Zilliqa hosts a public endpoint for Zilliqa Isolated Server over at `https://zilliqa-isolated-server.zilliqa.com`
+
 ### Requirements
 
 Golang (minimum version: go.1.12):
