@@ -238,7 +238,6 @@ end
 (* @param admin: New admin value *)
 (* @param initiator: The original caller who called the proxy *)
 transition update_admin (admin : ByStr20, initiator: ByStr20)
-  is_paused;
   validate_proxy;
   validate_admin initiator;
   contractadmin := admin
@@ -248,7 +247,6 @@ end
 (* @param verif: New verifier value *)
 (* @param initiator: The original caller who called the proxy *)
 transition update_verifier (verif : ByStr20, initiator: ByStr20)
-  is_paused;
   validate_proxy;
   validate_admin initiator;
   newverifier = Some {ByStr20} verif;
