@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitUpdateMaxStakeTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"0xe82d1b7f8fdd879ba2709fcd98c6491c84add3f9\"},{\"vname\":\"max_stake\",\"type\":\"Uint128\",\"value\":\"50000\"}]" -f true

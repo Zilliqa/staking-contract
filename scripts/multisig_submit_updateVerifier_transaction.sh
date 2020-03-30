@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitCustomUpdateVerifierTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"0xe82d1b7f8fdd879ba2709fcd98c6491c84add3f9\"},{\"vname\":\"verif\",\"type\":\"ByStr20\",\"value\":\"0x20ff646c47cbef9709ebdab505ebfa230a728499\"}]" -f true
