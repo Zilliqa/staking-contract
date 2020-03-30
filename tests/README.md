@@ -26,7 +26,7 @@ zli wallet from -p `pri1`
 
 A file names `.zilliqa` will be generated after running this. You can checkout this either by using `cat ~/.zilliqa` or 
 
-`zli wallet echo`, you will see something similar following:
+`zli wallet echo`, you will see something like the following:
 
 ```json
 {"api":"https://dev-api.zilliqa.com/","chain_id":333,"default_account":{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"},"accounts":[{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"}]}
@@ -35,9 +35,9 @@ A file names `.zilliqa` will be generated after running this. You can checkout t
 
 #### 2. Modify `api` and `chain_id`
 
-Since we use the `isolated server` instead of `community devnet`, we need to change the `api endpoint` to `https://zilliqa-isolated-server.zilliqa.com/`
+Since we use the `isolated server` rather than `community devnet`, we need rewrite parameters `api` and `chain_id` from `.zilliqa`,
 
-and `chain_id` to `1` from `~/.zilliqa`, the changed file should be like:
+the value should be `https://zilliqa-isolated-server.zilliqa.com/` and `1` respectively. The changed file should be like:
 
 ```json
 {"api":"https://zilliqa-isolated-server.zilliqa.com/","chain_id":1,"default_account":{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"},"accounts":[{"private_key":"e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020ccc","public_key":"036695e20c8339bd3aab70aead5fc0e35ade557b4d00f0552c62afa220ad0ee149","address":"ad7d96b8b4d7a13b96b0dd1081832606090c096d","bech_32_address":"zil1447edw9567snh94sm5ggrqexqcyscztddt2t94"}]}
