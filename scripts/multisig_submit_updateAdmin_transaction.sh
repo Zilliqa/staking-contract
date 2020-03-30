@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitCustomUpdateAdminTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"0xe26343f2c0be08f892c2e90fa5102b7deac1009c\"},{\"vname\":\"admin\",\"type\":\"ByStr20\",\"value\":\"0x20ff646c47cbef9709ebdab505ebfa230a728499\"}]" -f true
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitCustomUpdateAdminTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"${PROXY_CONTRACT}\"},{\"vname\":\"admin\",\"type\":\"ByStr20\",\"value\":\"${ADMIN}\"}]" -f true

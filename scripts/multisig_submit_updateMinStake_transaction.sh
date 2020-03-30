@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitUpdateMinStakeTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"0xe82d1b7f8fdd879ba2709fcd98c6491c84add3f9\"},{\"vname\":\"min_stake\",\"type\":\"Uint128\",\"value\":\"10000\"}]" -f true
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitUpdateMinStakeTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"${PROXY_CONTRACT}\"},{\"vname\":\"min_stake\",\"type\":\"Uint128\",\"value\":\"${MIN_STAKE}\"}]" -f true
