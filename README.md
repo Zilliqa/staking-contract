@@ -278,7 +278,7 @@ The table below presents the mutable fields of the contract and their initial va
 All the transitions in the contract can be categorized into three categories:
 - **Submit Transitions:** Create transactions for future signoff.
 - **Action Transitions:** Let owners sign, revoke or execute submitted transactions.
-- The `_balance` field keeps the amount of funds held by the contract and can be freely read within the implementation. `AddFunds transition` are used for adding native funds(ZIL) to the wallet from incoming messages by using `accept` keyword.
+- The `_balance` field keeps the amount of funds held by the contract and can be freely read within the implementation. The `AddFunds` transition is used for adding native funds (`ZIL`) to the wallet from incoming messages by using the `accept` keyword.
 
 ### Submit Transitions
 
