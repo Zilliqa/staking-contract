@@ -110,7 +110,7 @@ All the transitions in the contract can be categorized into three categories:
 
 Each of these category of transitions are presented in further detail below.
 
-### Housekeeping Transitions:
+### Housekeeping Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
