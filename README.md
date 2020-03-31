@@ -166,7 +166,7 @@ The table below describes the roles and privileges that this contract defines:
 
 ## Immutable Parameters
 
-The table below lists the parameters that are defined at the contrat deployment time and hence cannot be changed later on.
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
 
 | Name | Type | Description |
 |--|--|--|
