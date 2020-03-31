@@ -1,0 +1,13 @@
+[{
+  "vname": "_scilla_version",
+  "type": "Uint32",
+  "value": "0"
+}, {
+  "vname": "owners_list",
+  "type": "List ByStr20",
+  "value": ["0x8ea24f4debb10f1ef1b0448730abef62f188aee1","0x20ff646c47cbef9709ebdab505ebfa230a728499","0x5fa0e52b9cd475f31d22244d52b076601d031572"]
+}, {
+  "vname": "required_signatures",
+  "type": "Uint32",
+  "value": "2"
+}]
