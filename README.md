@@ -162,7 +162,7 @@ The table below describes the roles and privileges that this contract defines:
 | --------------- | ------------------------------------------------- |
 | `init_admin`           | The initial admin of the contract which is usually the creator of the contract. `init_admin` is also the initial value of `admin`. |                                 |
 | `admin`    | Current `admin` of the contract initialized to `init_admin`. Certain critical actions can only be performed by the `admin`, e.g., changing the current implementation of the `SSNList` contract. |
-|`initiator` | The user who calls the `SSNListProxy` contract that in turns call the `SSNList` contract. |
+|`initiator` | The user who calls the `SSNListProxy` contract that in turn calls the `SSNList` contract. |
 
 ## Immutable Parameters
 
