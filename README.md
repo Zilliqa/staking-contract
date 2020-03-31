@@ -229,7 +229,7 @@ Second, and more generally, it also represents a group of users that can invoke 
 
 Any transaction request (whether transfer of payments or invocation of a foreign transition) must be added to the contract before signatures can be collected. Once enough signatures are collected, the recipient (in case of payments) and/or any of the owners (in the general case) can ask for the transaction to be executed.
 
-If an owner changes his mind about a transaction, the signature can be revoked until the transaction is executed.
+If an owner changes his mind about a transaction, the signature can be revoked up until the transaction has been executed.
 
 This wallet does not allow adding or removing owners, or changing the number of required signatures. To do any of those, perform the following steps:
 
