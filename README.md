@@ -199,7 +199,7 @@ All the transitions in the contract can be categorized into two categories:
 ### Relay Transitions
 
 
-These transitions are meant to redirect calls to the corresponding `SSNList` contract and hence their names have an added prefix `proxy`. While, redirecting the contract prepares the `initiator` value that is the address of the caller of the `SSNListProxy` contract. The signature of transitions in the two contracts is exactly the same expect the added last parameter `initiator` for the `SSNList` contract.
+These transitions are meant to redirect calls to the corresponding `SSNList` contract. Redirecting the contract prepares the `initiator` value that is the address of the caller of the `SSNListProxy` contract. The signature of transitions in the two contracts is exactly the same except the added last parameter `initiator` for the transition in the `SSNList` contract.
 
 | Transition signature in the `SSNListProxy` contract  | Target transition in the `SSNList` contract |
 |--|--|
