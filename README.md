@@ -56,7 +56,7 @@ The table below describes the roles and privileges that this contract defines:
 | `ssn`           | A registered SSN that provides the seed node service and gets rewarded for the service. |
 | `verifier`      | An entity that checks the health of an SSN and rewards them accordingly for their service.                                 |
 | `admin`    | The administrator of the contract.  `admin` is a multisig wallet contract (aka an instance of `Wallet`).    |
-|`initiator` | The user who calls the `SSNListProxy` that in turns call the `SSNList` contract. |
+|`initiator` | The user who calls the `SSNListProxy` that in turn calls the `SSNList` contract. |
 
 ## Immutable Parameters
 
