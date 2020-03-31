@@ -268,7 +268,7 @@ The table below presents the mutable fields of the contract and their initial va
 | Name | Type | Initial Value | Description |
 |--|--|--|--|
 |`owners`| `Map ByStr20 Bool` | `owners_list` | Map of owners. |
-|`transactionCount`| `Uint32` | `0` | The number of of transactions  requests submitted so far. |
+|`transactionCount`| `Uint32` | `0` | The number of of transaction requests submitted so far. |
 |`signatures`| `Map Uint32 (Map ByStr20 Bool)` | `Emp Uint32 (Map ByStr20 Bool)` | Collected signatures for transactions by transaction ID. |
 |`signature_counts`| `Map Uint32 Uint32` | `Emp Uint32 Uint32` | Running count of collected signatures for transactions. |
 |`transactions`| `Map Uint32 Transaction` | `Emp Uint32 Transaction` | Transactions that have been submitted but not exected yet. |
