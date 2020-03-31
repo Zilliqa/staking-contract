@@ -180,7 +180,7 @@ The table below presents the mutable fields of the contract and their initial va
 | Name | Type | Initial Value |Description |
 |--|--|--|--|
 |`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
-|`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+|`admin`| `ByStr20` | `init_owner` | Current admin of the contract. |
 
 
 ## Transitions
