@@ -89,7 +89,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `ssnlist`   | `Map ByStr20 Ssn` | `Emp ByStr20 Ssn` |Mapping between SSN addresses and the corresponding `Ssn` information. |
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `minstake`  | `Uint128` | `Uin128 0`       | Minimum stake required to activate an SSN (in `Qa`, where 1 `Qa` = 10<sup>-12</sup> `ZIL`). |
-| `maxstake`  | `Uint128`  | `Uint128 0`.                       | Maximum stake (in `Qa`) allowed for each SSN. |
+| `maxstake`  | `Uint128`  | `Uint128 0`                       | Maximum stake (in `Qa`) allowed for each SSN. |
 | `contractmaxstake`  | `Uint128`  | `Uint128 0` | The maximum amount (in `Qa`) that can ever be staked across all SSNs. |
 | `totalstakeddeposit`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
