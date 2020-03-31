@@ -186,7 +186,7 @@ The table below presents the mutable fields of the contract and their initial va
 ## Transitions
 
 All the transitions in the contract can be categorized into two categories:
-- **Housekeeping Transitions** meant to facilitate basic admin related tasks.
+- **Housekeeping Transitions:** Meant to facilitate basic admin-related tasks.
 - **Relay Transitions** to redirect calls to the `SSNList` contract.
 
 ### Housekeeping Transitions
