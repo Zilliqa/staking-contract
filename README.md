@@ -193,7 +193,7 @@ All the transitions in the contract can be categorized into two categories:
 
 | Name | Params | Description |
 |--|--|--|
-|`upgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
+|`upgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 |`changeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 
 ### Relay Transitions
