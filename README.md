@@ -1,6 +1,6 @@
 # Seed Node Staking Contracts
 
-Seed node staking in [Zilliqa](https://www.zilliqa.com) as described in [ZIP-3](https://github.com/Zilliqa/ZIP/blob/master/zips/zip-3.md) makes use of three contracts written in [Scilla](https://scilla.readthedocs.io/en/latest/). This repository is the central portal that collates together the contracts, documentations around them, unit tests, and scripts to deploy and run the contracts on the network.
+Seed node staking in [Zilliqa](https://www.zilliqa.com) as described in [ZIP-3](https://github.com/Zilliqa/ZIP/blob/master/zips/zip-3.md) makes use of three contracts written in [Scilla](https://scilla.readthedocs.io/en/latest/). This repository is the central portal that collates together the contracts, documentations around them, unit tests, scripts and SDK code snippets to deploy and run the contracts on the network.
 
 In the sections below, we describe in detail: 1) the purpose of each contract, 2) their structure and specifications, 3) running unit tests for the contracts.
 
