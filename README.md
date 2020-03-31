@@ -282,7 +282,7 @@ All the transitions in the contract can be categorized into three categories:
 
 ### Submit Transitions
 
-The first transition is meant to submit request for transfer of native ZILs while the other are meant to submit a request to invoke transitions in the `SSNListProxy` contract.
+The first transition is meant to submit a request for transfer of native `ZIL`s while the others are meant to submit a request to invoke transitions in the `SSNListProxy` contract.
 
 | Name | Params | Description |
 |--|--|--|
