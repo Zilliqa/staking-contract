@@ -36,6 +36,11 @@ func (p *Proxy) TransferFundsAndDrainBalance(pri, pri2, funds string) {
 }
 
 func (p *Proxy) transferFunds(pri, funds string) error {
+	// setup: unpause
+	err0 := p.unpause(pri)
+	if err0 != nil {
+		panic("unpause with valid account failed: " + err0.Error())
+	}
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
 	r := m["balance"].(string)

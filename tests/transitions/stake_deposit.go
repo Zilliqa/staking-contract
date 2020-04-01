@@ -37,8 +37,14 @@ func TestStakeDeposit(pri1, pri2 string, api string) {
 }
 
 func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
+	// setup: unpause
+	err := p.unpause(pri1)
+	if err != nil {
+		panic("unpause with valid account failed: " + err.Error())
+	}
+
 	// 0. setup minstake maxstake contractmaxstake
-	err := p.updateContractMaxStake(pri1, strconv.Itoa(CONTRACT_MAX_STAKE))
+	err = p.updateContractMaxStake(pri1, strconv.Itoa(CONTRACT_MAX_STAKE))
 	if err != nil {
 		panic("update contract max stake failed: " + err.Error())
 	}

@@ -8,6 +8,10 @@ import (
 
 func (p *Proxy) PauseAndUnPause(valid, invalid string) {
 	fmt.Println("------------------------ begin pause unpause ------------------------")
+	err := p.unpause(valid)
+	if err != nil {
+		panic("unpause with valid account failed: " + err.Error())
+	}
 	if err2 := p.pause(invalid); err2 == nil {
 		panic("pause with invalid account failed")
 	} else {
@@ -18,24 +22,24 @@ func (p *Proxy) PauseAndUnPause(valid, invalid string) {
 		}
 	}
 
-	err := p.pause(valid)
-	if err != nil {
-		panic("pause with valid account failed: " + err.Error())
+	err3 := p.pause(valid)
+	if err3 != nil {
+		panic("pause with valid account failed: " + err3.Error())
 	}
 	fmt.Println("pause with valid account succeed")
 
-	if err3 := p.unpause(invalid); err3 == nil {
+	if err4 := p.unpause(invalid); err4 == nil {
 		panic("unpause with invalid account failed")
 	} else {
-		if err3.Error() == "failed" {
+		if err4.Error() == "failed" {
 			fmt.Println("unpause with invalid account succeed")
 		} else {
-			panic("unpause with invalid account failed: " + err3.Error())
+			panic("unpause with invalid account failed: " + err4.Error())
 		}
 	}
-	err4 := p.unpause(valid)
-	if err4 != nil {
-		panic("unpause with valid account failed: " + err4.Error())
+	err5 := p.unpause(valid)
+	if err5 != nil {
+		panic("unpause with valid account failed: " + err5.Error())
 	}
 	fmt.Println("unpause with valid account succeed")
 	fmt.Println("------------------------ end pause unpause ------------------------")

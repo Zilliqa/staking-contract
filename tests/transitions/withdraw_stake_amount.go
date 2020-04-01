@@ -29,6 +29,12 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	therestake := strconv.FormatInt(int64(min*3), 10)
 	onehalfstake := strconv.FormatInt(int64(min+half), 10)
 
+	// setup: unpause
+	err0 := p.unpause(pri1)
+	if err0 != nil {
+		panic("unpause with valid account failed: " + err0.Error())
+	}
+
 	err = p.updateMinStake(pri1, minstake)
 	if err != nil {
 		panic("update min stake failed: " + err.Error())

@@ -28,6 +28,11 @@ func (p *Proxy) UpdateContractMaxStake(valid, invalid string) {
 
 //	stakeNum := "100000000000000000"
 func (p *Proxy) updateContractMaxStake(private string, stakeNum string) error {
+	// setup: unpause
+	err0 := p.unpause(private)
+	if err0 != nil {
+		panic("unpause with valid account failed: " + err0.Error())
+	}
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	parameters := []contract2.Value{
 		{

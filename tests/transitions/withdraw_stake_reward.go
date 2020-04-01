@@ -24,6 +24,11 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	fmt.Println("proxy = ", proxy)
 	fmt.Println("impl = ", impl)
 	p := NewProxy(api, proxy, impl)
+	// setup: unpause
+	err0 := p.unpause(pri1)
+	if err0 != nil {
+		panic("unpause with valid account failed: " + err0.Error())
+	}
 
 	minstake := "100000000000"
 
