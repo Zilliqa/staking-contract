@@ -1,5 +1,7 @@
 # Getting Started
-This is a collection of Javascript scripts that shows how to interact with the staking smart contract from deploying, deposit stake deposit to withdraw rewards. These scripts utilizes `Zilliqa-JavaScript-Library` and tested on **NodeJS 12.9.0**.
+This is a collection of Javascript scripts that shows how to interact with the staking smart contract from deploying, deposit stake deposit to withdraw rewards. 
+
+These scripts utilizes [Zilliqa-JavaScript-Library](https://github.com/Zilliqa/Zilliqa-JavaScript-Library) and has been tested on **NodeJS 12.9.0**.
 
 # Contents
 The scripts are divided into folders based on the following roles
