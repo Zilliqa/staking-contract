@@ -8,6 +8,8 @@ The scripts are divided into folders based on the following roles
 - Staked seed node operator
 - Proxy contract admin
 
+# Requirements
+- NodeJS >= 10.6
 
 # Installation
 Install dependencies via `npm`:
@@ -16,6 +18,7 @@ cd javascript
 npm install
 ```
 
+# Configuration
 Open the `.js` file with a text editor which you want to execute and edit the parameters accordingly:
 ```
 const API = 'http://localhost:5555' // use https://dev-api.zilliqa.com for Dev Testnet
@@ -25,10 +28,9 @@ const PRIVATE_KEY = 'd96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc3
 ...
 ```
 
+# Execution
 Execute a script to interact with the smart contract:
 ```
 node deploy.js
 ```
 
-# Requirements
-- NodeJS >= 10.6
