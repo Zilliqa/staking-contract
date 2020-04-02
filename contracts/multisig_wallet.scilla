@@ -73,6 +73,10 @@ type ProxyTransaction =
 (* upgradeTo (newImplementation : ByStr20) *)
 | UpgradeTo of ByStr20
 (* changeProxyAdmin (newAdmin : ByStr20)  *)
+(* pause () *)
+| Pause
+(* unpause () *)
+| Unpause
 | ChangeProxyAdmin of ByStr20
 (* update_admin(admin : ByStr20)  *)
 | UpdateAdmin of ByStr20
@@ -137,6 +141,16 @@ let custom_transaction_msg_as_list =
          _tag : "upgradeTo" ;
          _amount : Uint128 0 ;
          newImplementation : newImplementation }
+      | Pause =>
+        (* pause()  *)
+        {_recipient : proxyContract ;
+        _tag : "pause" ;
+        _amount : Uint128 0 }
+      | Unpause =>
+        (* unpause()  *)
+        {_recipient : proxyContract ;
+        _tag : "unpause" ;
+        _amount : Uint128 0 }   
       | ChangeProxyAdmin newAdmin =>
         (* changeProxyAdmin(newAdmin : ByStr20)  *)
         {_recipient : proxyContract ;
@@ -388,6 +402,18 @@ end
 (* Submit a new UpgradeTo transaction for future signoff *)
 transition SubmitCustomUpgradeToTransaction (proxyContract : ByStr20, newImplementation : ByStr20)
   transaction = UpgradeTo newImplementation;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new pause transaction for future signoff *)
+transition SubmitCustomPauseTransaction (proxyContract : ByStr20)
+  transaction = Pause;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new unpause transaction for future signoff *)
+transition SubmitCustomUnpauseTransaction (proxyContract : ByStr20)
+  transaction = Unpause;
   SubmitCustomTransaction proxyContract transaction
 end
 

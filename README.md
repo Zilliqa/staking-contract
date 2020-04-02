@@ -288,6 +288,8 @@ The first transition is meant to submit a request for transfer of native `ZIL`s 
 |--|--|--|
 |`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
 |`SubmitCustomUpgradeToTransaction`| `proxyContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `upgradeTo` transition in the `SSNListProxy` contract. |
+|`SubmitCustomPauseTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `pause` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUnpauseTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `unpause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeProxyAdminTransaction`| `proxyContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `changeProxyAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateAdminTransaction`| `proxyContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `update_admin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `update_verifier` transition in the `SSNListProxy` contract. |
