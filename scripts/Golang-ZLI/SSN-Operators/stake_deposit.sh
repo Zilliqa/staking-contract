@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source config.sh
+source ../config.sh
 
 # Update the values below
 STAKING_PRIVKEY_SSN="38f3715e7ef9b5a5080171dca4cb37b05eaa7e3b0d9a9427a11e021e1029525d"

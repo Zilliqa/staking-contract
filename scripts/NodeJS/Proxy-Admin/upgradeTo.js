@@ -5,26 +5,26 @@ const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypto');
 
-const zilliqa = new Zilliqa('https://dev-api.zilliqa.com');
-const CHAIN_ID = 2;
+// change the following parameters
+const API = 'http://localhost:5555'
+const CHAIN_ID = 1;
+const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89';
+const STAKING_PROXY_ADDR = toBech32Address("0x26b628F7a15584e2c6578B8B6572ae226c25bA3D"); // checksum proxy address
+const NEW_STAKING_CONTRACT = '0x1234567890123456789012345678901234567890';
+
+const zilliqa = new Zilliqa(API);
 const MSG_VERSION = 1;
 const VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
-
-const PRIVATE_KEY = '';
 const GAS_PRICE = units.toQa('1000', units.Units.Li);
 
-const STAKING_PROXY_ADDR = toBech32Address("0123456789012345678901234567890123456789");
-
-const NEW_STAKING_CONTRACT = '0x1234567890123456789012345678901234567890';
 
 async function main() {
     zilliqa.wallet.addByPrivateKey(PRIVATE_KEY);
     const address = getAddressFromPrivateKey(PRIVATE_KEY);
+    console.log("Your account address is: %o", `${address}`);
+    console.log("proxy: %o\n", STAKING_PROXY_ADDR);
 
-    console.log("Invoking upgrade underlying staking contract...");
-    console.log("Your account address is:");
-    console.log(`${address}`);
-
+    console.log("------------------------ begin upgrade ------------------------\n");
     try {
         const contract = zilliqa.contracts.at(STAKING_PROXY_ADDR);
         const callTx = await contract.call(
@@ -33,24 +33,25 @@ async function main() {
                 {
                     vname: 'newImplementation',
                     type: 'ByStr20',
-                    value: NEW_STAKING_CONTRACT
+                    value: `${NEW_STAKING_CONTRACT}`
                 }
             ],
             {
                 version: VERSION,
-                amount: new BN(0), // sending amounts in ZIL, converted to Qa
+                amount: new BN(0),
                 gasPrice: GAS_PRICE,
-                gasLimit: Long.fromNumber(10000)
+                gasLimit: Long.fromNumber(30000)
             },
             33,
             1000,
             true
         );
+        console.log("transaction: %o", callTx.id);
         console.log(JSON.stringify(callTx.receipt, null, 4));
-
     } catch (err) {
         console.log(err);
     }
+    console.log("------------------------ end upgrade ------------------------\n");
 }
 
 main();
