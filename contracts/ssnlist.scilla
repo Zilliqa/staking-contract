@@ -55,6 +55,11 @@ let mk_stake_deposit_event =
   fun (amount : Uint128) =>
     { _eventname : "SSN updated stake"; ssn_address : ssn; new_stake_amount : amount }
 
+let mk_stake_buffered_deposit_event =
+  fun (ssn : ByStr20) =>
+  fun (amount : Uint128) =>
+    { _eventname : "SSN updated buffered stake"; ssn_address : ssn; new_stake_amount : amount }
+
 let mk_stake_deposit_below_stake_limit_event =
   fun (ssn : ByStr20) =>
   fun (amount : Uint128) =>
@@ -404,7 +409,9 @@ transition stake_deposit (initiator: ByStr20)
           | False =>
             (* Update new buffered deposit until next assign_stake_reward is finished *)
             ssn = Ssn bool_active stake_amount rewards urlraw urlapi new_buff_amount;
-            ssnlist[initiator] := ssn
+            ssnlist[initiator] := ssn;
+            e = mk_stake_buffered_deposit_event initiator _amount;
+            event e
           end;
           (* Update the new total stake deposit of contract *)
           totalstakedeposit := newStakeDeposit
