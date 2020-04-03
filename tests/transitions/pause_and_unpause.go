@@ -8,6 +8,9 @@ import (
 
 func (p *Proxy) PauseAndUnPause(valid, invalid string) {
 	fmt.Println("------------------------ begin pause unpause ------------------------")
+	if err1 := p.unpause(valid); err1 != nil {
+		panic("unpause with valid account failed")
+	}
 	if err2 := p.pause(invalid); err2 == nil {
 		panic("pause with invalid account failed")
 	} else {

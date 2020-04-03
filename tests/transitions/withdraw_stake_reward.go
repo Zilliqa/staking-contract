@@ -42,6 +42,10 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 		panic("update contract max stake failed: " + err.Error())
 	}
 
+	if err0 := p.unpause(pri1); err0 != nil {
+		panic("unpause with valid account failed")
+	}
+
 	// 1. no such ssn
 	err1, event := p.withdrawRewards(pri2)
 	if err1 != nil || event != "SSN doesn't exist" {

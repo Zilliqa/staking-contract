@@ -31,6 +31,9 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	ssn1 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri1))
 	ssn2 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 
+	if err0 := p.unpause(pri1); err0 != nil {
+		panic("unpause with valid account failed")
+	}
 	// 1. assign ssn1, should fail
 	err1 := p.assignStakeReward(pri1, ssn1, "50")
 	if err1 != nil {
