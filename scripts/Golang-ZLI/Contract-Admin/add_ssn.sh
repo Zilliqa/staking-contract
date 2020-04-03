@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source config.sh
+source ../config.sh
 
 # Update the values below
 SSN_ADDR="0xb2e51878722d8b6d2c0f97e995a7276d64c1618b"

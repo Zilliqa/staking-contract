@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source config.sh
+source ../config.sh
 
 # Update the values below
 FUNDS_IN_QA="10000000000000"
