@@ -26,6 +26,9 @@ func TestAddSSN(pri1, pri2 string, api string) {
 }
 
 func (p *Proxy) AddSSN(pri1, pri2 string) {
+	if err1 := p.unpause(pri1); err1 != nil {
+		panic("unpause with valid account failed")
+	}
 	// 1. as and non-admin to add ssn, should fail
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))

@@ -49,6 +49,10 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 		panic("test withdraw amount failed: update verifier error: " + err2.Error())
 	}
 
+	if err0 := p.unpause(pri1); err0 != nil {
+		panic("unpause with valid account failed")
+	}
+
 	// 1. no such ssn
 	err, event := p.withdrawAmount(pri2, minstake)
 	if event == "SSN doesn't exist" {

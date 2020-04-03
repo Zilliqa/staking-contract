@@ -27,6 +27,10 @@ func (p *Proxy) UpdateMinStake(valid, invalid string) {
 }
 
 func (p *Proxy) updateMinStake(private string, stakeNum string) error {
+	if err0 := p.unpause(private); err0 != nil {
+		panic("unpause with valid account failed")
+	}
+
 	proxy, _ := bech32.ToBech32Address(p.Addr)
 	parameters := []contract2.Value{
 		{
