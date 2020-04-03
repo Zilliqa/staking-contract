@@ -18,8 +18,8 @@ const MSG_VERSION = 1;
 const VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
 const GAS_PRICE = units.toQa('1000', units.Units.Li);
 
-const PROXY_CONTRACT_PATH = "../../contracts/proxy.scilla";
-const SSNLIST_CONTRACT_PATH = "../../contracts/ssnlist.scilla";
+const PROXY_CONTRACT_PATH = "../../../contracts/proxy.scilla";
+const SSNLIST_CONTRACT_PATH = "../../../contracts/ssnlist.scilla";
 
 
 async function main() {
