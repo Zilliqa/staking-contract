@@ -2,7 +2,7 @@
 This repository contains some samples illustrated how third parties or organizations integrate with Zilliqa staking contract as SSN operators.
 
 ## SSNOperator.java
-[SSNOperator.java](./src/main/java/com/zilliqa) cointain the sample codes for SSN operators to interact with the SSN smart contract. 
+[SSNOperator.java](./src/main/java/com/zilliqa/staking/SSNOperator.java) cointain the sample codes for SSN operators to interact with the SSN smart contract. 
 
 ## public String stakeDeposit(String amount, int attempts, int interval)
 This function allows the SSN operator to deposit stake amount into the SSN smart contract. 
