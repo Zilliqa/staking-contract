@@ -3,13 +3,32 @@ package com.zilliqa.staking;
 import org.junit.Test;
 
 public class SSNOperatorTest {
+
+    private static String api = "https://dev-api.zilliqa.com/";
+    private static int chainId = 333;
+    private static String ssnPrivateKey = "";
+    private static String proxyAddress = "";
+    SSNOperator ssnOperator = new SSNOperator(api, chainId, ssnPrivateKey, proxyAddress);
+
+    public SSNOperatorTest() throws Exception {
+    }
+
+
     @Test
     public void stakeDeposit() throws Exception {
-        SSNOperator ssnOperator = new SSNOperator("https://zilliqa-isolated-server.zilliqa.com/", 1,
-                "40a08154418fcc0026e9f93f6ed16c6c6a499cbcda1335b581084f18105d1c7b",
-                "40a57198730c58a59eb67d7d299e55dd958090ff");
+        String tx = ssnOperator.stakeDeposit("1000", 100, 3);
+        System.out.println(tx);
+    }
 
-        String tx = ssnOperator.stakeDeposit("20000000", 100, 3);
+    @Test
+    public void withdrawStakeAmount() throws Exception {
+        String tx = ssnOperator.withdrawStakeAmount("1000", 100, 3);
+        System.out.println(tx);
+    }
+
+    @Test
+    public void withdrawStakeReward() throws Exception {
+        String tx = ssnOperator.withdrawStakeRewards(100, 3);
         System.out.println(tx);
     }
 }

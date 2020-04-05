@@ -13,6 +13,7 @@ import com.firestack.laksaj.transaction.TxStatus;
 import com.firestack.laksaj.utils.Bech32;
 import com.firestack.laksaj.utils.Validation;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,6 +32,7 @@ public class SSNOperator {
     private HttpProvider provider;
     private Wallet wallet;
     private Contract SSNContractInstance;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
 
     public SSNOperator(String api, int chainId, String SSNPrivateKey, String stakingProxyAddress) throws Exception {
@@ -53,6 +55,7 @@ public class SSNOperator {
         this.SSNContractInstance = factory.atContract(this.stakingProxyAddress, "", (Value[]) init.toArray(), "");
     }
 
+
     /**
      * @param amount   staking amount
      * @param attempts attempt times for polling transaction
@@ -71,19 +74,92 @@ public class SSNOperator {
             // check receipt and event logs
             List<Object> eventLogs = tx.getReceipt().getEvent_logs();
             if (eventLogs != null && eventLogs.size() != 0) {
-                ObjectMapper objectMapper = new ObjectMapper();
                 String events = objectMapper.writeValueAsString(eventLogs.get(0));
                 EventLogEntry eventLogEntry = objectMapper.reader().forType(EventLogEntry.class).readValue(events);
-                if (!eventLogEntry._eventname.equals("SSN updated stake") || !eventLogEntry._eventname.equals("SSN updated buffered stake")) {
-                    // todo carefully handle this
-                    System.out.println(events);
+                if (eventLogEntry._eventname.equals("SSN updated stake") || eventLogEntry._eventname.equals("SSN updated buffered stake")) {
+                    // todo
+                    // indicate we succeed either stakeDeposit or bufferedStakeDeposit
+                    System.out.println("deposit succeed, and next?");
                 } else {
-                    // todo everything is fine
+                    System.out.println("deposit failed, please check?");
+                    System.out.println(events);
                 }
             }
-
         } else {
             // todo please carefully handle this situation
+            System.out.println("transaction failed, please check?");
+        }
+        return tx.getID();
+    }
+
+
+    /**
+     * @param amount   withdraw amount
+     * @param attempts attempt times for polling transaction
+     * @param interval interval time in seconds between each polling
+     * @return transaction id
+     * @throws Exception
+     */
+    public String withdrawStakeAmount(String amount, int attempts, int interval) throws Exception {
+        String normalAddr = KeyTools.getAddressFromPrivateKey(this.SSNPrivateKey);
+        String publicKey = KeyTools.getPublicKeyFromPrivateKey(this.SSNPrivateKey, true);
+        Integer nonce = Integer.valueOf(this.provider.getBalance(normalAddr).getResult().getNonce());
+        CallParams params = CallParams.builder().nonce(String.valueOf(nonce + 1)).version(String.valueOf(pack(this.chainId, 1))).gasPrice("1000000000").gasLimit("30000").senderPubKey(publicKey).amount("0").build();
+        List<Value> values = Arrays.asList(Value.builder().vname("amount").type("Uint128").value(amount).build());
+        Transaction tx = this.SSNContractInstance.call("withdraw_stake_amount", (Value[]) values.toArray(), params, attempts, interval);
+        if (tx.getStatus() == TxStatus.Confirmed && tx.getReceipt().isSuccess()) {
+            // check receipt and event logs
+            List<Object> eventLogs = tx.getReceipt().getEvent_logs();
+            if (eventLogs == null) {
+                // indicate every thing is fine, can check balance or do other things
+                // todo
+                System.out.println("withdraw amount succeed, and next?");
+            } else {
+                // indicate something unexpected happens, check the log please
+                // todo
+                System.out.println("withdraw amount failed, please check?");
+                System.out.println(eventLogs);
+            }
+        } else {
+            // todo please carefully handle this situation
+            System.out.println("transaction failed, please check?");
+        }
+        return tx.getID();
+    }
+
+
+    /**
+     * @param attempts attempt times for polling transaction
+     * @param interval interval time in seconds between each polling
+     * @return transaction id
+     * @throws Exception
+     */
+    public String withdrawStakeRewards(int attempts, int interval) throws Exception {
+        String normalAddr = KeyTools.getAddressFromPrivateKey(this.SSNPrivateKey);
+        String publicKey = KeyTools.getPublicKeyFromPrivateKey(this.SSNPrivateKey, true);
+        Integer nonce = Integer.valueOf(this.provider.getBalance(normalAddr).getResult().getNonce());
+        CallParams params = CallParams.builder().nonce(String.valueOf(nonce + 1)).version(String.valueOf(pack(this.chainId, 1))).gasPrice("1000000000").gasLimit("30000").senderPubKey(publicKey).amount("0").build();
+        List<Value> values = Arrays.asList();
+        Transaction tx = this.SSNContractInstance.call("withdraw_stake_rewards", (Value[]) values.toArray(), params, attempts, interval);
+        if (tx.getStatus() == TxStatus.Confirmed && tx.getReceipt().isSuccess()) {
+            // check receipt and event logs
+            List<Object> eventLogs = tx.getReceipt().getEvent_logs();
+            if (eventLogs != null && eventLogs.size() != 0) {
+                String events = objectMapper.writeValueAsString(eventLogs.get(0));
+                EventLogEntry eventLogEntry = objectMapper.reader().forType(EventLogEntry.class).readValue(events);
+                if (eventLogEntry._eventname.equals("SSN withdraw reward")) {
+                    // todo
+                    // indicate we succeed
+                    System.out.println("withdraw reward succeed, and next?");
+                } else {
+                    // todo
+                    System.out.println("withdraw reward failed, please check?");
+                    System.out.println(events);
+                }
+            }
+        } else {
+            // todo please carefully handle this situation
+            System.out.println("transaction failed, please check?");
         }
         return tx.getID();
     }
