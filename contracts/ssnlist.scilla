@@ -573,7 +573,7 @@ transition withdraw_commission(initiator : ByStr20)
     e = mk_ssn_not_exists_event ssnaddr;
     event e
   | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commision_rewards) =>
-    TransferFunds empty_tag commission rewards initiator;
+    TransferFunds empty_tag commission_rewards initiator;
     e = mk_withdraw_stake_rewards_event initiator rewards;  
     ssn = Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission uint128_zero;
     ssnlist[ssnaddr] := ssn;
