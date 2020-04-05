@@ -1,4 +1,4 @@
-# zil-staking-starter-kit
+# Java sample code for SSN operators
 This repository contains some samples illustrated how third parties or organizations integrate with Zilliqa staking contract as SSN operators.
 
 ## SSNOperator.java
