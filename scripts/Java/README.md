@@ -27,8 +27,14 @@ This function allows the SSN operator to withdraw *all* the stake reward from th
 @param interval interval time in seconds between each polling
 ```
 
+### public String getStakeAmount()
+This function allows the SSN operator to get stake amount *(excluding reward)* from the SSN smart contract.
+
+### public String getStakeBufferedAmount()
+This function allows the SSN operator to get buffered stake amount from the SSN smart contract.
+
+### public String getStakeRewards()
+This function allows the SSN operator to get stake reward amount from the SSN smart contract.
+
 ### Todo
 - [ ] Get staked seed node status
-- [x] Get current stake amount
-- [x] Get current buffered stake amount
-- [x] Get current stake reward
