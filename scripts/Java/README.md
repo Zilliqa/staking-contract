@@ -29,5 +29,6 @@ This function allows the SSN operator to withdraw *all* the stake reward from th
 
 ### Todo
 - [ ] Get staked seed node status
-- [ ] Get current stake amount
-- [ ] Get current stake reward
+- [x] Get current stake amount
+- [x] Get current buffered stake amount
+- [x] Get current stake reward

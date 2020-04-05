@@ -12,10 +12,9 @@ import com.firestack.laksaj.transaction.Transaction;
 import com.firestack.laksaj.transaction.TxStatus;
 import com.firestack.laksaj.utils.Bech32;
 import com.firestack.laksaj.utils.Validation;
+import com.google.common.collect.Lists;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.firestack.laksaj.account.Wallet.pack;
 
@@ -162,5 +161,66 @@ public class SSNOperator {
             System.out.println("transaction failed, please check?");
         }
         return tx.getID();
+    }
+
+    private List<Object> getState() throws Exception {
+        String impl = this.getImplContractAddress();
+        List<Object> param = new LinkedList<>();
+        param.add(impl.substring(2));
+        param.add("ssnlist");
+        String ssn = "0x" + KeyTools.getAddressFromPrivateKey(this.SSNPrivateKey).toLowerCase();
+        param.add(Lists.newArrayList());
+        String state = provider.getSmartContractSubState(param);
+        HashMap<String, HashMap<String, HashMap<String, HashMap<String, List<Object>>>>> map = objectMapper.reader().forType(HashMap.class).readValue(state);
+        return map.get("result").get("ssnlist").get(ssn).get("arguments");
+    }
+
+    public String getStakeAmount() throws Exception {
+        return (String) this.getState().get(1);
+    }
+
+    public String getStakeBufferedAmount() throws Exception {
+        return (String) this.getState().get(5);
+    }
+
+    public String getStakeRewards() throws Exception {
+        return (String) this.getState().get(2);
+    }
+
+
+    private String getImplContractAddress() throws Exception {
+        List<Object> param = new LinkedList<>();
+        param.add(Bech32.fromBech32Address(stakingProxyAddress));
+        param.add("implementation");
+        param.add(Lists.newArrayList());
+        String state = provider.getSmartContractSubState(param);
+        ProxyState proxyState = objectMapper.reader().forType(ProxyState.class).readValue(state);
+        return proxyState.result.implementation;
+    }
+
+    public static class ProxyState {
+        public String id;
+        public String jsonrpc;
+        public ProxyResult result;
+
+        public ProxyState(String id, String jsonrpc, ProxyResult result) {
+            this.id = id;
+            this.jsonrpc = jsonrpc;
+            this.result = result;
+        }
+
+        public ProxyState() {
+        }
+    }
+
+    public static class ProxyResult {
+        public String implementation;
+
+        public ProxyResult(String implementation) {
+            this.implementation = implementation;
+        }
+
+        public ProxyResult() {
+        }
     }
 }
