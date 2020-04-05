@@ -23,8 +23,8 @@ This function allows the SSN operator to withdraw stake amount *(excluding rewar
 ## public String withdrawStakeRewards(int attempts, int interval)
 This function allows the SSN operator to withdraw *all* the stake reward from the SSN smart contract.
 ```java
-* @param attempts attempt times for polling transaction
-* @param interval interval time in seconds between each polling
+@param attempts attempt times for polling transaction
+@param interval interval time in seconds between each polling
 ```
 
 ## Todo
