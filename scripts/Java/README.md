@@ -37,10 +37,10 @@ This function allows the SSN operator to get buffered stake amount from the SSN 
 This function allows the SSN operator to get stake reward amount from the SSN smart contract.
 
 ###  public Boolean getActiveStatus()
-This function allows the SSN operator to get its active status from the SSN smart contract.
+This function allows the SSN operator to get the current status (active/inactive) of the SSN. An inactive SSN is usually a result of the existing stake amount less than minstake.
 
 ### public Boolean getNodeStatus(String publicApi, int tolerance)
-This function allows the SSN operator to get its seed node's status by comparing with the tx block number with a tolerance.
+This function allows the SSN operator to check whether is the node is in-sync with the network, up to a certain tolerance.
 ```java
 @param publicApi public api endpoint maintained by Zilliqa, typically https://dev-api.zilliqa.com for community testnet and https://api.zilliqa.com for mainnet
 @param tolerance tolerance of the gap of the tx block number
