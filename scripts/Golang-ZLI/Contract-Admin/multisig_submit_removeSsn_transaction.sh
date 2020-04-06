@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitCustomRemoveSsnTransaction -k ${OWNER_KEY} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"${PROXY_CONTRACT}\"},{\"vname\":\"ssnaddr\",\"type\":\"ByStr20\",\"value\":\"${SSN_ADDR}\"}]" -f true
