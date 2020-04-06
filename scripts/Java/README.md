@@ -36,5 +36,12 @@ This function allows the SSN operator to get buffered stake amount from the SSN 
 ### public String getStakeRewards()
 This function allows the SSN operator to get stake reward amount from the SSN smart contract.
 
-### Todo
-- [ ] Get staked seed node status
+###  public Boolean getActiveStatus()
+This function allows the SSN operator to get its active status from the SSN smart contract.
+
+### public Boolean getNodeStatus(String publicApi, int tolerance)
+This function allows the SSN operator to get its seed node's status by comparing with the tx block number with a tolerance.
+```java
+@param publicApi public api endpoint maintained by Zilliqa, typically https://dev-api.zilliqa.com for community testnet and https://api.zilliqa.com for mainnet
+@param tolerance tolerance of the gap of the tx block number
+```

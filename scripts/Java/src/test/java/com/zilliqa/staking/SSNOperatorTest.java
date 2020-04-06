@@ -5,7 +5,7 @@ import org.junit.Test;
 public class SSNOperatorTest {
 
     private static String api = "https://dev-api.zilliqa.com/";
-    private static int chainId = 1;
+    private static int chainId = 333;
     private static String ssnPrivateKey = "";
     private static String proxyAddress = "";
     SSNOperator ssnOperator = new SSNOperator(api, chainId, ssnPrivateKey, proxyAddress);
@@ -48,5 +48,15 @@ public class SSNOperatorTest {
     public void getStakeRewards() throws Exception {
         String state = ssnOperator.getStakeRewards();
         System.out.println(state);
+    }
+
+    @Test
+    public void getActiveStatue() throws Exception {
+        System.out.println(ssnOperator.getActiveStatus());
+    }
+
+    @Test
+    public void getNodeStatus() throws Exception {
+        System.out.println(ssnOperator.getNodeStatus("https://dev-api.zilliqa.com",10));
     }
 }

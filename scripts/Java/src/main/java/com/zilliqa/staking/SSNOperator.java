@@ -7,6 +7,7 @@ import com.firestack.laksaj.contract.Contract;
 import com.firestack.laksaj.contract.ContractFactory;
 import com.firestack.laksaj.contract.Value;
 import com.firestack.laksaj.crypto.KeyTools;
+import com.firestack.laksaj.exception.ZilliqaAPIException;
 import com.firestack.laksaj.jsonrpc.HttpProvider;
 import com.firestack.laksaj.transaction.Transaction;
 import com.firestack.laksaj.transaction.TxStatus;
@@ -14,6 +15,7 @@ import com.firestack.laksaj.utils.Bech32;
 import com.firestack.laksaj.utils.Validation;
 import com.google.common.collect.Lists;
 
+import java.io.IOException;
 import java.util.*;
 
 import static com.firestack.laksaj.account.Wallet.pack;
@@ -185,6 +187,26 @@ public class SSNOperator {
 
     public String getStakeRewards() throws Exception {
         return (String) this.getState().get(2);
+    }
+
+    public Boolean getActiveStatus() throws Exception {
+        HashMap<String, Object> status = (HashMap<String, Object>) this.getState().get(0);
+        return Boolean.valueOf((String) status.get("constructor"));
+    }
+
+    /**
+     *
+     * @param publicApi public api endpoint maintained by Zilliqa, typically https://dev-api.zilliqa.com for community
+     *                  testnet and https://api.zilliqa.com for mainnet
+     * @param tolerance tolerance of the gap of the tx block number
+     * @return sync or not
+     * @throws IOException
+     * @throws ZilliqaAPIException
+     */
+    public Boolean getNodeStatus(String publicApi, int tolerance) throws IOException, ZilliqaAPIException {
+        int localTxBlockNum = this.provider.getBlockchainInfo().getResult().getNumTxnsTxEpoch();
+        int clusterTxBlockNum = new HttpProvider(publicApi).getBlockchainInfo().getResult().getNumTxnsTxEpoch();
+        return Math.abs(localTxBlockNum-clusterTxBlockNum) <  tolerance;
     }
 
 
