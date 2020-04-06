@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 source config.sh
 
-zli contract deploy -c ../../contracts/proxy.scilla -i proxy.json -k ${STAKING_PRIVKEY_ADMIN}
+zli contract deploy -c ../../contracts/proxy.scilla -i proxy.json -s ${KEY_STORE_PATH}
