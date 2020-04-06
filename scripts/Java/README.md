@@ -36,7 +36,7 @@ This function allows the SSN operator to get buffered stake amount from the SSN 
 ### public String getStakeRewards()
 This function allows the SSN operator to get stake reward amount from the SSN smart contract.
 
-###  public Boolean getActiveStatus()
+### public Boolean getActiveStatus()
 This function allows the SSN operator to get the current status (active/inactive) of the SSN. An inactive SSN is usually a result of the existing stake amount less than minstake.
 
 ### public Boolean getNodeStatus(String publicApi, int tolerance)
