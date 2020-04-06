@@ -1,0 +1,5 @@
+scripts/Java/.gradle
+scripts/Java/gradle
+scripts/Java/out
+gradlew.bat
+gradlew
