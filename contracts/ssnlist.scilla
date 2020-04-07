@@ -157,6 +157,12 @@ type SsnRewardShare =
 type Delegator =
 | Delegator of Uint128 Uint128 Uint128
 
+type PairForStakeSSNCycle =
+| PairForStakeSSNCycle of Uint128 Uint128
+
+type PairForDelegatorCycle = 
+| PairForDelegatorCycle of ByStr20 Uint128
+
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
@@ -173,9 +179,9 @@ field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
 (* AddressofSSN -> (AddressOfDelegator -> DelegatorInfo) *)
 field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr20 Delegator)
 (* AddressofSSN -> (Blocknum -> Pair (TotalStakeAtThatBlockForTheSSN, TotalRewardEarned) *)
-field stakeSSNPerCyle : Map ByStr20 (Map Uint32 (Pair Uint128 Uint128)) = Emp ByStr20 (Map Uint32 (Pair Uint128 Uint128))
+field stakeSSNPerCyle : Map ByStr20 (Map Uint32 PairForStakeSSNCycle) = Emp ByStr20 (Map Uint32 PairForStakeSSNCycle)
 (* AddressofDelegator -> (Blocknum -> Pair(AddressofSSN StakeAtThatBlock)) *)
-field stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 (Pair ByStr20 Uint128)) = Emp ByStr20 (Map Uint32 (Pair ByStr20 Uint128))
+field stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 PairForDelegatorCycle) = Emp ByStr20 (Map Uint32 PairForDelegatorCycle)
 
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -275,12 +281,12 @@ procedure update_stake_reward (entry : SsnRewardShare)
         delegator_reward = let t = builtin sub new_reward total_reward_commission in builtin add t rewards;
 
         new_stake_amount = builtin add stake_amount buffereddeposit;
-        p = Pair {Uint128 Uint128} stake_amount delegator_reward;
+        p = PairForStakeSSNCycle stake_amount delegator_reward;
         stakeSSNPerCyle[ssnaddr][lastreward_block] := p;
         
         ssn = Ssn active_status new_stake_amount delegator_reward urlraw urlapi uint128_zero commission total_reward_commission;
         ssnlist[ssnaddr] := ssn;
-        e = mk_assign_stake_reward_event ssnaddr total_reward;
+        e = mk_assign_stake_reward_event ssnaddr total_reward_commission;
         event e
       end
     end
@@ -564,22 +570,6 @@ transition assign_stake_reward(ssnreward_list : List SsnRewardShare, reward_bloc
   end 
 end
 
-transition withdraw_commission(initiator : ByStr20)
-  is_paused;
-  validate_proxy;
-  curval <- ssnlist[initiator];
-  match curval with
-  | None =>
-    e = mk_ssn_not_exists_event initiator;
-    event e
-  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
-    TransferFunds empty_tag commission_rewards initiator;
-    e = mk_withdraw_stake_rewards_event initiator rewards;  
-    ssn = Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission uint128_zero;
-    ssnlist[initiator] := ssn
-  end
-end
-
 (* @dev: Withdraw stake reward. Can be called by a delegator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
@@ -601,6 +591,23 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
   end
 end
 
+transition withdraw_commission(initiator : ByStr20)
+  is_paused;
+  validate_proxy;
+  curval <- ssnlist[initiator];
+  match curval with
+  | None =>
+    e = mk_ssn_not_exists_event initiator;
+    event e
+  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
+    TransferFunds empty_tag commission_rewards initiator;
+    e = mk_withdraw_stake_rewards_event initiator rewards;  
+    ssn = Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission uint128_zero;
+    ssnlist[initiator] := ssn
+  end
+end
+
+
 (* @dev: Move token amount from contract account to initiator. Used by ssn only. *)
 (* @param amount: token amount to be withdrawed *)
 (* @param initiator: The original caller who called the proxy *)
@@ -612,13 +619,14 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
   | None =>
     e = mk_ssn_not_exists_event initiator;
     event e
-  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission) =>
+  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
     pass = builtin eq buffereddeposit uint128_zero;
     match pass with
     | False =>
       e = mk_withdraw_stake_buffered_deposit_exist initiator buffereddeposit;
       event e
     | True =>
+      (* todo we cannot let them withdraw delegators money *))
       pass = builtin lt amount stake_amount;
       match pass with
       | True => (* Partial withdrawal. so check for min balance after withdrawal for min stake limit *)
@@ -631,7 +639,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             event e
           | False => (* pass minstake check for withdrawal *)
             (* Update the stake amount *)
-            ssn = Ssn active_status bal_left rewards urlraw urlapi buffereddeposit commission;
+            ssn = Ssn active_status bal_left rewards urlraw urlapi buffereddeposit commission commission_rewards;
             ssnlist[initiator] := ssn;
             (* Update the total stake deposit with contract *)
             totalstakedeposit_l <- totalstakedeposit;
@@ -652,7 +660,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
               (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
               delete ssnlist[initiator]
             | False =>
-              ssn = Ssn bool_inactive uint128_zero rewards urlraw urlapi buffereddeposit commission;
+              ssn = Ssn bool_inactive uint128_zero rewards urlraw urlapi buffereddeposit commission commission_rewards;
               ssnlist[initiator] := ssn
             end;
             totalstakedeposit_l <- totalstakedeposit;
