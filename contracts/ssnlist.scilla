@@ -103,6 +103,17 @@ let mk_total_stake_deposit_above_contract_stake_limit_event =
   fun (contractmaxstake : Uint128) =>
     { _eventname : "SSN stake deposit will result in contract stake deposit go above limit"; ssn_address : ssn; requested_deposit : amount; contract_max_stake : contractmaxstake }
 
+let mk_delegator_no_withdraw_record_event = 
+  fun (ssn : ByStr20) =>
+  fun (delegator : ByStr20) =>
+    { _eventname : "Delegator no withdraw record"; ssn_address : ssn; delegator_address : delegator }
+
+let mk_delegator_rewards_event = 
+  fun (ssn : ByStr20) => 
+  fun (delegator : ByStr20) =>
+  fun (rewards : Uint128) =>
+    { _eventname : "Delegator rewards"; ssn_address : ssn; delegator_address : delegator; rewards : rewards}
+
 let mk_assign_stake_reward_event =
   fun (ssn : ByStr20) =>
   fun (total_reward : Uint128) =>
@@ -160,8 +171,9 @@ type Delegator =
 type PairForStakeSSNCycle =
 | PairForStakeSSNCycle of Uint128 Uint128
 
+(* AddressofSSN StakeAtThatBlock AddressofDelegator*)
 type PairForDelegatorCycle = 
-| PairForDelegatorCycle of ByStr20 Uint128
+| PairForDelegatorCycle of ByStr20 Uint128 ByStr20
 
 (***************************************************)
 (*             The contract definition             *)
@@ -182,6 +194,8 @@ field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr2
 field stakeSSNPerCyle : Map ByStr20 (Map Uint32 PairForStakeSSNCycle) = Emp ByStr20 (Map Uint32 PairForStakeSSNCycle)
 (* AddressofDelegator -> (Blocknum -> Pair(AddressofSSN StakeAtThatBlock)) *)
 field stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 PairForDelegatorCycle) = Emp ByStr20 (Map Uint32 PairForDelegatorCycle)
+(* AddressofDelegator -> Blocknum *)
+field lastWithdrawCycleForDelegator : Map ByStr20 Uint32 = Emp ByStr20 Uint32
 
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -292,6 +306,43 @@ procedure update_stake_reward (entry : SsnRewardShare)
     end
   end
 end
+
+procedure update_delegator_rewards(entry: Pair Uint32 PairForDelegatorCycle)
+  match entry with
+  | Pair blockNumber addrAndStakeAmount =>
+    match addrAndStakeAmount with
+    | PairForDelegatorCycle ssnAddress delegateAmount delegatorAddress =>
+      totalStakeAndReward_o <- stakeSSNPerCyle[ssnAddress][blockNumber];
+      match totalStakeAndReward_o with
+      | Some totalStakeAndReward =>
+        match totalStakeAndReward with
+        | PairForStakeSSNCycle totalStake totalRewards =>
+          reward_tmp = builtin mul totalRewards delegateAmount;
+          reward_tmp = builtin div reward_tmp totalStake;
+
+          delegator_o <- delegators[ssnAddress][delegatorAddress];
+
+          match delegator_o with
+          | Some delegator =>
+            match delegator with
+            | Delegator stakeAmount stakeRewards buffereddeposit =>
+              newStakeRewards = builtin add stakeRewards reward_tmp;
+              d = Delegator stakeAmount newStakeRewards buffereddeposit;
+              delegators[ssnAddress][delegatorAddress] := d;
+              e = mk_delegator_rewards_event ssnAddress delegatorAddress reward_tmp;
+              event e
+            end
+          | None =>
+          end
+
+        end
+      | None =>
+      end
+    end
+  end
+  
+end
+
 
 
 (* Transitions *)
@@ -575,8 +626,6 @@ end
 transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
   is_paused;
   validate_proxy;
-  
-  (* stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 (Pair ByStr20 Uint128)) = Emp ByStr20 (Map Uint32 (Pair ByStr20 Uint128)) *)
 
   curval <- ssnlist[ssnaddr];
   match curval with
@@ -584,10 +633,25 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
     e = mk_ssn_not_exists_event initiator;
     event e
   | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
-    ssnlist[initiator] := ssn;
-    TransferFunds empty_tag rewards initiator;
-    e = mk_withdraw_stake_rewards_event initiator rewards;
-    event e
+    lastWithdrawCycle <- lastWithdrawCycleForDelegator[initiator];
+    match lastWithdrawCycle with
+    | Some lastWithdrawBlock =>
+      (* todo *)
+    | None =>
+      (* if there is no withdraw yet, should go through all stakeDelegatorPerCyle *)
+      stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
+      match stakeDelegatorPerCyle_m with 
+      | Some data =>
+        cycle_list = builtin to_list data;
+
+        forall cycle_list update_delegator_rewards;
+        e = mk_delegator_no_withdraw_record_event ssnaddr initiator;
+        event e
+      | None =>
+        e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
+        event e
+      end  
+    end
   end
 end
 
@@ -626,7 +690,6 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
       e = mk_withdraw_stake_buffered_deposit_exist initiator buffereddeposit;
       event e
     | True =>
-      (* todo we cannot let them withdraw delegators money *))
       pass = builtin lt amount stake_amount;
       match pass with
       | True => (* Partial withdrawal. so check for min balance after withdrawal for min stake limit *)
