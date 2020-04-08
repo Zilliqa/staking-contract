@@ -1,7 +1,6 @@
 /*
  * get the amount deposited in the stake
  */
-const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypto');
 
