@@ -1,11 +1,27 @@
 scilla_version 0
 
+import ListUtils
+
 library SSNList
+
+(* AddressofSSN StakeAtThatBlock AddressofDelegator*)
+type PairForDelegatorCycle = 
+| PairForDelegatorCycle of ByStr20 Uint128 ByStr20
+
 
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
+
+let reward_filter = 
+  fun (lastrewardblock : Uint32) =>
+    fun (current_pair : Pair Uint32 PairForDelegatorCycle) => 
+        match current_pair with
+        | Pair currentblock (PairForDelegatorCycle ssn block delegator) =>
+          builtin lt lastrewardblock currentblock
+      end
+      
 
 let uint128_zero = Uint128 0
 let bool_active = True
@@ -108,6 +124,12 @@ let mk_delegator_no_withdraw_record_event =
   fun (delegator : ByStr20) =>
     { _eventname : "Delegator no withdraw record"; ssn_address : ssn; delegator_address : delegator }
 
+let mk_delegator_withdraw_rewards_event = 
+  fun (ssn: ByStr20) =>
+  fun (delegator : ByStr20) => 
+    { _eventname : "Delegator withdraw rewards"; ssn_address : ssn; delegator_address : delegator }
+
+
 let mk_delegator_rewards_event = 
   fun (ssn : ByStr20) => 
   fun (delegator : ByStr20) =>
@@ -171,9 +193,7 @@ type Delegator =
 type PairForStakeSSNCycle =
 | PairForStakeSSNCycle of Uint128 Uint128
 
-(* AddressofSSN StakeAtThatBlock AddressofDelegator*)
-type PairForDelegatorCycle = 
-| PairForDelegatorCycle of ByStr20 Uint128 ByStr20
+
 
 (***************************************************)
 (*             The contract definition             *)
@@ -626,32 +646,57 @@ end
 transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
   is_paused;
   validate_proxy;
-
-  curval <- ssnlist[ssnaddr];
-  match curval with
-  | None =>
-    e = mk_ssn_not_exists_event initiator;
-    event e
-  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
-    lastWithdrawCycle <- lastWithdrawCycleForDelegator[initiator];
-    match lastWithdrawCycle with
-    | Some lastWithdrawBlock =>
-      (* todo *)
+  delegator_o <- delegators[ssnaddr][initiator];
+  match delegator_o with
+  | Some delegator =>
+    curval <- ssnlist[ssnaddr];
+    match curval with
     | None =>
-      (* if there is no withdraw yet, should go through all stakeDelegatorPerCyle *)
-      stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
-      match stakeDelegatorPerCyle_m with 
-      | Some data =>
-        cycle_list = builtin to_list data;
-
-        forall cycle_list update_delegator_rewards;
-        e = mk_delegator_no_withdraw_record_event ssnaddr initiator;
-        event e
+      e = mk_ssn_not_exists_event initiator;
+      event e
+    | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
+      lastWithdrawCycle <- lastWithdrawCycleForDelegator[initiator];
+      match lastWithdrawCycle with
+      | Some lastWithdrawBlock =>
+        stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
+        match stakeDelegatorPerCyle_m with
+        | Some data =>
+          cycle_list = builtin to_list data;
+          morethanlastrewardfunc = reward_filter lastWithdrawBlock;
+          morethanlastwardfilter = @list_filter (Pair Uint32 PairForDelegatorCycle);
+          cycle_list_should_handle = morethanlastwardfilter morethanlastrewardfunc cycle_list;
+          forall cycle_list_should_handle update_delegator_rewards;
+          lrb <- lastrewardblocknum;
+          lastWithdrawCycleForDelegator[initiator] := lrb;
+          (* todo do transfer*)
+          e =  mk_delegator_withdraw_rewards_event ssnaddr initiator;
+          event e
+        | None =>
+          e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
+          event e
+        end
+     
       | None =>
-        e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
-        event e
-      end  
+        (* if there is no withdraw yet, should go through all stakeDelegatorPerCyle *)
+        stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
+        match stakeDelegatorPerCyle_m with 
+        | Some data =>
+          cycle_list = builtin to_list data;
+          forall cycle_list update_delegator_rewards;
+          lrb <- lastrewardblocknum;
+          lastWithdrawCycleForDelegator[initiator] := lrb;
+          (* todo do transfer*)
+          e = mk_delegator_withdraw_rewards_event ssnaddr initiator;
+          event e
+        | None =>
+          e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
+          event e
+        end 
+      end   
     end
+  | None =>
+    e =  mk_delegator_not_exists_event ssnaddr initiator;
+    event e
   end
 end
 
