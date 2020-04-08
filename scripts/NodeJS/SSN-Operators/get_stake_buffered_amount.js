@@ -17,7 +17,7 @@ async function main() {
     console.log("Your account address is: %o", `${address}`);
     console.log("proxy: %o\n", STAKING_PROXY_ADDR);
 
-    console.log("------------------------ begin get stake amount ------------------------\n");
+    console.log("------------------------ begin get stake buffered amount ------------------------\n");
     try {
         const contract = zilliqa.contracts.at(STAKING_PROXY_ADDR);
         const state = await contract.getState();
@@ -39,7 +39,7 @@ async function main() {
     } catch (err) {
         console.log(err);
     }
-    console.log("------------------------ end get stake amount ------------------------\n");
+    console.log("------------------------ end get stake buffered amount ------------------------\n");
 }
 
 main();
