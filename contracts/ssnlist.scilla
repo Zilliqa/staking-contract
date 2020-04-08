@@ -127,7 +127,8 @@ let mk_delegator_no_withdraw_record_event =
 let mk_delegator_withdraw_rewards_event = 
   fun (ssn: ByStr20) =>
   fun (delegator : ByStr20) => 
-    { _eventname : "Delegator withdraw rewards"; ssn_address : ssn; delegator_address : delegator }
+  fun (amount : Uint128) =>
+    { _eventname : "Delegator withdraw rewards"; ssn_address : ssn; delegator_address : delegator; rewards_amount : amount }
 
 
 let mk_delegator_rewards_event = 
@@ -655,22 +656,40 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
       e = mk_ssn_not_exists_event initiator;
       event e
     | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit commission commission_rewards) =>
-      lastWithdrawCycle <- lastWithdrawCycleForDelegator[initiator];
-      match lastWithdrawCycle with
+      last_withdraw_cycle <- lastWithdrawCycleForDelegator[initiator];
+      match last_withdraw_cycle with
       | Some lastWithdrawBlock =>
         stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
         match stakeDelegatorPerCyle_m with
         | Some data =>
           cycle_list = builtin to_list data;
-          morethanlastrewardfunc = reward_filter lastWithdrawBlock;
-          morethanlastwardfilter = @list_filter (Pair Uint32 PairForDelegatorCycle);
-          cycle_list_should_handle = morethanlastwardfilter morethanlastrewardfunc cycle_list;
+          more_than_lastrewardfunc = reward_filter lastWithdrawBlock;
+          more_than_lastrwardfilter = @list_filter (Pair Uint32 PairForDelegatorCycle);
+          cycle_list_should_handle = more_than_lastrwardfilter more_than_lastrewardfunc cycle_list;
           forall cycle_list_should_handle update_delegator_rewards;
           lrb <- lastrewardblocknum;
           lastWithdrawCycleForDelegator[initiator] := lrb;
-          (* todo do transfer*)
-          e =  mk_delegator_withdraw_rewards_event ssnaddr initiator;
-          event e
+          match delegator with
+          | Delegator stakeAmount stakeRewards buffereddeposit =>
+            bal <- _balance;
+            sufficient = builtin lt bal stakeRewards;
+            match sufficient with
+            | True =>
+              TransferFunds empty_tag bal initiator;
+              new_reward = builtin sub stakeRewards bal;
+              new_delegator = Delegator stakeAmount new_reward buffereddeposit;
+              delegators[ssnaddr][initiator] := new_delegator;
+              e =  mk_delegator_withdraw_rewards_event ssnaddr initiator bal;
+              event e
+            | False =>
+              TransferFunds empty_tag stakeRewards initiator;
+              new_delegator = Delegator stakeAmount uint128_zero buffereddeposit;
+              delegators[ssnaddr][initiator] := new_delegator;
+              e =  mk_delegator_withdraw_rewards_event ssnaddr initiator stakeRewards;
+              event e
+            end
+          end
+          
         | None =>
           e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
           event e
@@ -685,9 +704,26 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
           forall cycle_list update_delegator_rewards;
           lrb <- lastrewardblocknum;
           lastWithdrawCycleForDelegator[initiator] := lrb;
-          (* todo do transfer*)
-          e = mk_delegator_withdraw_rewards_event ssnaddr initiator;
-          event e
+          match delegator with
+          | Delegator stakeAmount stakeRewards buffereddeposit =>
+            bal <- _balance;
+            sufficient = builtin lt bal stakeRewards;
+            match sufficient with
+            | True =>
+              TransferFunds empty_tag bal initiator;
+              new_reward = builtin sub stakeRewards bal;
+              new_delegator = Delegator stakeAmount new_reward buffereddeposit;
+              delegators[ssnaddr][initiator] := new_delegator;
+              e =  mk_delegator_withdraw_rewards_event ssnaddr initiator bal;
+              event e
+            | False =>
+              TransferFunds empty_tag stakeRewards initiator;
+              new_delegator = Delegator stakeAmount uint128_zero buffereddeposit;
+              delegators[ssnaddr][initiator] := new_delegator;
+              e =  mk_delegator_withdraw_rewards_event ssnaddr initiator stakeRewards;
+              event e
+            end
+          end
         | None =>
           e =  mk_delegator_no_withdraw_record_event ssnaddr initiator;
           event e
