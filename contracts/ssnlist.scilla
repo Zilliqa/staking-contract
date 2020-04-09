@@ -21,6 +21,22 @@ let reward_filter =
         | Pair currentblock (PairForDelegatorCycle ssn block delegator) =>
           builtin lt lastrewardblock currentblock
       end
+
+(* left < element <= right *)
+let list_between =
+  fun (left : Uint32) =>
+    fun (right : Uint32) =>
+      fun (element : Uint32) => 
+        let res = builtin lt left element in
+        match res with
+        | True =>
+          let res = builtin lt right element in
+          match res with
+          | True => False
+          | False => True
+          end
+        | False => False
+        end
       
 
 let uint128_zero = Uint128 0
@@ -217,6 +233,23 @@ field stakeSSNPerCyle : Map ByStr20 (Map Uint32 PairForStakeSSNCycle) = Emp BySt
 field stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 PairForDelegatorCycle) = Emp ByStr20 (Map Uint32 PairForDelegatorCycle)
 (* AddressofDelegator -> Blocknum *)
 field lastWithdrawCycleForDelegator : Map ByStr20 Uint32 = Emp ByStr20 Uint32
+(* AddressofDelegator -> (AddressofSSN -> (BlockNum -> StakeAmount)) *)
+(* The StakeAmount will only be truely delegated at next around of BlockNum *)
+(* todo rename *)
+field bufferedDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+(* The StakeAmount will be delegated at the BlockNum *)
+field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+field rewardCycleList : List Uint32   =  Nil {Uint32} 
+
+(* compute stakeDelegatorPerCyle on the fly for transtion withdraw_stake_rewards *)
+(* 1. delegator apply for withdraw_stake_rewards, get his lastwithdrawblock *)
+(* 2. based on his lastwithdrawblock and gobal lastrewardblock and rewardCycleList, come up with a list that need to be computed: list_need_compute_rewards *)
+(* 3. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
+(* [1:1000,2:1000,3:1000] => 1:1000, 2(<= 2):1000+1000 *)
+(* 4. find out the buffered delegate depost map based on list_need_compute_rewards and bufferedDepositForDelegator: buffered_deposit_map *)
+(* [1:1000,2:1000,3:1000] => [2:1000,3:1000,4:1000] => 2:1000, 3:1000+1000 or find N(<=N) == find N-1(<=N-1) *)
+(* 5. find a way to construct Map Uint32 PairForDelegatorCycle *)
+(* list_map list_need_compute_rewards, check direct_deposit_map and buffered_deposit_map, construct result *)
 
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -318,6 +351,12 @@ procedure update_stake_reward (entry : SsnRewardShare)
         new_stake_amount = builtin add stake_amount buffereddeposit;
         p = PairForStakeSSNCycle stake_amount delegator_reward;
         stakeSSNPerCyle[ssnaddr][lastreward_block] := p;
+
+        (* todo since here we put all buffereddeposit into stake amount, so we need to clean *)
+        (* all delegators buffereddeposit as well *)
+        (* and record the stake amount into stakeDelegatorPerCyle *)
+
+
         
         ssn = Ssn active_status new_stake_amount delegator_reward urlraw urlapi uint128_zero commission total_reward_commission;
         ssnlist[ssnaddr] := ssn;
@@ -659,6 +698,11 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
       last_withdraw_cycle <- lastWithdrawCycleForDelegator[initiator];
       match last_withdraw_cycle with
       | Some lastWithdrawBlock =>
+        reward_cycles <- rewardCycleList;
+        gobal_last_reward_blocknum <- lastrewardblocknum;
+        (* filter out those cycles between lastWithdrawBlock and gobal_last_reward_blocknum *)
+
+
         stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
         match stakeDelegatorPerCyle_m with
         | Some data =>
