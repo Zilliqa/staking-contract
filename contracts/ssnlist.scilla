@@ -493,7 +493,7 @@ procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
         result_map = foldl iter init_map list_need_compute_rewards;
         (* to calculate final staking per cycle for delegators *)
         iter = caculate_all_stake_per_cycle result_map;
-        staking_per_cycle = foldl iter staking_init_map result_map;
+        staking_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
         e = mk_update_delegate_cycle_event ssn_operator delegator;
         event e
       | None =>
@@ -502,7 +502,7 @@ procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
         result_map = foldl iter init_map list_need_compute_rewards;
         (* to calculate final staking per cycle for delegators *)
         iter = caculate_all_stake_per_cycle result_map;
-        staking_per_cycle = foldl iter staking_init_map result_map;
+        staking_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
         e = mk_update_delegate_cycle_event ssn_operator delegator;
         event e
       end
@@ -515,7 +515,7 @@ procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
         result_map = foldl iter init_map list_need_compute_rewards;
         (* to calculate final staking per cycle for delegators *)
         iter = caculate_all_stake_per_cycle result_map;
-        staking_per_cycle = foldl iter staking_init_map result_map;
+        staking_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
         e = mk_update_delegate_cycle_event ssn_operator delegator;
         event e
       | None =>
