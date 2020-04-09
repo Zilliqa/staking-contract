@@ -8,12 +8,12 @@ library SSNList
 type PairForDelegatorCycle = 
 | PairForDelegatorCycle of ByStr20 Uint128 ByStr20
 
-
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
 
+(* This function help us to tell if current block number need to be reward *)
 let reward_filter = 
   fun (lastrewardblock : Uint32) =>
     fun (current_pair : Pair Uint32 PairForDelegatorCycle) => 
@@ -23,6 +23,7 @@ let reward_filter =
       end
 
 (* left < element <= right *)
+(* This function is used for filting out those cycles that need to compute rewards for delegators *)
 let list_between =
   fun (left : Uint32) =>
     fun (right : Uint32) =>
@@ -37,7 +38,18 @@ let list_between =
           end
         | False => False
         end
-      
+
+
+let transfer_map_element_based_on_list = 
+  fun (origin_map : Map Uint32 Uint128) =>
+    fun (target_map : Map Uint32 Uint128) => 
+      fun (k : Uint32) =>
+        let ele = builtin get origin_map k in
+        match ele with
+        | Some v => 
+          builtin put target_map k v
+        | None => target_map
+        end
 
 let uint128_zero = Uint128 0
 let bool_active = True
@@ -153,6 +165,11 @@ let mk_delegator_rewards_event =
   fun (rewards : Uint128) =>
     { _eventname : "Delegator rewards"; ssn_address : ssn; delegator_address : delegator; rewards : rewards}
 
+let mk_update_delegate_cycle_event = 
+  fun (ssn : ByStr20) =>
+  fun (delegator : ByStr20) =>
+    { _eventname : "Delegator update cycle"; ssn_address : ssn; delegator_address : delegator }
+
 let mk_assign_stake_reward_event =
   fun (ssn : ByStr20) =>
   fun (total_reward : Uint128) =>
@@ -211,7 +228,6 @@ type PairForStakeSSNCycle =
 | PairForStakeSSNCycle of Uint128 Uint128
 
 
-
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
@@ -238,6 +254,7 @@ field lastWithdrawCycleForDelegator : Map ByStr20 Uint32 = Emp ByStr20 Uint32
 (* todo rename *)
 field bufferedDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 (* The StakeAmount will be delegated at the BlockNum *)
+(* AddressofDelegator -> (AddressofSSN -> (BlockNum -> StakeAmount)) *)
 field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 field rewardCycleList : List Uint32   =  Nil {Uint32} 
 
@@ -402,6 +419,50 @@ procedure update_delegator_rewards(entry: Pair Uint32 PairForDelegatorCycle)
   end
   
 end
+
+(* This procedure is to compute delegators staking amount per cycle *)
+(* and store the result into field stakeDelegatorPerCyle for later use *)
+(* todo maybe we can remove this field in the future? *)
+procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
+lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
+  match lastWithdrawCycleForDelegator_m with
+  (* it has withdraw record *)
+  | Some last_withdraw_block =>
+    last_reward_blocknum <- lastrewardblocknum;
+    reward_cycle_list <- rewardCycleList;
+    list_between_fun = list_between last_withdraw_block last_reward_blocknum;
+    list_between_fun_uint32 = @list_filter Uint32;
+    (* those are the cycles that we want to compute for computing rewards *)
+    list_need_compute_rewards = list_between_fun_uint32 list_between_fun reward_cycle_list;
+    (* handle direct deposit *)
+    directDepositForDelegator_m <- directDepositForDelegator[delegator][ssn_operator];
+    match directDepositForDelegator_m with
+    | Some direct_deposits_for_delegator =>
+      (* 3. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
+      (* todo *)
+      direct_deposit_map = Emp Uint32 Uint128;
+
+
+
+      e = mk_update_delegate_cycle_event ssn_operator delegator;
+      event e
+
+    | None =>
+    end
+
+
+
+  
+  (* is has no withdraw record, which means we can regard it as 0 *)
+  | None => 
+   e = mk_update_delegate_cycle_event ssn_operator delegator;
+   event e
+  end
+  
+end
+
+
+
 
 
 
@@ -700,13 +761,13 @@ transition withdraw_stake_rewards (ssnaddr : ByStr20, initiator : ByStr20)
       | Some lastWithdrawBlock =>
         reward_cycles <- rewardCycleList;
         gobal_last_reward_blocknum <- lastrewardblocknum;
+        (* todo call procedure update_delegator_cycle *)
         (* filter out those cycles between lastWithdrawBlock and gobal_last_reward_blocknum *)
-
-
         stakeDelegatorPerCyle_m <- stakeDelegatorPerCyle[initiator];
         match stakeDelegatorPerCyle_m with
         | Some data =>
           cycle_list = builtin to_list data;
+          (* with procedure update_delegator_cycle help, this will be redundant *)
           more_than_lastrewardfunc = reward_filter lastWithdrawBlock;
           more_than_lastrwardfilter = @list_filter (Pair Uint32 PairForDelegatorCycle);
           cycle_list_should_handle = more_than_lastrwardfilter more_than_lastrewardfunc cycle_list;
