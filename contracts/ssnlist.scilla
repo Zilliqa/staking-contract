@@ -42,41 +42,59 @@ let list_between =
         | False => False
         end
 
-
-(* This is used as an iter wtih currying for a reward list to calculate direct deposit *)
-let transfer_map_element_based_on_list = 
-  fun (origin_map : Map Uint32 Uint128) =>
-    fun (target_map : Map Uint32 Uint128) => 
-      fun (k : Uint32) =>
-        let ele = builtin get origin_map k in
-        match ele with
-        | Some v => 
-          builtin put target_map k v
-        | None => target_map
-        end
-
-(* This is used as an iter wtih currying for a reward list to calculate buffered deposit *)
-let transfer_map_element_based_on_list_b = 
-  fun (origin_map : Map Uint32 Uint128) =>
-    fun (target_map : Map Uint32 Uint128) => 
-      fun (k : Uint32) =>
-        (* if it takes effect from this cycle, then it must be deposited in last cycle *)
-        let k_sub_one = builtin sub k uint32_one in 
-        let ele = builtin get origin_map k in
-        match ele with
-        | Some v => 
-          builtin put target_map k v
-        | None => target_map
-        end
       
+let caculate_all_stake_per_cycle = 
+  fun (delegate_map : Map Uint32 Uint128) => 
+    fun (result_map : Map Uint32 Uint128) => 
+      fun(k : Uint32) =>
+        let m = builtin sub k uint32_one in
+        let result_map_o = builtin get result_map m in 
+        let delegate_map_o = builtin get delegate_map k in
+        match result_map_o with
+        | Some last_amount =>
+          match delegate_map_o with
+          | Some delegate_amount =>
+            let amount = builtin add last_amount delegate_amount in
+            builtin put result_map k amount
+          | None =>
+            builtin put result_map k last_amount
+          end
+        | None =>
+          match delegate_map_o with
+          | Some delegate_amount =>
+            builtin put result_map k delegate_amount
+          | None =>  result_map
+          end
+        end
 
-let filter_caculate_all_stake_for_a_specific_cycle = 
-  fun (cycle : Uint32) => 
-    fun (pair : Pair Uint32 Uint128) =>
-      match pair with
-      | Pair k v => builtin lt k cycle
-      end
-    
+let combine_buffered_and_direct = 
+  fun (direct : Map Uint32 Uint128) =>
+    fun (buffered : Map Uint32 Uint128) =>
+      fun(result : Map Uint32 Uint128) => 
+        fun(k : Uint32) =>
+          let m = builtin sub k uint32_one in
+           (* if it takes effect from this cycle, then it must be deposited in last cycle *)
+          let direct_o = builtin get direct k in
+          match direct_o with
+          | Some direct_amount => 
+            let buffered_o = builtin get buffered m in
+            match buffered_o with
+            | Some buffered_amount =>
+              let amount = builtin add direct_amount buffered_amount in 
+              builtin put result k amount
+            | None =>
+              builtin put result k direct_amount
+            end
+          | None =>
+            let buffered_o =  builtin get buffered m in
+            match buffered_o with
+            | Some buffered_amount =>
+              builtin put result k buffered_amount
+            | None =>
+              result
+            end
+          end
+          
 
 let uint128_zero = Uint128 0
 let bool_active = True
@@ -463,33 +481,46 @@ procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
     list_need_compute_rewards = list_between_fun_uint32 list_between_fun reward_cycle_list;
     (* handle direct deposit *)
     directDepositForDelegator_m <- directDepositForDelegator[delegator][ssn_operator];
+    init_map = Emp Uint32 Uint128;
+    foldl = @list_foldl Uint32 Map Uint32 Uint128;
+    staking_init_map = Emp Uint32 Uint128;
     match directDepositForDelegator_m with
     | Some direct_deposits_for_delegator =>
-      (* 1. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
-      direct_deposit_map_init = Emp Uint32 Uint128;
-      iter = transfer_map_element_based_on_list direct_deposits_for_delegator;
-      foldl = @list_foldl Uint32 Map Uint32 Uint128;
-      direct_deposit_map = foldl iter direct_deposit_map_init list_need_compute_rewards;
       bufferedDepositForDelegator_m <- bufferedDepositForDelegator[delegator][ssn_operator];
       match bufferedDepositForDelegator_m with
       | Some buffered_deposits_for_delegator =>
-        (* 2. find out the buffered delegate depost map based on list_need_compute_rewards and bufferedDepositForDelegator: buffered_deposit_map *)
-        buffered_deposit_map_init = Emp Uint32 Uint128;
-        iter = transfer_map_element_based_on_list_b buffered_deposits_for_delegator;
-        foldl = @list_foldl Uint32 Map Uint32 Uint128;
-        (* the sequence is correct here, can use as direct_deposit_map *)
-        buffered_deposit_map = foldl iter buffered_deposit_map_init list_need_compute_rewards;
-        (* 3. todo: merge this procedure with transition withdraw_stake_rewards, remove field stakeDelegatorPerCyle *)
-        (* 3. todo: compute the actual stake amount on the fly by using above two maps *)
-        (* 3. todo: every time we get a cycle, we use filter_caculate_all_stake_for_a_specific_cycle to filter two maps fist *)
-        (* 3. todo: then use list_foldf to sum them respectively, the do the addition to get result *)
-
-
+        iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
+        result_map = foldl iter init_map list_need_compute_rewards;
+        (* to calculate final staking per cycle for delegators *)
+        iter = caculate_all_stake_per_cycle result_map;
+        staking_per_cycle = foldl iter staking_init_map result_map;
         e = mk_update_delegate_cycle_event ssn_operator delegator;
         event e
       | None =>
+        buffered_deposits_for_delegator =  Emp Uint32 Uint128;
+        iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
+        result_map = foldl iter init_map list_need_compute_rewards;
+        (* to calculate final staking per cycle for delegators *)
+        iter = caculate_all_stake_per_cycle result_map;
+        staking_per_cycle = foldl iter staking_init_map result_map;
+        e = mk_update_delegate_cycle_event ssn_operator delegator;
+        event e
       end
     | None =>
+      bufferedDepositForDelegator_m <- bufferedDepositForDelegator[delegator][ssn_operator];
+      direct_deposits_for_delegator =  Emp Uint32 Uint128;
+      match bufferedDepositForDelegator_m with
+      | Some buffered_deposits_for_delegator =>
+        iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
+        result_map = foldl iter init_map list_need_compute_rewards;
+        (* to calculate final staking per cycle for delegators *)
+        iter = caculate_all_stake_per_cycle result_map;
+        staking_per_cycle = foldl iter staking_init_map result_map;
+        e = mk_update_delegate_cycle_event ssn_operator delegator;
+        event e
+      | None =>
+        (* no rewards at all*)
+      end
     end
 
 
@@ -502,7 +533,6 @@ procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
   end
   
 end
-
 
 
 
