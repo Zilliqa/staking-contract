@@ -8,10 +8,13 @@ library SSNList
 type PairForDelegatorCycle = 
 | PairForDelegatorCycle of ByStr20 Uint128 ByStr20
 
+
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
+
+let uint32_one = Uint32 1
 
 (* This function help us to tell if current block number need to be reward *)
 let reward_filter = 
@@ -40,6 +43,7 @@ let list_between =
         end
 
 
+(* This is used as an iter wtih currying for a reward list to calculate direct deposit *)
 let transfer_map_element_based_on_list = 
   fun (origin_map : Map Uint32 Uint128) =>
     fun (target_map : Map Uint32 Uint128) => 
@@ -50,6 +54,29 @@ let transfer_map_element_based_on_list =
           builtin put target_map k v
         | None => target_map
         end
+
+(* This is used as an iter wtih currying for a reward list to calculate buffered deposit *)
+let transfer_map_element_based_on_list_b = 
+  fun (origin_map : Map Uint32 Uint128) =>
+    fun (target_map : Map Uint32 Uint128) => 
+      fun (k : Uint32) =>
+        (* if it takes effect from this cycle, then it must be deposited in last cycle *)
+        let k_sub_one = builtin sub k uint32_one in 
+        let ele = builtin get origin_map k in
+        match ele with
+        | Some v => 
+          builtin put target_map k v
+        | None => target_map
+        end
+      
+
+let filter_caculate_all_stake_for_a_specific_cycle = 
+  fun (cycle : Uint32) => 
+    fun (pair : Pair Uint32 Uint128) =>
+      match pair with
+      | Pair k v => builtin lt k cycle
+      end
+    
 
 let uint128_zero = Uint128 0
 let bool_active = True
@@ -424,7 +451,7 @@ end
 (* and store the result into field stakeDelegatorPerCyle for later use *)
 (* todo maybe we can remove this field in the future? *)
 procedure update_delegator_cycle(ssn_operator: ByStr20, delegator: ByStr20)
-lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
+  lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
   match lastWithdrawCycleForDelegator_m with
   (* it has withdraw record *)
   | Some last_withdraw_block =>
@@ -438,15 +465,30 @@ lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
     directDepositForDelegator_m <- directDepositForDelegator[delegator][ssn_operator];
     match directDepositForDelegator_m with
     | Some direct_deposits_for_delegator =>
-      (* 3. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
-      (* todo *)
-      direct_deposit_map = Emp Uint32 Uint128;
+      (* 1. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
+      direct_deposit_map_init = Emp Uint32 Uint128;
+      iter = transfer_map_element_based_on_list direct_deposits_for_delegator;
+      foldl = @list_foldl Uint32 Map Uint32 Uint128;
+      direct_deposit_map = foldl iter direct_deposit_map_init list_need_compute_rewards;
+      bufferedDepositForDelegator_m <- bufferedDepositForDelegator[delegator][ssn_operator];
+      match bufferedDepositForDelegator_m with
+      | Some buffered_deposits_for_delegator =>
+        (* 2. find out the buffered delegate depost map based on list_need_compute_rewards and bufferedDepositForDelegator: buffered_deposit_map *)
+        buffered_deposit_map_init = Emp Uint32 Uint128;
+        iter = transfer_map_element_based_on_list_b buffered_deposits_for_delegator;
+        foldl = @list_foldl Uint32 Map Uint32 Uint128;
+        (* the sequence is correct here, can use as direct_deposit_map *)
+        buffered_deposit_map = foldl iter buffered_deposit_map_init list_need_compute_rewards;
+        (* 3. todo: merge this procedure with transition withdraw_stake_rewards, remove field stakeDelegatorPerCyle *)
+        (* 3. todo: compute the actual stake amount on the fly by using above two maps *)
+        (* 3. todo: every time we get a cycle, we use filter_caculate_all_stake_for_a_specific_cycle to filter two maps fist *)
+        (* 3. todo: then use list_foldf to sum them respectively, the do the addition to get result *)
 
 
-
-      e = mk_update_delegate_cycle_event ssn_operator delegator;
-      event e
-
+        e = mk_update_delegate_cycle_event ssn_operator delegator;
+        event e
+      | None =>
+      end
     | None =>
     end
 
