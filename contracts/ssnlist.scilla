@@ -51,7 +51,9 @@ let list_between =
         | False => False
         end
 
-      
+(* This function is used for calculating the exact amount per cycle for delegators *)
+(* Input: [1:1000,2:2000,3:3000] *)
+(* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
 let caculate_all_stake_per_cycle = 
   fun (delegate_map : Map Uint32 Uint128) => 
     fun (result_map : Map Uint32 Uint128) => 
@@ -76,6 +78,10 @@ let caculate_all_stake_per_cycle =
           end
         end
 
+(* This function is used for combining direct deposit and buffered deposit into one with correct secquence *)
+(* Direct deposit: [1:1000,2:2000:3:3000] *)
+(* Buffered deposit: [1:1000,2:2000:3:3000]*)
+(* Result deposit: [1:1000,2:2000+1000:3:3000+2000] *)
 let combine_buffered_and_direct = 
   fun (direct : Map Uint32 Uint128) =>
     fun (buffered : Map Uint32 Uint128) =>
@@ -454,6 +460,7 @@ procedure update_stake_reward (entry : SsnRewardShare)
   end
 end
 
+(* this procedure is to send rewards to delegator for every reward cycle *)
 procedure send_delegator_rewards(entry : Pair Uint32 DelegatorAndRewards)
   match entry with
   | Pair cycle delegator_and_rewards  =>
@@ -929,11 +936,9 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
         (* no rewards at all*)
       end
     end
-
-
-
   
-  (* is has no withdraw record, which means we can regard it as 0 *)
+  (* todo it has no withdraw record, we set it to 0 than copy and paster *)
+  (* or we should set the first value for them *)
   | None => 
    e = mk_update_delegate_cycle_event ssn_operator delegator;
    event e
