@@ -327,8 +327,6 @@ field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
 field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr20 Delegator)
 (* AddressofSSN -> (Blocknum -> Pair (TotalStakeAtThatBlockForTheSSN, TotalRewardEarned) *)
 field stakeSSNPerCyle : Map ByStr20 (Map Uint32 PairForStakeSSNCycle) = Emp ByStr20 (Map Uint32 PairForStakeSSNCycle)
-(* AddressofDelegator -> (Blocknum -> Pair(AddressofSSN StakeAtThatBlock)) *)
-field stakeDelegatorPerCyle : Map ByStr20 (Map Uint32 PairForDelegatorCycle) = Emp ByStr20 (Map Uint32 PairForDelegatorCycle)
 (* AddressofDelegator -> Blocknum *)
 field lastWithdrawCycleForDelegator : Map ByStr20 Uint32 = Emp ByStr20 Uint32
 (* AddressofDelegator -> (AddressofSSN -> (BlockNum -> StakeAmount)) *)
@@ -339,16 +337,6 @@ field bufferedDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128
 (* AddressofDelegator -> (AddressofSSN -> (BlockNum -> StakeAmount)) *)
 field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 field rewardCycleList : List Uint32   =  Nil {Uint32} 
-
-(* compute stakeDelegatorPerCyle on the fly for transtion withdraw_stake_rewards *)
-(* 1. delegator apply for withdraw_stake_rewards, get his lastwithdrawblock *)
-(* 2. based on his lastwithdrawblock and gobal lastrewardblock and rewardCycleList, come up with a list that need to be computed: list_need_compute_rewards *)
-(* 3. find out the direct delegate deposit map based on list_need_compute_rewards and directDepositForDelegator: direct_deposit_map *)
-(* [1:1000,2:1000,3:1000] => 1:1000, 2(<= 2):1000+1000 *)
-(* 4. find out the buffered delegate depost map based on list_need_compute_rewards and bufferedDepositForDelegator: buffered_deposit_map *)
-(* [1:1000,2:1000,3:1000] => [2:1000,3:1000,4:1000] => 2:1000, 3:1000+1000 or find N(<=N) == find N-1(<=N-1) *)
-(* 5. find a way to construct Map Uint32 PairForDelegatorCycle *)
-(* list_map list_need_compute_rewards, check direct_deposit_map and buffered_deposit_map, construct result *)
 
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -747,7 +735,13 @@ transition assign_stake_reward(ssnreward_list : List SsnRewardShare, reward_bloc
   | True  => 
   | False =>
     forall ssnreward_list update_stake_reward;
-    lastrewardblocknum := reward_blocknum
+    lastrewardblocknum := reward_blocknum;
+    reward_cycle_list <- rewardCycleList;
+    nil_list = Nil {Uint32};
+    to_be_append_list = Cons {Uint32} reward_blocknum nil_list;
+    appender = @list_append Uint32;
+    new_reward_cycle_list = appender to_be_append_list reward_cycle_list;
+    rewardCycleList := new_reward_cycle_list
   end 
 end
 
@@ -872,9 +866,11 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
           calculate_rewards_per_cycly_for_delegator_iter = calculate_rewards_per_cycly_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
           rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycly_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
 
-          (* to send those rewards *)
+          (* to send those rewards and update last withdraw cycle of delegator *)
           rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
           forall rewards_delegator_per_cycle_list send_delegator_rewards;
+          lastWithdrawCycleForDelegator[delegator] := last_reward_blocknum;
+          
 
           e = mk_update_delegate_cycle_event ssn_operator delegator;
           event e
@@ -896,9 +892,11 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
           calculate_rewards_per_cycly_for_delegator_iter = calculate_rewards_per_cycly_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
           rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycly_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
 
-          (* to send those rewards *)
+          (* to send those rewards and update last withdraw cycle of delegator *)
           rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
           forall rewards_delegator_per_cycle_list send_delegator_rewards;
+          lastWithdrawCycleForDelegator[delegator] := last_reward_blocknum;
+
 
           e = mk_update_delegate_cycle_event ssn_operator delegator;
           event e
@@ -924,9 +922,11 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
           calculate_rewards_per_cycly_for_delegator_iter = calculate_rewards_per_cycly_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
           rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycly_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
 
-          (* to send those rewards *)
+          (* to send those rewards and update last withdraw cycle of delegator *)
           rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
           forall rewards_delegator_per_cycle_list send_delegator_rewards;
+          lastWithdrawCycleForDelegator[delegator] := last_reward_blocknum;
+
 
           e = mk_update_delegate_cycle_event ssn_operator delegator;
           event e
