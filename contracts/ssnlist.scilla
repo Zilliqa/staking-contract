@@ -921,8 +921,8 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
      event e
     | None => (* ssn has no rewards *)
     end  
-  (* todo it has no withdraw record, we set it to 0 than copy and paster *)
-  (* or we should set the first value for them *)
+    (* todo it has no withdraw record, we set it to 0 than copy and paster *)
+    (* or we should set the first value for them *)
   | None => 
     e = mk_update_delegate_cycle_event ssn_operator delegator;
     event e
