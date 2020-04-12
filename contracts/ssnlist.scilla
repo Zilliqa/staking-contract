@@ -496,19 +496,19 @@ procedure has_rewards_tobe_withdraw(delegator: ByStr20)
       need_to_reward = builtin lt cycle last_reward_blockbum;
       match need_to_reward with
       | True =>
-      | False =>
-        e = { _eventname : "No need to rewards" };
+        e = { _eventname : "Still has rewards to withdraw" };
         event e;
         throw
+      | False =>
       end
     | None =>
       is_reward_block_zero = builtin eq last_reward_blockbum uint32_zore;
       match is_reward_block_zero with
       | True =>
-        e = { _eventname : "No rewards record yet" };
+      | False =>
+        e = { _eventname : "Still has rewards to withdraw" };
         event e;
         throw
-      | False =>
       end
     end
 end
