@@ -260,6 +260,12 @@ let mk_delegator_rewards_event =
   fun (rewards : Uint128) =>
     { _eventname : "Delegator rewards"; ssn_address : ssn; delegator_address : delegator; rewards : rewards}
 
+let mk_delegator_withdraw_amount_event = 
+  fun (ssn : ByStr20) =>
+    fun (delegator : ByStr20) =>
+      { _eventname : "Delegator withdraw amount"; ssn_address : ssn; delegator_address : delegator}
+
+
 let mk_update_delegate_cycle_event = 
   fun (ssn : ByStr20) =>
   fun (delegator : ByStr20) =>
@@ -471,6 +477,41 @@ procedure send_delegator_rewards(entry : Pair Uint32 DelegatorAndRewards)
   
 end
 
+procedure if_delegator_exist(ssnaddr: ByStr20, delegator: ByStr20)
+  if_exist <- exists delegators[ssnaddr][delegator];
+  match if_exist with
+  | True =>
+  | False =>
+    e = mk_delegator_not_exists_event ssnaddr delegator;
+    event e;
+    throw
+  end
+end
+
+procedure has_rewards_tobe_withdraw(delegator: ByStr20)
+    last_reward_blockbum <- lastrewardblocknum;
+    last_withdraw_cycle <- lastWithdrawCycleForDelegator[delegator];
+    match last_withdraw_cycle with
+    | Some cycle =>
+      need_to_reward = builtin lt cycle last_reward_blockbum;
+      match need_to_reward with
+      | True =>
+      | False =>
+        e = { _eventname : "No need to rewards" };
+        event e;
+        throw
+      end
+    | None =>
+      is_reward_block_zero = builtin eq last_reward_blockbum uint32_zore;
+      match is_reward_block_zero with
+      | True =>
+        e = { _eventname : "No rewards record yet" };
+        event e;
+        throw
+      | False =>
+      end
+    end
+end
 
 
 (* Transitions *)
@@ -873,6 +914,9 @@ end
 (* @dev: Withdraw stake reward. Can be called by a delegator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
+  is_paused;
+  validate_proxy;
+  if_delegator_exist ssn_operator delegator;
   lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
   match lastWithdrawCycleForDelegator_m with
   (* it has withdraw record *)
@@ -928,6 +972,20 @@ transition withdraw_stake_rewards(ssn_operator: ByStr20, delegator: ByStr20)
     event e
   end
   
+end
+
+(* @dev: Move token amount from contract account to initiator. Use by delegator only. *)
+(* @param initiator: The original caller who called the proxy *)
+(* withdraw all delegate amount all at once *)
+transition withdraw_delegate_amount (ssn: ByStr20, initator: ByStr20)
+  is_paused;
+  validate_proxy;
+  if_delegator_exist ssn initator;
+  has_rewards_tobe_withdraw initator;
+  (* todo *)
+  e = mk_delegator_withdraw_amount_event ssn initator;
+  event e
+
 end
 
 (* @dev: Move token amount from initiator to recipient i.e. contract address. *)
