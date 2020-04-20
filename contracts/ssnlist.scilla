@@ -14,6 +14,7 @@ let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
 let empty_tag = ""
+let add_funds_tag = "AddFunds"
 let multisig_tag_addfunds = "AddFunds"
 (* events *)
 
@@ -365,7 +366,7 @@ transition stake_deposit (initiator: ByStr20)
   curval <- ssnlist[initiator];
   match curval with
   | None =>
-    TransferFunds empty_tag _amount initiator;
+    TransferFunds add_funds_tag _amount initiator;
     e = mk_ssn_not_exists_event initiator;
     event e
   | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit) =>
@@ -377,14 +378,14 @@ transition stake_deposit (initiator: ByStr20)
     pass = builtin lt new_stake_amount minstake_l;
     match pass with
     | True => (* stake deposit below minstake limit *)
-      TransferFunds empty_tag _amount initiator;
+      TransferFunds add_funds_tag _amount initiator;
       e = mk_stake_deposit_below_stake_limit_event initiator new_stake_amount minstake_l;
       event e
     | False =>
       pass = builtin lt maxstake_l new_stake_amount;
       match pass with
       | True => (* stake deposit above maxstake limit *)
-        TransferFunds empty_tag _amount initiator;
+        TransferFunds add_funds_tag _amount initiator;
         e = mk_stake_deposit_above_stake_limit_event initiator new_stake_amount maxstake_l;
         event e
       | False =>
@@ -394,7 +395,7 @@ transition stake_deposit (initiator: ByStr20)
         pass = builtin lt contractmaxstake_l newStakeDeposit;
         match pass with
         | True => (* total stake deposit for contract goes above contractmaxstake limit *)
-          TransferFunds empty_tag _amount initiator;
+          TransferFunds add_funds_tag _amount initiator;
           e = mk_total_stake_deposit_above_contract_stake_limit_event initiator new_stake_amount contractmaxstake_l;
           event e
         | False =>
@@ -455,7 +456,7 @@ transition withdraw_stake_rewards (initiator : ByStr20)
       ssn = Ssn active_status stake_amount uint128_zero urlraw urlapi buffereddeposit;
       ssnlist[initiator] := ssn
     end;
-    TransferFunds empty_tag rewards initiator;
+    TransferFunds add_funds_tag rewards initiator;
     e = mk_withdraw_stake_rewards_event initiator rewards;
     event e
   end
@@ -497,7 +498,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             totalstakedeposit_l <- totalstakedeposit;
             tmp = builtin sub totalstakedeposit_l amount;
             totalstakedeposit := tmp;
-            TransferFunds empty_tag amount initiator
+            TransferFunds add_funds_tag amount initiator
           end
       | False => (* requested withdrawal equals balance or greater than balance *)
           pass = builtin eq amount stake_amount;
@@ -518,7 +519,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             totalstakedeposit_l <- totalstakedeposit;
             tmp = builtin sub totalstakedeposit_l amount;
             totalstakedeposit := tmp;
-            TransferFunds empty_tag amount initiator
+            TransferFunds add_funds_tag amount initiator
           end
         end
     end

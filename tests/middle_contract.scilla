@@ -1,0 +1,23 @@
+scilla_version 0
+
+library MiddleContract
+
+let zero = Uint128 0
+
+let one_msg =
+  fun (m : Message) =>
+    let e = Nil {Message} in
+    Cons {Message} m e
+
+contract MiddleContract()
+
+transition stake_deposit (proxy_address : ByStr20)
+    accept;
+    msg = {_tag : "stake_deposit"; _recipient : proxy_address; _amount : _amount};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition AddFunds()
+    accept
+end

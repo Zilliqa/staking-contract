@@ -6,13 +6,13 @@ package transitions
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"strconv"
 	"strings"
 
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
-	"github.com/Zilliqa/gozilliqa-sdk/keytools"
-	"github.com/Zilliqa/gozilliqa-sdk/util"
 )
 
 // preset scenarios before testing stake_deposit
@@ -91,7 +91,8 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 
 	// 2. as ssn1 (pri2), add amount below min stake
 	// 2.1. add pri2 as ssn
-	p.RegisterSSN(pri1, pri2)
+	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
+	p.RegisterSSN(pri1, ssnaddr)
 
 	// 2.2 execute stake deposit as ssn (pri2) with min stake - 1
 	if err3, output := ExecZli("contract", "call",
@@ -331,12 +332,109 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		}
 	}
 
+	// 8.  middle contract test
+	// 8.1 deploy middle contract
+	var middleAddr string
+	if err, output := ExecZli("contract", "deploy",
+		"-k", pri1,
+		"-c", "middle_contract.scilla",
+		"-i", "middle_contract.json"); err != nil {
+		panic("test stake deposit failed: can not deploy middle contract")
+	} else {
+		res := strings.Split(output, "contract address =  ")
+		res = strings.Split(res[1], "{")
+		res = strings.Split(res[0], "track")
+		middleAddr = strings.TrimSpace(res[0])
+	}
+	middleBech32, _ := bech32.ToBech32Address(middleAddr)
+	fmt.Printf("middle contract address = %s, bech32 = %s\n", middleAddr, middleBech32)
+
+	// 8.2 register middle contract as ssn
+	p.RegisterSSN(pri1, "0x"+middleAddr)
+
+	// 8.3 execute stake deposit with min stake - 1
+	parameters := []contract2.Value{
+		{
+			VName: "proxy_address",
+			Type:  "ByStr20",
+			Value: "0x" + p.Addr,
+		},
+	}
+
+	args, _ := json.Marshal(parameters)
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri1,
+		"-a", middleBech32,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MIN_STAKE-1),
+		"-f", "true",
+		"-r", string(args)); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		eventLogs := receipt["event_logs"].([]interface{})[0]
+		if success {
+			events := eventLogs.(map[string]interface{})
+			eventName := events["_eventname"].(string)
+			if eventName == "SSN stake deposit below min_stake limit" {
+				fmt.Println("test (middle contract) stake deposit below min stake limit succeed")
+			} else {
+				panic("test stake (middle contract) deposit below min stake limit failed, tx:" + tx)
+			}
+			m := p.Provider.GetBalance(middleAddr).Result.(map[string]interface{})
+			balance := m["balance"].(string)
+			if balance != strconv.Itoa(MIN_STAKE-1) {
+				panic("test stake deposit (middle contract) below min stake limit error,wrong balance, tx:" + tx)
+			}
+		} else {
+			panic("test stake deposit (middle contract) below min stake limit error, tx:" + tx)
+		}
+	}
+
+	// 8.4. as ssn, stake deposit with max state + 1
+	if err3, output := ExecZli("contract", "call",
+		"-k", pri1,
+		"-a", middleBech32,
+		"-t", "stake_deposit",
+		"-m", strconv.Itoa(MAX_STAKE+1),
+		"-f", "true",
+		"-r", string(args)); err3 != nil {
+		panic("call transaction error: " + err3.Error())
+	} else {
+		tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+		fmt.Println("transaction id = ", tx)
+		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+		receipt := payload["receipt"].(map[string]interface{})
+		success := receipt["success"].(bool)
+		eventLogs := receipt["event_logs"].([]interface{})[0]
+		if success {
+			events := eventLogs.(map[string]interface{})
+			eventName := events["_eventname"].(string)
+			if eventName == "SSN stake deposit above max_stake limit" {
+				fmt.Println("test (middle contract) stake deposit above max stake limit succeed")
+			} else {
+				panic("test (middle contract) stake deposit above max stake limit failed, tx:" + tx)
+			}
+
+			m := p.Provider.GetBalance(middleAddr).Result.(map[string]interface{})
+			balance := m["balance"].(string)
+			if balance != strconv.Itoa(MAX_STAKE+1+MIN_STAKE-1) {
+				panic("test stake deposit (middle contract)above max stake limit error,wrong balance, tx:" + tx)
+			}
+		} else {
+			panic("test (middle contract) stake deposit above max stake limit error, tx:" + tx)
+		}
+	}
+
 	fmt.Println("------------------------ end StakeDeposit ------------------------")
 }
 
-func (p *Proxy) RegisterSSN(pri1, pri2 string) {
+func (p *Proxy) RegisterSSN(pri1, ssnaddr string) {
 	proxy, _ := bech32.ToBech32Address(p.Addr)
-	ssnaddr := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 	parameters := []contract2.Value{
 		{
 			VName: "ssnaddr",
