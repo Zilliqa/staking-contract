@@ -3,6 +3,8 @@ scilla_version 0
 library SSNListProxy
 
 let zero = Uint128 0
+let multisig_tag_addfunds = "AddFunds"
+
 
 let one_msg =
   fun (m : Message) =>
@@ -25,6 +27,12 @@ contract SSNListProxy(
 
 field implementation : ByStr20 = init_implementation
 field admin : ByStr20 = init_admin
+
+procedure TransferFunds (tag: String, amount : Uint128, recipient : ByStr20)
+    msg = {_tag : tag; _recipient : recipient; _amount : amount};
+    msgs = one_msg msg;
+    send msgs
+end
 
 transition upgradeTo(newImplementation : ByStr20)
     currentAdmin <- admin;
@@ -50,6 +58,21 @@ transition changeProxyAdmin(newAdmin : ByStr20)
       event e
     | False =>
       e = {_eventname : "changeAdmin FailedNotAdmin"; newAdmin : newAdmin};
+      event e
+    end
+end
+
+transition drainContractBalance()
+    currentAdmin <- admin;
+    isAdmin = builtin eq currentAdmin _sender;
+    match isAdmin with
+    | True =>
+      bal <- _balance;
+      TransferFunds multisig_tag_addfunds bal _sender;
+      e = {_eventname : "drainContractBalance"};
+      event e
+    | False =>
+      e = {_eventname : "drainContractBalance FailedNotAdmin"};
       event e
     end
 end
