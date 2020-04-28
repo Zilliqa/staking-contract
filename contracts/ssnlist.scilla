@@ -118,6 +118,11 @@ type SsnRewardShare =
 (*             The contract definition             *)
 (***************************************************)
 
+(* Roles in this contract *)
+(* init_admin: initial admin during deployment of this contract *)
+(* contractadmin: Current admin of contract. For updating of the contract parameters and draining contract balance *)
+(* verifier: Reward SSN for SSN contribution *)
+(* ssn: staked seed node operator that has stake their deposit in return for stake rewards *)
 
 contract SSNList(
   init_admin : ByStr20,
@@ -259,6 +264,10 @@ transition update_verifier (verif : ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
+(* This function should invoke only when *)
+(* 1. There is a security bug in the contract and draining of fund is required to prevent lost of funds *)
+(* 2. There is a upgrade of contract and funds needed to be transfer to the new contract *)
+(* when there is a security bug in the contract *)
 (* @dev: Drain the entire contract balance. Used by current admin only. *)
 (* @param initiator: The original caller who called the proxy *)
 transition drain_contract_balance (initiator : ByStr20)
