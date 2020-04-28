@@ -266,7 +266,7 @@ end
 
 (* This function should invoke only when *)
 (* 1. There is a security bug in the contract and draining of fund is required to prevent lost of funds *)
-(* 2. There is a upgrade of contract and funds needed to be transfer to the new contract *)
+(* 2. There is an upgrade of contract and funds needed to be transfer to the new contract *)
 (* @dev: Drain the entire contract balance. Used by current admin only. *)
 (* @param initiator: The original caller who called the proxy *)
 transition drain_contract_balance (initiator : ByStr20)
