@@ -84,10 +84,6 @@ type ProxyTransaction =
 | UndateVerifier of ByStr20
 (* drain_contract_balance ()  *)
 | DrainContractBalance
-(* update_minstake (min_stake : Uint128) *)
-| UpdateMinStake of Uint128
-(* update_maxstake (max_stake : Uint128) *)
-| UpdateMaxStake of Uint128
 (* update_contractmaxstake (minx_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
 | UpdateContractStakeParameter of Uint128 Uint128 Uint128
 (* add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
@@ -174,18 +170,6 @@ let custom_transaction_msg_as_list =
         {_recipient : proxyContract ;
          _tag : "drain_contract_balance" ;
          _amount : Uint128 0}
-      | UpdateMinStake min_stake =>
-        (* update_minstake (min_stake : Uint128)  *)
-        {_recipient : proxyContract ;
-         _tag : "update_minstake" ;
-         _amount : Uint128 0 ;
-         min_stake : min_stake }
-      | UpdateMaxStake max_stake =>
-        (* update_maxstake(max_stake : Uint128)  *)
-        {_recipient : proxyContract ;
-         _tag : "update_maxstake" ;
-         _amount : Uint128 0 ;
-         max_stake : max_stake }
       | UpdateContractStakeParameter min_stake max_stake contract_max_stake =>
         (* update_contractmaxstake(max_stake : Uint128) *)
         {_recipient : proxyContract ;
