@@ -341,14 +341,17 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
   is_paused;
   validate_proxy;
   validate_admin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | False =>
-    e = mk_ssn_not_exists_event ssnaddr;
-    event e
-  | True =>
+  ssn_optional <- ssnlist[ssnaddr];
+  match ssn_optional with
+  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit) =>
+    funds_temp = builtin add stake_amount rewards;
+    funds = builtin add funds_temp buffereddeposit;
+    TransferFunds add_funds_tag funds ssnaddr;
     delete ssnlist[ssnaddr];
     e = mk_ssn_removed_event ssnaddr;
+    event e
+  | None =>
+    e = mk_ssn_not_exists_event ssnaddr;
     event e
   end
 end
