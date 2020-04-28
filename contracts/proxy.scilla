@@ -62,17 +62,17 @@ transition changeProxyAdmin(newAdmin : ByStr20)
     end
 end
 
-transition drainContractBalance()
+transition drainProxyContractBalance()
     currentAdmin <- admin;
     isAdmin = builtin eq currentAdmin _sender;
     match isAdmin with
     | True =>
       bal <- _balance;
       TransferFunds multisig_tag_addfunds bal _sender;
-      e = {_eventname : "drainContractBalance"};
+      e = {_eventname : "drainProxyContractBalance"};
       event e
     | False =>
-      e = {_eventname : "drainContractBalance FailedNotAdmin"};
+      e = {_eventname : "drainProxyContractBalance FailedNotAdmin"};
       event e
     end
 end
