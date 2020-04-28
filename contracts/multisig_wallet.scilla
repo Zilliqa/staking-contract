@@ -77,6 +77,7 @@ type ProxyTransaction =
 | Pause
 (* unpause () *)
 | Unpause
+(* changeProxyAdmin(newAdmin : ByStr20) *)
 | ChangeProxyAdmin of ByStr20
 (* update_admin(admin : ByStr20)  *)
 | UpdateAdmin of ByStr20
@@ -84,7 +85,7 @@ type ProxyTransaction =
 | UndateVerifier of ByStr20
 (* drain_contract_balance ()  *)
 | DrainContractBalance
-(* update_contractmaxstake (minx_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
+(* update_staking_parameter (minx_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
 | UpdateContractStakeParameter of Uint128 Uint128 Uint128
 (* add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
 | AddSsn of ByStr20 Uint128 Uint128 String String Uint128
@@ -171,13 +172,12 @@ let custom_transaction_msg_as_list =
          _tag : "drain_contract_balance" ;
          _amount : Uint128 0}
       | UpdateContractStakeParameter min_stake max_stake contract_max_stake =>
-        (* update_contractmaxstake(max_stake : Uint128) *)
         {_recipient : proxyContract ;
-         _tag : "update_contractmaxstake" ;
+         _tag : "update_staking_parameter" ;
          _amount : Uint128 0 ;
          min_stake : min_stake;
          max_stake : max_stake;
-        contract_max_stake : contract_max_stake}
+         contract_max_stake : contract_max_stake}
       | AddSsn ssnaddr stake_amount rewards urlraw urlapi buffered_deposit =>
         (* ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128*)
         {_recipient : proxyContract ;
