@@ -85,7 +85,7 @@ type ProxyTransaction =
 | UndateVerifier of ByStr20
 (* drain_contract_balance ()  *)
 | DrainContractBalance
-(* update_staking_parameter (minx_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
+(* update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
 | UpdateContractStakeParameter of Uint128 Uint128 Uint128
 (* add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
 | AddSsn of ByStr20 Uint128 Uint128 String String Uint128

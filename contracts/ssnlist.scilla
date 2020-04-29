@@ -282,7 +282,7 @@ end
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
 (* @param max_stake: New maxstake value *)
-(* @param max_stake: New contract maxstake value *)
+(* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
 transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
   is_paused;
