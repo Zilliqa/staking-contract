@@ -366,7 +366,6 @@ transition stake_deposit (initiator: ByStr20)
   curval <- ssnlist[initiator];
   match curval with
   | None =>
-    TransferFunds add_funds_tag _amount initiator;
     e = mk_ssn_not_exists_error initiator;
     throw e
   | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit) =>
@@ -378,14 +377,12 @@ transition stake_deposit (initiator: ByStr20)
     pass = builtin lt new_stake_amount minstake_l;
     match pass with
     | True => (* stake deposit below minstake limit *)
-      TransferFunds add_funds_tag _amount initiator;
       e = mk_stake_deposit_below_stake_limit_error initiator new_stake_amount minstake_l;
       throw e
     | False =>
       pass = builtin lt maxstake_l new_stake_amount;
       match pass with
       | True => (* stake deposit above maxstake limit *)
-        TransferFunds add_funds_tag _amount initiator;
         e = mk_stake_deposit_above_stake_limit_error initiator new_stake_amount maxstake_l;
         throw e
       | False =>
@@ -395,7 +392,6 @@ transition stake_deposit (initiator: ByStr20)
         pass = builtin lt contractmaxstake_l newStakeDeposit;
         match pass with
         | True => (* total stake deposit for contract goes above contractmaxstake limit *)
-          TransferFunds add_funds_tag _amount initiator;
           e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount contractmaxstake_l;
           throw e
         | False =>
