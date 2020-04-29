@@ -90,10 +90,10 @@ type ProxyTransaction =
 | UpdateMaxStake of Uint128
 (* update_contractmaxstake (max_stake : Uint128) *)
 | UpdateContractMaxStake of Uint128
-(* add_ssn (ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
-| AddSsn of ByStr20 Uint128 String String Uint128
-(* add_ssn2 (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
-| AddSsn2 of ByStr20 Uint128 Uint128 String String Uint128
+(* add_ssn (ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String) *)
+| AddSsn of ByStr20 Uint128 String String
+(* add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
+| AddSsnAfterUpgrade of ByStr20 Uint128 Uint128 String String Uint128
 (*remove_ssn (ssnaddr : ByStr20) *)
 | RemoveSsn of ByStr20 
 
@@ -194,20 +194,19 @@ let custom_transaction_msg_as_list =
          _tag : "update_contractmaxstake" ;
          _amount : Uint128 0 ;
          max_stake : max_stake}
-      | AddSsn ssnaddr rewards urlraw urlapi buffered_deposit =>
-        (* ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128*)
+      | AddSsn ssnaddr rewards urlraw urlapi =>
+        (* ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String *)
         {_recipient : proxyContract ;
          _tag : "add_ssn" ;
          _amount : Uint128 0 ;
          ssnaddr : ssnaddr;
          rewards : rewards;
          urlraw : urlraw;
-         urlapi : urlapi;
-         buffered_deposit : buffered_deposit}
-      | AddSsn2 ssnaddr stake_amount rewards urlraw urlapi buffered_deposit =>
-        (* ssnaddr2 : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128*)
+         urlapi : urlapi}
+      | AddSsnAfterUpgrade ssnaddr stake_amount rewards urlraw urlapi buffered_deposit =>
+        (* add_ssn_after_upgrade : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128*)
         {_recipient : proxyContract ;
-         _tag : "add_ssn2" ;
+         _tag : "add_ssn_after_upgrade" ;
          _amount : Uint128 0 ;
          ssnaddr : ssnaddr;
          stake_amount : stake_amount;
@@ -472,14 +471,14 @@ transition SubmitCustomUpdateContractMaxStakeTransaction (proxyContract : ByStr2
 end
 
 (* Submit a new AddSsn transaction for future signoff *)
-transition SubmitCustomAddSsnTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
-  transaction = AddSsn ssnaddr rewards urlraw urlapi buffered_deposit;
+transition SubmitCustomAddSsnTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String)
+  transaction = AddSsn ssnaddr rewards urlraw urlapi;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* For contract upgrade purpose *)
-transition SubmitCustomAddSsn2Transaction (proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
-  transaction = AddSsn2 ssnaddr stake_amount rewards urlraw urlapi buffered_deposit;
+transition SubmitCustomAddSsnAfterUpgradeTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
+  transaction = AddSsnAfterUpgrade ssnaddr stake_amount rewards urlraw urlapi buffered_deposit;
   SubmitCustomTransaction proxyContract transaction
 end
 
