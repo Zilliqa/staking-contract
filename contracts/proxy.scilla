@@ -72,8 +72,8 @@ transition drainProxyContractBalance()
       e = {_eventname : "drainProxyContractBalance"};
       event e
     | False =>
-      e = {_eventname : "drainProxyContractBalance FailedNotAdmin"};
-      event e
+      e = {_exception : "drainProxyContractBalance FailedNotAdmin"};
+      throw e
     end
 end
 
