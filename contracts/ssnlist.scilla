@@ -119,10 +119,10 @@ type SsnRewardShare =
 (***************************************************)
 
 (* Roles in this contract *)
-(* init_admin: initial admin during deployment of this contract *)
+(* init_admin: Initial admin during deployment of this contract *)
 (* contractadmin: Current admin of contract. For updating of the contract parameters and draining contract balance *)
 (* verifier: Reward SSN for SSN contribution *)
-(* ssn: staked seed node operator that has stake their deposit in return for stake rewards *)
+(* Ssn: Staked seed node operator that has stake their deposit in return for stake rewards *)
 
 contract SSNList(
   init_admin : ByStr20,
