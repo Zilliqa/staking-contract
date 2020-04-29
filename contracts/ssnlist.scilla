@@ -48,7 +48,7 @@ let mk_update_staking_parameter_error =
     fun (min_stake : Uint128) =>
       fun (max_stake : Uint128) =>
         fun (contract_max_stake : Uint128) =>
-         { _eventname : "Update staking parameter error"; sender : sender; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake }
+         { _exception : "Update staking parameter error"; sender : sender; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake }
 
 let mk_update_staking_parameter_event =
   fun (sender : ByStr20) =>
@@ -301,11 +301,11 @@ transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, c
       event e
     | False => 
       e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
-      event e
+      throw e
     end
   | False =>
      e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
-     event e
+     throw e
   end
 
 end
