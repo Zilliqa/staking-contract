@@ -264,7 +264,7 @@ transition update_verifier (verif : ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
-(* This function should invoke only when *)
+(* This transition should only be invoked when *)
 (* 1. There is a security bug in the contract and draining of fund is required to prevent lost of funds *)
 (* 2. There is an upgrade of contract and funds needed to be transfer to the new contract *)
 (* @dev: Drain the entire contract balance. Used by current admin only. *)
