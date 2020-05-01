@@ -213,10 +213,10 @@ transition withdraw_stake_amount (amount : Uint128 )
 end
 
 (* @dev: Move token amount from _sender to recipient i.e. contract address. *)
-transition deposit_funds ()
+transition AddFunds ()
     current_impl <- implementation;
     accept;
-    msg = {_tag : "deposit_funds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
+    msg = {_tag : "AddFunds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end

@@ -89,9 +89,9 @@ let mk_withdraw_stake_rewards_event =
   fun (total_reward: Uint128) =>
     { _eventname : "SSN withdraw reward"; ssn_address : ssn; withdraw_total_reward : total_reward }
 
- let mk_deposit_funds_event =
+ let mk_add_funds_event =
   fun (sender : ByStr20) =>
-    { _eventname : "Verifier deposit funds"; verifier : sender }
+    { _eventname : "Verifier add funds"; verifier : sender }
 
  let mk_withdraw_below_stake_limit_error =
     fun (ssn : ByStr20) =>
@@ -524,10 +524,10 @@ end
 
 (* @dev: Move token amount from initiator to recipient i.e. contract address. *)
 (* @param initiator: The original caller who called the proxy *)
-transition deposit_funds (initiator : ByStr20)
+transition AddFunds (initiator : ByStr20)
   is_paused;
   validate_proxy;
   accept;
-  e = mk_deposit_funds_event initiator;
+  e = mk_add_funds_event initiator;
   event e
 end
