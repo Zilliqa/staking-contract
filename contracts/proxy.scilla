@@ -18,6 +18,10 @@ type SsnRewardShare =
 (*             The contract definition             *)
 (***************************************************)
 
+(* Roles in this contract *)
+(* init_admin: Initial admin during deployment of this contract *)
+(* admin: Current admin of contract. For updating of admin, implementation address and draining contract balances *)
+
 contract SSNListProxy(
   init_implementation : ByStr20,
   init_admin : ByStr20
