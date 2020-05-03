@@ -36,6 +36,11 @@ let mk_proxy_validation_failed_error =
   fun (sender : ByStr20) =>
     { _exception : "Proxy validation failed"; sender : sender }
 
+
+let mk_ssn_not_exists_error =
+  fun (ssn : ByStr20) =>
+    { _exception : "SSN doesn't exist"; ssn_address : ssn }
+
 let mk_ssn_list_full_error = 
   fun (sender : ByStr20) =>
     { _exception : "SSN list already full"; sender : sender }
@@ -361,15 +366,18 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
   is_paused;
   validate_proxy;
   validate_admin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | False =>
-    e = mk_ssn_not_exists_error ssnaddr;
-    throw e
-  | True =>
+  ssn_optional <- ssnlist[ssnaddr];
+  match ssn_optional with
+  | Some (Ssn active_status stake_amount rewards urlraw urlapi buffereddeposit) =>
+    funds_temp = builtin add stake_amount rewards;
+    funds = builtin add funds_temp buffereddeposit;
+    TransferFunds add_funds_tag funds ssnaddr;
     delete ssnlist[ssnaddr];
     e = mk_ssn_removed_event ssnaddr;
     event e
+  | None =>
+    e = mk_ssn_not_exists_error ssnaddr;
+    throw e
   end
 end
 
