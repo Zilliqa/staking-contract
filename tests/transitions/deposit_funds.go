@@ -47,7 +47,7 @@ func (p *Proxy) transferFunds(pri, funds string) error {
 	if err2, _ := ExecZli("contract", "call",
 		"-k", pri,
 		"-a", proxy,
-		"-t", "deposit_funds",
+		"-t", "AddFunds",
 		"-m", funds,
 		"-f", "true",
 		"-r", "[]"); err2 != nil {
