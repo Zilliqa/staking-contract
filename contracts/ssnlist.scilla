@@ -300,11 +300,10 @@ end
 
 (* @dev: Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
-(* @param rewards: Rewards of the ssn to be added *)
 (* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
 (* @param initiator: The original caller who called the proxy *)
-transition add_ssn (ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String, initiator : ByStr20)
+transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20)
   is_paused;
   validate_proxy;
   validate_admin initiator;
@@ -317,6 +316,7 @@ transition add_ssn (ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlap
     stake_amount = Uint128 0;
     status = False;
     buffered_deposit = Uint128 0;
+    rewards = Uint128 0;
     s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
     ssnlist[ssnaddr] := s;
     e = mk_ssn_added_event ssnaddr;

@@ -123,12 +123,11 @@ end
 (* @dev: Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param stake_amount: Stake amount of ssn *)
-(* @param rewards: Rewards of the ssn to be added *)
 (* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
-transition add_ssn (ssnaddr : ByStr20, rewards : Uint128, urlraw : String, urlapi : String)
+transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String)
     current_impl <- implementation;
-    msg = {_tag : "add_ssn"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; rewards: rewards; urlraw: urlraw; urlapi: urlapi; initiator : _sender};
+    msg = {_tag : "add_ssn"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; urlraw: urlraw; urlapi: urlapi; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
