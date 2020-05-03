@@ -120,29 +120,13 @@ transition drain_contract_balance ()
     send msgs
 end
 
-(* @dev: Set the minstake of contract. Used by admin only. *)
-(* @param min_stake: New minstake value *)
-transition update_minstake (min_stake : Uint128)
-    current_impl <- implementation;
-    msg = {_tag : "update_minstake"; _recipient : current_impl; _amount : zero; min_stake: min_stake; initiator : _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Set the maxstake of contract. Used by admin only. *)
+(* @dev: Set the minstake, maxstake and contract maxstake of contract. Used by admin only. *)
+(* @param min_stake: New min_stake value *)
 (* @param max_stake: New maxstake value *)
-transition update_maxstake (max_stake : Uint128)
+(* @param contract_max_stake: New contract_max_stake value *)
+transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "update_maxstake"; _recipient : current_impl; _amount : zero; max_stake: max_stake; initiator : _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Set the maxstake of contract. Used by admin only. *)
-(* @param max_stake: New maxstake value *)
-transition update_contractmaxstake (max_stake : Uint128)
-    current_impl <- implementation;
-    msg = {_tag : "update_contractmaxstake"; _recipient : current_impl; _amount : zero; max_stake: max_stake; initiator : _sender};
+    msg = {_tag : "update_staking_parameter"; _recipient : current_impl; _amount : zero; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end

@@ -53,6 +53,17 @@ let mk_ssn_added_event =
   fun (ssn : ByStr20) =>
     { _eventname : "SSN added"; ssn_address : ssn }
 
+let mk_update_staking_parameter_error =
+  fun (sender : ByStr20) =>
+    fun (min_stake : Uint128) =>
+      fun (max_stake : Uint128) =>
+        fun (contract_max_stake : Uint128) =>
+         { _exception : "Update staking parameter error"; sender : sender; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake }
+
+let mk_update_staking_parameter_event =
+  fun (sender : ByStr20) =>
+    { _eventname : "Update staking parameter event"; sender : sender}
+
 let mk_ssn_not_exists_error =
   fun (ssn : ByStr20) =>
     { _exception : "SSN doesn't exist"; ssn_address : ssn }
@@ -286,34 +297,35 @@ transition drain_contract_balance (initiator : ByStr20)
   TransferFunds multisig_tag_addfunds bal initiator
 end
 
-(* @dev: Set the minstake of contract. Used by admin only. *)
+(* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
-(* @param initiator: The original caller who called the proxy *)
-transition update_minstake (min_stake : Uint128, initiator : ByStr20)
-  is_paused;
-  validate_proxy;
-  validate_admin initiator;
-  minstake := min_stake
-end
-
-(* @dev: Set the maxstake of contract. Used by admin only. *)
 (* @param max_stake: New maxstake value *)
+(* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
-transition update_maxstake (max_stake : Uint128, initiator : ByStr20)
+transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
   is_paused;
   validate_proxy;
   validate_admin initiator;
-  maxstake := max_stake
-end
+  less_than = builtin lt min_stake max_stake;
+  match less_than with
+  | True =>
+    less_than = builtin lt max_stake contract_max_stake;
+    match less_than with
+    | True =>
+      minstake := min_stake;
+      maxstake := max_stake;
+      contractmaxstake := contract_max_stake;
+      e = mk_update_staking_parameter_event initiator;
+      event e
+    | False => 
+      e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
+      throw e
+    end
+  | False =>
+     e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
+     throw e
+  end
 
-(* @dev: Set the maxstake of contract. Used by admin only. *)
-(* @param max_stake: New maxstake value *)
-(* @param initiator: The original caller who called the proxy *)
-transition update_contractmaxstake (max_stake : Uint128, initiator : ByStr20)
-  is_paused;
-  validate_proxy;
-  validate_admin initiator;
-  contractmaxstake := max_stake
 end
 
 (* @dev: Adds new ssn to ssnlist. Used by admin only. *)
