@@ -79,6 +79,8 @@ type ProxyTransaction =
 | Unpause
 (* changeProxyAdmin(newAdmin : ByStr20) *)
 | ChangeProxyAdmin of ByStr20
+(* drainProxyContractBalance() *)
+| DrainProxyContractBalance
 (* update_admin(admin : ByStr20)  *)
 | UpdateAdmin of ByStr20
 (* update_verifier (verif : ByStr20)  *)
@@ -154,6 +156,11 @@ let custom_transaction_msg_as_list =
          _tag : "changeProxyAdmin" ;
          _amount : Uint128 0 ;
          newAdmin : newAdmin }
+      | DrainProxyContractBalance =>
+        (* drainProxyContractBalance()  *)
+        {_recipient : proxyContract ;
+         _tag : "drainProxyContractBalance" ;
+         _amount : Uint128 0}
       | UpdateAdmin admin =>
         (* update_admin(admin : ByStr20)  *)
         {_recipient : proxyContract;
@@ -406,6 +413,11 @@ end
 (* Submit a new ChangeProxyAdmin transaction for future signoff *)
 transition SubmitCustomChangeProxyAdminTransaction (proxyContract : ByStr20, newAdmin : ByStr20)
   transaction = ChangeProxyAdmin newAdmin;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+transition SubmitCustomDrainProxyContractBalance (proxyContract : ByStr20)
+  transaction = DrainProxyContractBalance;
   SubmitCustomTransaction proxyContract transaction
 end
 
