@@ -41,7 +41,7 @@ let mk_ssn_not_exists_error =
   fun (ssn : ByStr20) =>
     { _exception : "SSN doesn't exist"; ssn_address : ssn }
 
-let mk_ssn_list_full_error = 
+let mk_ssn_list_full_error =
   fun (sender : ByStr20) =>
     { _exception : "SSN list already full"; sender : sender }
 
@@ -135,16 +135,6 @@ type Ssn =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
-(***************************************************)
-(*             The contract definition             *)
-(***************************************************)
-
-(* Roles in this contract *)
-(* init_admin: Initial admin during deployment of this contract *)
-(* contractadmin: Current admin of contract. For updating of the contract parameters and draining contract balance *)
-(* verifier: Reward SSN for SSN contribution *)
-(* Ssn: Staked seed node operator that has stake their deposit in return for stake rewards *)
-
 contract SSNList(
   init_admin : ByStr20,
   proxy_address : ByStr20
@@ -216,8 +206,6 @@ procedure is_paused ()
   end
 end
 
-(* Can be called by the contract admin only *)
-(* It is expected that transfer only happens to an exterally owned account*)
 procedure TransferFunds (tag: String, amount : Uint128, recipient : ByStr20)
     msg = {_tag : tag; _recipient : recipient; _amount : amount};
     msgs = one_msg msg;
@@ -248,36 +236,25 @@ procedure update_stake_reward (entry : SsnRewardShare)
   end
 end
 
-(* Transitions *)
 
-(* @dev: pause/freeze the contract. Used by admin only. *)
-(* @param initiator: The original caller who called the proxy *)
 transition pause(initiator: ByStr20)
     validate_proxy;
     validate_admin initiator;
     paused := bool_active
 end
 
-(* @dev: unpause/unfreeze the contract. Used by admin only. *)
-(* @param initiator: The original caller who called the proxy *)
 transition unpause(initiator: ByStr20)
     validate_proxy;
     validate_admin initiator;
     paused := bool_inactive
 end
 
-(* @dev: Set the admin of contract. Used by admin only. *)
-(* @param admin: New admin value *)
-(* @param initiator: The original caller who called the proxy *)
 transition update_admin (admin : ByStr20, initiator: ByStr20)
   validate_proxy;
   validate_admin initiator;
   contractadmin := admin
 end
 
-(* @dev: Set the verifier of contract. Used by admin only. *)
-(* @param verif: New verifier value *)
-(* @param initiator: The original caller who called the proxy *)
 transition update_verifier (verif : ByStr20, initiator: ByStr20)
   validate_proxy;
   validate_admin initiator;
@@ -285,11 +262,6 @@ transition update_verifier (verif : ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
-(* This transition should only be invoked when *)
-(* 1. There is a security bug in the contract and draining of fund is required to prevent lost of funds *)
-(* 2. There is an upgrade of contract and funds have to be transfered to the new implementation. *)
-(* @dev: Drain the entire contract balance. Used by current admin only. *)
-(* @param initiator: The original caller who called the proxy *)
 transition drain_contract_balance (initiator : ByStr20)
   validate_proxy;
   validate_admin initiator;
@@ -297,11 +269,6 @@ transition drain_contract_balance (initiator : ByStr20)
   TransferFunds multisig_tag_addfunds bal initiator
 end
 
-(* @dev: Set the staking parameters of contract. Used by admin only. *)
-(* @param min_stake: New minstake value *)
-(* @param max_stake: New maxstake value *)
-(* @param contract_max_stake: New contract maxstake value *)
-(* @param initiator: The original caller who called the proxy *)
 transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
   is_paused;
   validate_proxy;
@@ -317,7 +284,7 @@ transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, c
       contractmaxstake := contract_max_stake;
       e = mk_update_staking_parameter_event initiator;
       event e
-    | False => 
+    | False =>
       e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
       throw e
     end
@@ -328,11 +295,6 @@ transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, c
 
 end
 
-(* @dev: Adds new ssn to ssnlist. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn to be added *)
-(* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
-(* @param urlapi: string representing url exposed by ssn serving public api request *)
-(* @param initiator: The original caller who called the proxy *)
 transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20)
   is_paused;
   validate_proxy;
@@ -340,8 +302,8 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True =>
-    e = mk_ssn_already_exists_event ssnaddr;
-    event e
+    e = mk_ssn_already_exists_error ssnaddr;
+    throw e
   | False =>
     stake_amount = Uint128 0;
     status = False;
@@ -354,15 +316,6 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
   end
 end
 
-(* @dev: Adds new ssn to ssnlist. Used by admin only. *)
-(* @dev: Only used for contract upgrade *)
-(* @param ssnaddr: Address of the ssn to be added *)
-(* @param stake_amount: Stake amount of ssn *)
-(* @param rewards: Rewards of the ssn to be added *)
-(* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
-(* @param urlapi: string representing url exposed by ssn serving public api request *)
-(* @param buffered_deposit: Any buffered stake deposit *)
-(* @param initiator: The original caller who called the proxy *)
 transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)
   is_paused;
   validate_proxy;
@@ -393,14 +346,11 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       ssnlist[ssnaddr] := s
     | False =>
       e = mk_ssn_list_full_error initiator;
-      throw e   
+      throw e
     end
   end
 end
 
-(* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-(* @param initiator: The original caller who called the proxy *)
 transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
   is_paused;
   validate_proxy;
@@ -421,9 +371,6 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
 end
 
 
-(* @dev: Moves an amount tokens from initiator to the recipient. Used by token_owner. i.e. ssn *)
-(* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
-(* @param initiator: The original caller who called the proxy *)
 transition stake_deposit (initiator: ByStr20)
   is_paused;
   validate_proxy;
@@ -485,10 +432,6 @@ transition stake_deposit (initiator: ByStr20)
   end
 end
 
-(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param reward_blocknum: tx block num when ssns were verified *)
-(* @param initiator: The original caller who called the proxy *)
 transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)
   is_paused;
   validate_proxy;
@@ -525,9 +468,6 @@ transition withdraw_stake_rewards (initiator : ByStr20)
   end
 end
 
-(* @dev: Move token amount from contract account to initiator. Used by ssn only. *)
-(* @param amount: token amount to be withdrawed *)
-(* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
   is_paused;
   validate_proxy;
@@ -589,8 +529,6 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
   end
 end
 
-(* @dev: Move token amount from initiator to recipient i.e. contract address. *)
-(* @param initiator: The original caller who called the proxy *)
 transition AddFunds (initiator : ByStr20)
   is_paused;
   validate_proxy;
