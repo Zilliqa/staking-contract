@@ -36,7 +36,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	}
 	// 1. assign ssn1, should fail
 	err1 := p.assignStakeReward(pri1, ssn1, "50")
-	if err1 != nil {
+	if err1 == nil {
 		panic("test assign stake with non-ssn reward failed")
 	} else {
 		res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
