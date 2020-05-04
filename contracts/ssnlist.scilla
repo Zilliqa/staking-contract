@@ -41,7 +41,7 @@ let mk_ssn_not_exists_error =
   fun (ssn : ByStr20) =>
     { _exception : "SSN doesn't exist"; ssn_address : ssn }
 
-let mk_ssn_list_full_error = 
+let mk_ssn_list_full_error =
   fun (sender : ByStr20) =>
     { _exception : "SSN list already full"; sender : sender }
 
@@ -317,7 +317,7 @@ transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, c
       contractmaxstake := contract_max_stake;
       e = mk_update_staking_parameter_event initiator;
       event e
-    | False => 
+    | False =>
       e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
       throw e
     end
@@ -340,8 +340,8 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True =>
-    e = mk_ssn_already_exists_event ssnaddr;
-    event e
+    e = mk_ssn_already_exists_error ssnaddr;
+    throw e
   | False =>
     stake_amount = Uint128 0;
     status = False;
@@ -393,7 +393,7 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       ssnlist[ssnaddr] := s
     | False =>
       e = mk_ssn_list_full_error initiator;
-      throw e   
+      throw e
     end
   end
 end
