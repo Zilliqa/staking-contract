@@ -27,19 +27,10 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 
 	minstake := "100000000000"
 
-	err = p.updateMinStake(pri1, minstake)
-	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
+	err = p.updateStakingParameter(pri1, minstake, "20000000000000000000", "700000000000000000000")
 
-	err = p.updateMaxStake(pri1, "20000000000000000000")
 	if err != nil {
-		panic("update max stake failed: " + err.Error())
-	}
-
-	err = p.updateContractMaxStake(pri1, "700000000000000000000")
-	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
+		panic("update staking parameter error: " + err.Error())
 	}
 
 	if err0 := p.unpause(pri1); err0 != nil {
@@ -47,15 +38,11 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	}
 
 	// 1. no such ssn
-	err1, event := p.withdrawRewards(pri2)
-	if err1 != nil || event != "SSN doesn't exist" {
-		msg := ""
-		if err1 != nil {
-			msg = err1.Error()
-		}
-		panic("test withdraw stake rewards (no such ssn) failed" + msg)
-	} else {
+	err1, _ := p.withdrawRewards(pri2)
+	if err1 != nil {
 		fmt.Println("test withdraw stake rewards (no such ssn) succeed")
+	} else {
+		panic("test withdraw stake rewards (no such ssn) failed")
 	}
 
 	// 2
@@ -365,6 +352,7 @@ func (p *Proxy) withdrawRewards(operator string) (error, string) {
 			eventName := eventLogs["_eventname"].(string)
 			return nil, eventName
 		} else {
+			// todo check exception
 			return errors.New("transaction failed"), ""
 		}
 	}
