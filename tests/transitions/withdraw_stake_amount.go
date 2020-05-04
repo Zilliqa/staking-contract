@@ -88,7 +88,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", p.Addr,
-		"-t", "add_ssn",
+		"-t", "add_ssn_after_upgrade",
 		"-f", "true",
 		"-r", string(args)); err2 != nil {
 		panic("call transaction error: " + err2.Error())

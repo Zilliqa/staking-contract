@@ -86,7 +86,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	if err3, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
-		"-t", "add_ssn",
+		"-t", "add_ssn_after_upgrade",
 		"-f", "true",
 		"-r", string(args)); err3 != nil {
 		panic("call transaction error: " + err3.Error())
@@ -139,7 +139,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 	if err3, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", proxy,
-		"-t", "add_ssn",
+		"-t", "add_ssn_after_upgrade",
 		"-f", "true",
 		"-r", string(args)); err3 != nil {
 		panic("call transaction error: " + err3.Error())

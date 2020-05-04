@@ -61,16 +61,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -79,11 +69,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args, _ := json.Marshal(parameters)
@@ -214,16 +199,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -232,11 +207,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args2, _ := json.Marshal(parameters2)

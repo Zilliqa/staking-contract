@@ -357,16 +357,6 @@ func (p *Proxy) RegisterSSN(pri1, ssnaddr string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -375,11 +365,6 @@ func (p *Proxy) RegisterSSN(pri1, ssnaddr string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args, _ := json.Marshal(parameters)
