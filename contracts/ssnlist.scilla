@@ -4,6 +4,7 @@ import ListUtils
 
 library SSNList
 
+(* A non-custodial staking contract with admin privileges *)
 
 (* 
   Each SSN has the following fields:
