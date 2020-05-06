@@ -38,8 +38,8 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	}
 
 	// 1. no such ssn
-	err1, _ := p.withdrawRewards(pri2)
-	if err1 != nil {
+	err1, exception := p.withdrawRewards(pri2)
+	if err1 != nil && strings.Contains(exception,"SSN doesn't exist") {
 		fmt.Println("test withdraw stake rewards (no such ssn) succeed")
 	} else {
 		panic("test withdraw stake rewards (no such ssn) failed")
@@ -322,8 +322,9 @@ func (p *Proxy) withdrawRewards(operator string) (error, string) {
 			eventName := eventLogs["_eventname"].(string)
 			return nil, eventName
 		} else {
-			// todo check exception
-			return errors.New("transaction failed"), ""
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			return errors.New("transaction failed"), string(j)
 		}
 	}
 }

@@ -68,7 +68,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if string(j) != `[{"line":416,"message":"Exception thrown: (Message [(_exception : (String \"SSN doesn't exist\")) ; (ssn_address : (ByStr20 0x20ff646c47cbef9709ebdab505ebfa230a728499))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+				panic("check exception error")
+			}
 		} else {
 			panic("test stake deposit non-registered ssn failed, tx:" + tx)
 		}
@@ -95,7 +99,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if string(j) != `[{"line":427,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit below min_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 999999999)) ; (min_stake : (Uint128 1000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+				panic("check exception error")
+			}
 		} else {
 			panic("test stake deposit below min stake limit error, tx:" + tx)
 		}
@@ -117,7 +125,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 4000000001)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+				panic("check exception error")
+			}
 		} else {
 			panic("test stake deposit above max stake limit error, tx:" + tx)
 		}
@@ -196,8 +208,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
-			// todo check state
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 5000000002)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+				panic("check exception error")
+			}
 		} else {
 			panic("test stake deposit (after first time deposit) above max stake limit error, tx:" + tx)
 		}
@@ -266,7 +281,12 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 7000000002)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+				panic("check exception error")
+
+			}
 		} else {
 			panic("test stake deposit above contract max stake limit error, tx:" + tx)
 		}
@@ -317,7 +337,12 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			expected := `[{"line":427,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit below min_stake limit\")) ; (ssn_address : (ByStr20 ` + "0x" + middleAddr + `)) ; (requested_deposit : (Uint128 999999999)) ; (min_stake : (Uint128 1000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]`
+			if string(j) != expected {
+				panic("check exception error")
+			}
 			// since now we are using throw e, so the zils won't be remained to the middle contract
 		} else {
 			panic("test stake deposit (middle contract) below min stake limit error, tx:" + tx)
@@ -340,9 +365,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
 		if !success {
-			// todo check exception, wait isolated server to support
-		} else {
-			panic("test (middle contract) stake deposit above max stake limit error, tx:" + tx)
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
+				panic("check exception error")
+			}
 		}
 	}
 	fmt.Println("------------------------ end StakeDeposit ------------------------")

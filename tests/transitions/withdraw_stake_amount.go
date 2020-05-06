@@ -44,8 +44,8 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 1. no such ssn
-	err, event := p.withdrawAmount(pri2, minstake)
-	if err != nil {
+	err, exception := p.withdrawAmount(pri2, minstake)
+	if err != nil && strings.Contains(exception, "SSN doesn't exist") {
 		fmt.Println("test withdraw amount (no such ssn) succeed")
 	} else {
 		panic("test withdraw amount (no such ssn) failed: event error")
@@ -193,7 +193,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 6 withdraw reward
-	err, event = p.withdrawRewards(pri2)
+	err, event := p.withdrawRewards(pri2)
 	if err != nil || event != "SSN withdraw reward" {
 		fmt.Println("err: " + err.Error())
 		fmt.Println("event: " + event)
@@ -211,19 +211,19 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 7 withdraw 3 * min stake: emit above error
-	err5, _ := p.withdrawAmount(pri2, therestake)
-	if err5 == nil {
-		panic("withdraw amount failed: should emit above error")
-	} else {
+	err5, exception := p.withdrawAmount(pri2, therestake)
+	if err5 != nil && strings.Contains(exception, "SSN withdrawal above stake") {
 		fmt.Println("withdraw amount succeed: should emit above error")
+	} else {
+		panic("withdraw amount failed: should emit above error")
 	}
 
 	// 8 withdraw 1.5 * min stake: emit below error
-	err6, _ := p.withdrawAmount(pri2, onehalfstake)
-	if err6 == nil {
-		panic("withdraw amount failed: should emit below error")
-	} else {
+	err6, exception := p.withdrawAmount(pri2, onehalfstake)
+	if err6 != nil && strings.Contains(exception,"SSN withdrawal below min_stake limit") {
 		fmt.Println("withdraw amount succeed: should emit below error")
+	} else {
+		panic("withdraw amount failed: should emit below error")
 	}
 
 	// 9 withdraw half min stake: remain 1.5 min stake
@@ -302,8 +302,9 @@ func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
 				return errors.New("check state failed"), ename
 			}
 		} else {
-			// todo check exception
-			return errors.New("transaction failed"), ""
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			return errors.New("transaction failed"), string(j)
 		}
 	}
 }
