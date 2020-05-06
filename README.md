@@ -302,9 +302,6 @@ The first transition is meant to submit a request for transfer of native `ZIL`s 
 |`SubmitCustomAddSsnAfterUpgradeTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn_after_upgrade` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
 
-
-
-
 ### Action Transitions
 
 | Name | Params | Description |
