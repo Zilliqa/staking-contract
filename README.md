@@ -295,8 +295,10 @@ The first transition is meant to submit a request for transfer of native `ZIL`s 
 |`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `update_verifier` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateStakingParameterTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128` | Submit a request to invoke the `update_staking_parameter` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `drain_contract_balance` transition in the `SSNListProxy` contract. |
+|`SubmitCustomDrainProxyContractBalance`| `proxyContract : ByStr20` | Submit a request to invoke the `drainProxyContractBalance` transition in the `SSNListProxy` contract. |
 |`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
+
 
 
 
