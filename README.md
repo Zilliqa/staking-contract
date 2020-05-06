@@ -135,7 +135,8 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `add_ssn` | `ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20`| Add a new SSN with the passed values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> | 
+| `add_ssn` | `ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20`| Add a new SSN with the 0 staked deposit, 0 staked reward and 0 buffered deposit. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> |
+| `add_ssn_after_upgrade` | `ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20`| Add a new SSN with the passed values. Only for Use after contract upgrade. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> | 
 | `remove_ssn` | `ssnaddr : ByStr20, initiator : ByStr20`| Remove a given SSN with address `ssnaddr`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> |
 | `stake_deposit` | `initiator : ByStr20` | Accept the deposit of ZILs from the `initiator` which should be a registered SSN in the contract. | <center>:x:</center> | 
 | `assign_stake_reward` | `ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator : ByStr20` | To assign rewards to the SSNs based on their performance. Performance checks happen off the chain. <br>  :warning: **Note:** `initiator` must be the current `verifier` of the contract. | <center>:x:</center> |
@@ -211,7 +212,8 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`update_verifier(verif : ByStr20)` | `update_verifier (verif : ByStr20, initiator: ByStr20)`|
 |`drain_contract_balance()` | `drain_contract_balance(initiator : ByStr20)`|
 |`update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)` | `update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)`|
-|`add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
+|`add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String)` | `add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20)`|
+|`add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
 |`remove_ssn (ssnaddr : ByStr20)` | `remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)`|
 |`stake_deposit()` | `stake_deposit (initiator: ByStr20)`|
 |`assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32)` | `assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)`|
@@ -296,7 +298,8 @@ The first transition is meant to submit a request for transfer of native `ZIL`s 
 |`SubmitCustomUpdateStakingParameterTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128` | Submit a request to invoke the `update_staking_parameter` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `drain_contract_balance` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainProxyContractBalance`| `proxyContract : ByStr20` | Submit a request to invoke the `drainProxyContractBalance` transition in the `SSNListProxy` contract. |
-|`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
+|`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, urlraw : String, urlapi : String` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
+|`SubmitCustomAddSsnAfterUpgradeTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn_after_upgrade` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
 
 
