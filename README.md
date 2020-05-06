@@ -49,7 +49,6 @@ The table below summarizes the purpose of the three contracts that ZIP-3 will br
 
 The SSNList contract is the main contract that is central to the entire staking infrastructure. 
 
-
 ## Roles and Privileges
 
 The table below describes the roles and privileges that this contract defines:
@@ -122,14 +121,12 @@ Each of these category of transitions are presented in further detail below.
 | `update_staking_parameter` | `min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20` | Update the value of the field `minstake`, `maxstake` and `contractmaxstake` to the input value `min_stake`, `max_stake` and `contract_max_stake` respectively. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
 | `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
 
-
 ### Pause Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
 | `pause` | `initiator : ByStr20`| Pause the contract temporarily to stop any critical transition from being invoked. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
 | `unpause` | `initiator : ByStr20`| Un-pause the contract to re-allow the invocation of all transitions. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
-
 
 ### SSN Operation Transitions
 
@@ -184,7 +181,6 @@ The table below presents the mutable fields of the contract and their initial va
 |`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
 |`admin`| `ByStr20` | `init_owner` | Current admin of the contract. |
 
-
 ## Transitions
 
 All the transitions in the contract can be categorized into two categories:
@@ -200,7 +196,6 @@ All the transitions in the contract can be categorized into two categories:
 | `drainProxyContractBalance`| | Drain proxy contract balance back to the caller. <br> :warning: **Note:** Only the `admin` can invoke this transition. |
 
 ### Relay Transitions
-
 
 These transitions are meant to redirect calls to the corresponding `SSNList` contract. Redirecting the contract prepares the `initiator` value that is the address of the caller of the `SSNListProxy` contract. The signature of transitions in the two contracts is exactly the same except the added last parameter `initiator` for the transition in the `SSNList` contract.
 
