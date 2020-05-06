@@ -119,9 +119,7 @@ Each of these category of transitions are presented in further detail below.
 | ----------- | -----------|-------------|:--------------------------:|
 | `update_admin` | `admin : ByStr20, initiator : ByStr20` | Replace the current `contractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
 | `update_verifier` | `verif : ByStr20, initiator : ByStr20` | Replace the current `verifier` by `verif`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
-| `update_minstake` | `min_stake : Uint128, initiator : ByStr20` | Update the value of the field `minstake` to the input value `min_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_maxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `maxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_contractmaxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `contractmaxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
+| `update_staking_parameter` | `min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20` | Update the value of the field `minstake`, `maxstake` and `contractmaxstake` to the input value `min_stake`, `max_stake` and `contract_max_stake` respectively. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
 | `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
 
 
@@ -212,9 +210,7 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`update_admin(admin: ByStr20)` | `update_admin(admin: ByStr20, initiator : ByStr20)`|
 |`update_verifier(verif : ByStr20)` | `update_verifier (verif : ByStr20, initiator: ByStr20)`|
 |`drain_contract_balance()` | `drain_contract_balance(initiator : ByStr20)`|
-|`update_minstake (min_stake : Uint128)` | `update_minstake (min_stake : Uint128, initiator : ByStr20)`|
-|`update_maxstake (min_stake : Uint128)` | `update_maxstake (max_stake : Uint128, initiator : ByStr20)`|
-|`update_contractmaxstake (max_stake : Uint128)` | `update_contractmaxstake (max_stake : Uint128, initiator : ByStr20)`|
+|`update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)` | `update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)`|
 |`add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
 |`remove_ssn (ssnaddr : ByStr20)` | `remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)`|
 |`stake_deposit()` | `stake_deposit (initiator: ByStr20)`|
@@ -297,9 +293,7 @@ The first transition is meant to submit a request for transfer of native `ZIL`s 
 |`SubmitCustomChangeProxyAdminTransaction`| `proxyContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `changeProxyAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateAdminTransaction`| `proxyContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `update_admin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `update_verifier` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateMinStakeTransaction`| `proxyContract : ByStr20, min_stake : Uint128` | Submit a request to invoke the `update_minstake` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_maxstake` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateContractMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_contractmaxstake` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateStakingParameterTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128` | Submit a request to invoke the `update_staking_parameter` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `drain_contract_balance` transition in the `SSNListProxy` contract. |
 |`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
