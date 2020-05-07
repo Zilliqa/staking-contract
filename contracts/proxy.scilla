@@ -112,7 +112,7 @@ transition update_verifier (verif : ByStr20)
     send msgs
 end
 
-(* @dev: Set the admin of contract. Used by current admin only. *)
+(* @dev: Drain the balance of the contract. Used by current admin only. *)
 transition drain_contract_balance ()
     current_impl <- implementation;
     msg = {_tag : "drain_contract_balance"; _recipient : current_impl; _amount : zero; initiator : _sender};
