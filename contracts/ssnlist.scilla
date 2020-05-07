@@ -132,6 +132,7 @@ let mk_withdraw_stake_rewards_event =
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String Uint128
 
+(* address reward_percentage *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
@@ -159,7 +160,7 @@ field maxstake : Uint128 = Uint128 0
 field contractmaxstake : Uint128 = Uint128 0
 field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
-field lastrewardblocknum : Uint32 = Uint32 0
+field lastrewardblocknum : Uint128 = Uint128 0
 field paused : Bool = True
 
 (* Procedures *)
