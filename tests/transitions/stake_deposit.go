@@ -6,10 +6,11 @@ package transitions
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Zilliqa/gozilliqa-sdk/keytools"
-	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"strconv"
 	"strings"
+
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
 
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
@@ -70,7 +71,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			if string(j) != `[{"line":416,"message":"Exception thrown: (Message [(_exception : (String \"SSN doesn't exist\")) ; (ssn_address : (ByStr20 0x20ff646c47cbef9709ebdab505ebfa230a728499))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+			if !strings.Contains(string(j), "SSN doesn't exist") {
 				panic("check exception error")
 			}
 		} else {
@@ -101,7 +102,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			if string(j) != `[{"line":427,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit below min_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 999999999)) ; (min_stake : (Uint128 1000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+			if !strings.Contains(string(j), "SSN stake deposit below min_stake limit") {
 				panic("check exception error")
 			}
 		} else {
@@ -127,7 +128,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 4000000001)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
 				panic("check exception error")
 			}
 		} else {
@@ -210,7 +211,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 5000000002)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
 				panic("check exception error")
 			}
 		} else {
@@ -283,9 +284,8 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			if string(j) != `[{"line":433,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit above max_stake limit\")) ; (ssn_address : (ByStr20 0x5fa0e52b9cd475f31d22244d52b076601d031572)) ; (requested_deposit : (Uint128 7000000002)) ; (max_stake : (Uint128 4000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]` {
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
 				panic("check exception error")
-
 			}
 		} else {
 			panic("test stake deposit above contract max stake limit error, tx:" + tx)
@@ -339,11 +339,9 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		if !success {
 			exceptions := receipt["exceptions"]
 			j, _ := json.Marshal(exceptions)
-			expected := `[{"line":427,"message":"Exception thrown: (Message [(_exception : (String \"SSN stake deposit below min_stake limit\")) ; (ssn_address : (ByStr20 ` + "0x" + middleAddr + `)) ; (requested_deposit : (Uint128 999999999)) ; (min_stake : (Uint128 1000000000))])"},{"line":198,"message":"Raised from validate_proxy"},{"line":209,"message":"Raised from is_paused"},{"line":406,"message":"Raised from stake_deposit"}]`
-			if string(j) != expected {
+			if !strings.Contains(string(j), "SSN stake deposit below min_stake limit") {
 				panic("check exception error")
 			}
-			// since now we are using throw e, so the zils won't be remained to the middle contract
 		} else {
 			panic("test stake deposit (middle contract) below min stake limit error, tx:" + tx)
 		}
