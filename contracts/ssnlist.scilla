@@ -488,7 +488,7 @@ end
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param reward_blocknum: tx block num when ssns were verified *)
 (* @param initiator: The original caller who called the proxy *)
-transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)
+transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint128, initiator: ByStr20)
   is_paused;
   validate_proxy;
   validate_verifier initiator;
