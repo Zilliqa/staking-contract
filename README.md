@@ -208,7 +208,7 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`drain_contract_balance()` | `drain_contract_balance(initiator : ByStr20)`|
 |`update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)` | `update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)`|
 |`add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String)` | `add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20)`|
-|`add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
+|`add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
 |`remove_ssn (ssnaddr : ByStr20)` | `remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)`|
 |`stake_deposit()` | `stake_deposit (initiator: ByStr20)`|
 |`assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32)` | `assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)`|
