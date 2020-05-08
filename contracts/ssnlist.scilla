@@ -20,9 +20,9 @@ let max_ssn_node_number = Uint32 20
 
 (* events *)
 
-let mk_contract_freezed_error =
+let mk_contract_frozen_error =
   fun (sender : ByStr20) =>
-    { _exception : "Contract freezed failure"; sender : sender }
+    { _exception : "Contract frozen failure"; sender : sender }
 
 let mk_verifier_validation_failed_error =
   fun (sender : ByStr20) =>
@@ -132,6 +132,7 @@ let mk_withdraw_stake_rewards_event =
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String Uint128
 
+(* address reward_percentage *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
@@ -159,7 +160,7 @@ field maxstake : Uint128 = Uint128 0
 field contractmaxstake : Uint128 = Uint128 0
 field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
-field lastrewardblocknum : Uint32 = Uint32 0
+field lastrewardblocknum : Uint128 = Uint128 0
 field paused : Bool = True
 
 (* Procedures *)
@@ -177,7 +178,7 @@ procedure validate_verifier (initiator : ByStr20)
       throw e
     end
   | None =>
-    e = mk_admin_validation_failed_error initiator;
+    e = mk_verifier_validation_failed_error initiator;
     throw e
   end
 end
@@ -211,13 +212,11 @@ procedure is_paused ()
   match paused_l with
   | False =>
   | True =>
-    e = mk_contract_freezed_error _sender;
+    e = mk_contract_frozen_error _sender;
     throw e
   end
 end
 
-(* Can be called by the contract admin only *)
-(* It is expected that transfer only happens to an exterally owned account*)
 procedure TransferFunds (tag: String, amount : Uint128, recipient : ByStr20)
     msg = {_tag : tag; _recipient : recipient; _amount : amount};
     msgs = one_msg msg;
@@ -422,7 +421,7 @@ end
 
 
 (* @dev: Moves an amount tokens from initiator to the recipient. Used by token_owner. i.e. ssn *)
-(* @dev: Stake amount of exisitng ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
+(* @dev: Stake amount of existing ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
 (* @param initiator: The original caller who called the proxy *)
 transition stake_deposit (initiator: ByStr20)
   is_paused;
@@ -489,7 +488,7 @@ end
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param reward_blocknum: tx block num when ssns were verified *)
 (* @param initiator: The original caller who called the proxy *)
-transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)
+transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint128, initiator: ByStr20)
   is_paused;
   validate_proxy;
   validate_verifier initiator;
@@ -512,7 +511,7 @@ transition withdraw_stake_rewards (initiator : ByStr20)
     pass = builtin eq stake_amount uint128_zero;
     match pass with
     | True =>
-      (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
+      (* entire stake withdrawn and also reward is withdrawn, so remove ssn *)
       delete ssnlist[initiator]
     | False =>
       (* Update state to have 0 rewards. *)
@@ -526,7 +525,7 @@ transition withdraw_stake_rewards (initiator : ByStr20)
 end
 
 (* @dev: Move token amount from contract account to initiator. Used by ssn only. *)
-(* @param amount: token amount to be withdrawed *)
+(* @param amount: token amount to be withdrawn *)
 (* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
   is_paused;
