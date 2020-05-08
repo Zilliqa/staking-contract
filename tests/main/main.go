@@ -62,14 +62,7 @@ func main() {
 	// test UpdateVerifier
 	p.UpdateVerifier(pri1, pri2)
 
-	// test UpdateMinStake
-	p.UpdateMinStake(pri1, pri2)
-
-	// test UpdateMaxStake
-	p.UpdateMaxStake(pri1, pri2)
-
-	// test UpdateContractMaxStake
-	p.UpdateContractMaxStake(pri1, pri2)
+	p.UpdateStakingParameter(pri1,pri2)
 
 	// test deposit
 	p.TransferFundsAndDrainBalance(pri1, pri2, "5000")

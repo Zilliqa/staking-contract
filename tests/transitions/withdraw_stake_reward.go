@@ -27,19 +27,10 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 
 	minstake := "100000000000"
 
-	err = p.updateMinStake(pri1, minstake)
-	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
+	err = p.updateStakingParameter(pri1, minstake, "20000000000000000000", "700000000000000000000")
 
-	err = p.updateMaxStake(pri1, "20000000000000000000")
 	if err != nil {
-		panic("update max stake failed: " + err.Error())
-	}
-
-	err = p.updateContractMaxStake(pri1, "700000000000000000000")
-	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
+		panic("update staking parameter error: " + err.Error())
 	}
 
 	if err0 := p.unpause(pri1); err0 != nil {
@@ -47,15 +38,11 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 	}
 
 	// 1. no such ssn
-	err1, event := p.withdrawRewards(pri2)
-	if err1 != nil || event != "SSN doesn't exist" {
-		msg := ""
-		if err1 != nil {
-			msg = err1.Error()
-		}
-		panic("test withdraw stake rewards (no such ssn) failed" + msg)
-	} else {
+	err1, exception := p.withdrawRewards(pri2)
+	if err1 != nil && strings.Contains(exception,"SSN doesn't exist") {
 		fmt.Println("test withdraw stake rewards (no such ssn) succeed")
+	} else {
+		panic("test withdraw stake rewards (no such ssn) failed")
 	}
 
 	// 2
@@ -74,16 +61,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -92,11 +69,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args, _ := json.Marshal(parameters)
@@ -227,16 +199,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -245,11 +207,6 @@ func TestWithdrawStakeRewards(pri1, pri2, api string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args2, _ := json.Marshal(parameters2)
@@ -365,7 +322,9 @@ func (p *Proxy) withdrawRewards(operator string) (error, string) {
 			eventName := eventLogs["_eventname"].(string)
 			return nil, eventName
 		} else {
-			return errors.New("transaction failed"), ""
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			return errors.New("transaction failed"), string(j)
 		}
 	}
 }

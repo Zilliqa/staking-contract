@@ -6,10 +6,11 @@ package transitions
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Zilliqa/gozilliqa-sdk/keytools"
-	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"strconv"
 	"strings"
+
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
 
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
@@ -19,7 +20,7 @@ import (
 // adjust the values according to values in updateMinStake() and updateMaxStake() calls
 // set the contract max stake to be lesser than max stake on purpose to trigger the above contract max stake event
 const (
-	CONTRACT_MAX_STAKE = 3000000000
+	CONTRACT_MAX_STAKE = 5000000000
 	MAX_STAKE          = 4000000000
 	MIN_STAKE          = 1000000000
 )
@@ -41,17 +42,9 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		panic("unpause with valid account failed")
 	}
 	// 0. setup minstake maxstake contractmaxstake
-	err := p.updateContractMaxStake(pri1, strconv.Itoa(CONTRACT_MAX_STAKE))
+	err := p.updateStakingParameter(pri1, strconv.Itoa(MIN_STAKE), strconv.Itoa(MAX_STAKE), strconv.Itoa(CONTRACT_MAX_STAKE))
 	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
-	}
-	err = p.updateMinStake(pri1, strconv.Itoa(MIN_STAKE))
-	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
-	err = p.updateMaxStake(pri1, strconv.Itoa(MAX_STAKE))
-	if err != nil {
-		panic("update max stake failed: " + err.Error())
+		panic("update staking parameter error: " + err.Error())
 	}
 	err = p.updateVerifier(pri1)
 	if err != nil {
@@ -75,14 +68,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN doesn't exist" {
-				fmt.Println("test stake deposit non-registered ssn succeed")
-			} else {
-				panic("test stake deposit non-registered ssn failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN doesn't exist") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit non-registered ssn failed, tx:" + tx)
@@ -109,14 +99,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN stake deposit below min_stake limit" {
-				fmt.Println("test stake deposit below min stake limit succeed")
-			} else {
-				panic("test stake deposit below min stake limit failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit below min_stake limit") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit below min stake limit error, tx:" + tx)
@@ -138,14 +125,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN stake deposit above max_stake limit" {
-				fmt.Println("test stake deposit above max stake limit succeed")
-			} else {
-				panic("test stake deposit above max stake limit failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit above max stake limit error, tx:" + tx)
@@ -224,31 +208,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-
-			if eventName == "SSN stake deposit above max_stake limit" {
-				// check ssn active status
-				res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
-				ssnmap := res["ssnlist"].(map[string]interface{})
-				ssnAddr := events["params"].([]interface{})[0].(map[string]interface{})["value"].(string)
-				ssn := ssnmap[ssnAddr]
-
-				if ssn == nil {
-					panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
-				} else {
-					ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
-					if ssnStatus == "True" {
-						fmt.Println("test stake deposit (after first time deposit) above max stake limit succeed")
-					} else {
-						panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
-					}
-				}
-
-			} else {
-				panic("test stake deposit (after first time deposit) above max stake limit failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit (after first time deposit) above max stake limit error, tx:" + tx)
@@ -301,14 +265,13 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		}
 	}
 
-	// 7. as ssn, after second time, deposit (MAX_STAKE) - 1
-	// current contract state deposit: (MIN_STAKE+1)*2 + (MAX_STAKE-1)
+	// 7. as ssn, after second time, deposit CONTRACT_MAX_STAKE
 	// invoke CONTRACT_MAX_STAKE
 	if err3, output := ExecZli("contract", "call",
 		"-k", pri2,
 		"-a", proxy,
 		"-t", "stake_deposit",
-		"-m", strconv.Itoa(MIN_STAKE+1),
+		"-m", strconv.Itoa(CONTRACT_MAX_STAKE),
 		"-f", "true",
 		"-r", "[]"); err3 != nil {
 		panic("call transaction error: " + err3.Error())
@@ -318,14 +281,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN stake deposit will result in contract stake deposit go above limit" {
-				fmt.Println("test stake deposit above contract max stake limit succeed")
-			} else {
-				panic("test stake deposit above contract max stake limit failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit above contract max stake limit error, tx:" + tx)
@@ -376,19 +336,11 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN stake deposit below min_stake limit" {
-				fmt.Println("test (middle contract) stake deposit below min stake limit succeed")
-			} else {
-				panic("test stake (middle contract) deposit below min stake limit failed, tx:" + tx)
-			}
-			m := p.Provider.GetBalance(middleAddr).Result.(map[string]interface{})
-			balance := m["balance"].(string)
-			if balance != strconv.Itoa(MIN_STAKE-1) {
-				panic("test stake deposit (middle contract) below min stake limit error,wrong balance, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit below min_stake limit") {
+				panic("check exception error")
 			}
 		} else {
 			panic("test stake deposit (middle contract) below min stake limit error, tx:" + tx)
@@ -410,26 +362,14 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 		payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 		receipt := payload["receipt"].(map[string]interface{})
 		success := receipt["success"].(bool)
-		eventLogs := receipt["event_logs"].([]interface{})[0]
-		if success {
-			events := eventLogs.(map[string]interface{})
-			eventName := events["_eventname"].(string)
-			if eventName == "SSN stake deposit above max_stake limit" {
-				fmt.Println("test (middle contract) stake deposit above max stake limit succeed")
-			} else {
-				panic("test (middle contract) stake deposit above max stake limit failed, tx:" + tx)
+		if !success {
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			if !strings.Contains(string(j), "SSN stake deposit above max_stake limit") {
+				panic("check exception error")
 			}
-
-			m := p.Provider.GetBalance(middleAddr).Result.(map[string]interface{})
-			balance := m["balance"].(string)
-			if balance != strconv.Itoa(MAX_STAKE+1+MIN_STAKE-1) {
-				panic("test stake deposit (middle contract)above max stake limit error,wrong balance, tx:" + tx)
-			}
-		} else {
-			panic("test (middle contract) stake deposit above max stake limit error, tx:" + tx)
 		}
 	}
-
 	fmt.Println("------------------------ end StakeDeposit ------------------------")
 }
 
@@ -442,16 +382,6 @@ func (p *Proxy) RegisterSSN(pri1, ssnaddr string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -460,11 +390,6 @@ func (p *Proxy) RegisterSSN(pri1, ssnaddr string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args, _ := json.Marshal(parameters)

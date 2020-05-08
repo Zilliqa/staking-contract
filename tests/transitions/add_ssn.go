@@ -39,16 +39,6 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			Value: ssnaddr,
 		},
 		{
-			VName: "stake_amount",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
-			VName: "rewards",
-			Type:  "Uint128",
-			Value: "0",
-		},
-		{
 			VName: "urlraw",
 			Type:  "String",
 			Value: "devapiziiliqacom",
@@ -57,11 +47,6 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			VName: "urlapi",
 			Type:  "String",
 			Value: "ziiliqacom",
-		},
-		{
-			VName: "buffered_deposit",
-			Type:  "Uint128",
-			Value: "0",
 		},
 	}
 	args, _ := json.Marshal(parameters)
@@ -138,15 +123,8 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 			receipt := payload["receipt"].(map[string]interface{})
 			success := receipt["success"].(bool)
-			eventLogs := receipt["event_logs"].([]interface{})[0]
-			if success {
-				events := eventLogs.(map[string]interface{})
-				eventName := events["_eventname"].(string)
-				if eventName == "SSN already exists" {
-					fmt.Println("test add ssn twice succeed")
-				} else {
-					panic("test add ssn twice succeed failed")
-				}
+			if !success {
+				fmt.Println("test add ssn twice succeed")
 			} else {
 				panic("test add ssn twice succeed failed")
 			}
@@ -174,15 +152,8 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 			receipt := payload["receipt"].(map[string]interface{})
 			success := receipt["success"].(bool)
-			eventLogs := receipt["event_logs"].([]interface{})[0]
-			if success {
-				events := eventLogs.(map[string]interface{})
-				eventName := events["_eventname"].(string)
-				if eventName == "SSN doesn't exist" {
-					fmt.Println("test remove nonexistent ssn succeed")
-				} else {
-					panic("test remove nonexistent ssn failed")
-				}
+			if !success {
+				fmt.Println("test remove nonexistent ssn succeed")
 			} else {
 				panic("test remove nonexistent ssn failed")
 			}
@@ -250,16 +221,9 @@ func (p *Proxy) AddSSN(pri1, pri2 string) {
 			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
 			receipt := payload["receipt"].(map[string]interface{})
 			success := receipt["success"].(bool)
-			eventLogs := receipt["event_logs"].([]interface{})[0]
 
-			if success {
-				events := eventLogs.(map[string]interface{})
-				eventName := events["_eventname"].(string)
-				if eventName == "SSN doesn't exist" {
-					fmt.Println("test remove same ssn address succeed")
-				} else {
-					panic("test remove same ssn address failed")
-				}
+			if !success {
+				fmt.Println("test remove same ssn address succeed")
 			} else {
 				panic("test remove same ssn address failed")
 			}

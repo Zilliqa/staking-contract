@@ -29,19 +29,9 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	therestake := strconv.FormatInt(int64(min*3), 10)
 	onehalfstake := strconv.FormatInt(int64(min+half), 10)
 
-	err = p.updateMinStake(pri1, minstake)
+	err = p.updateStakingParameter(pri1, minstake, "20000000000000000000", "700000000000000000000")
 	if err != nil {
-		panic("update min stake failed: " + err.Error())
-	}
-
-	err = p.updateMaxStake(pri1, "20000000000000000000")
-	if err != nil {
-		panic("update max stake failed: " + err.Error())
-	}
-
-	err = p.updateContractMaxStake(pri1, "700000000000000000000")
-	if err != nil {
-		panic("update contract max stake failed: " + err.Error())
+		panic("update staking parameter error: " + err.Error())
 	}
 
 	err2 := p.updateVerifier(pri1)
@@ -54,8 +44,8 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 1. no such ssn
-	err, event := p.withdrawAmount(pri2, minstake)
-	if event == "SSN doesn't exist" {
+	err, exception := p.withdrawAmount(pri2, minstake)
+	if err != nil && strings.Contains(exception, "SSN doesn't exist") {
 		fmt.Println("test withdraw amount (no such ssn) succeed")
 	} else {
 		panic("test withdraw amount (no such ssn) failed: event error")
@@ -98,7 +88,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	if err2, output := ExecZli("contract", "call",
 		"-k", pri1,
 		"-a", p.Addr,
-		"-t", "add_ssn",
+		"-t", "add_ssn_after_upgrade",
 		"-f", "true",
 		"-r", string(args)); err2 != nil {
 		panic("call transaction error: " + err2.Error())
@@ -180,16 +170,16 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 4. withdraw
-	_, event2 := p.withdrawAmount(pri2, minstake)
-	if event2 == "SSN withdrawal not allowed when some deposit is bufferred" {
+	err3, _ := p.withdrawAmount(pri2, minstake)
+	if err3 != nil {
 		fmt.Println("test withdraw amount (no such ssn) succeed")
 	} else {
 		panic("test withdraw amount (no such ssn) failed: event error")
 	}
 
 	// 5 use assign reward to make buffered deposit complete
-	err3 := p.assignStakeReward(pri1, ssnaddr, "50")
-	if err3 != nil {
+	err4 := p.assignStakeReward(pri1, ssnaddr, "50")
+	if err4 != nil {
 		panic("assign reward failed")
 	}
 	m = p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
@@ -203,7 +193,7 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 6 withdraw reward
-	err, event = p.withdrawRewards(pri2)
+	err, event := p.withdrawRewards(pri2)
 	if err != nil || event != "SSN withdraw reward" {
 		fmt.Println("err: " + err.Error())
 		fmt.Println("event: " + event)
@@ -221,21 +211,19 @@ func TestWithdrawAmount(pri1, pri2, api string) {
 	}
 
 	// 7 withdraw 3 * min stake: emit above error
-	_, event = p.withdrawAmount(pri2, therestake)
-	if event != "SSN withdrawal above stake" {
-		fmt.Println("event: " + event)
-		panic("withdraw amount failed: should emit above error")
-	} else {
+	err5, exception := p.withdrawAmount(pri2, therestake)
+	if err5 != nil && strings.Contains(exception, "SSN withdrawal above stake") {
 		fmt.Println("withdraw amount succeed: should emit above error")
+	} else {
+		panic("withdraw amount failed: should emit above error")
 	}
 
 	// 8 withdraw 1.5 * min stake: emit below error
-	_, event8 := p.withdrawAmount(pri2, onehalfstake)
-	if event8 != "SSN withdrawal below min_stake limit" {
-		fmt.Println("event: " + event8)
-		panic("withdraw amount failed: should emit below error")
-	} else {
+	err6, exception := p.withdrawAmount(pri2, onehalfstake)
+	if err6 != nil && strings.Contains(exception,"SSN withdrawal below min_stake limit") {
 		fmt.Println("withdraw amount succeed: should emit below error")
+	} else {
+		panic("withdraw amount failed: should emit below error")
 	}
 
 	// 9 withdraw half min stake: remain 1.5 min stake
@@ -314,7 +302,9 @@ func (p *Proxy) withdrawAmount(operator string, amount string) (error, string) {
 				return errors.New("check state failed"), ename
 			}
 		} else {
-			return errors.New("transaction failed"), ""
+			exceptions := receipt["exceptions"]
+			j, _ := json.Marshal(exceptions)
+			return errors.New("transaction failed"), string(j)
 		}
 	}
 }
