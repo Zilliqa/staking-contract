@@ -6,6 +6,7 @@ library SSNList
 
 (* A non-custodial staking contract with admin privileges *)
 
+(* SSN Data Type *)
 (* 
   Each SSN has the following fields:
 
@@ -14,7 +15,7 @@ library SSNList
   StakeAmount       : Uint128
                       Total stake that can be used for reward calculation. 
   StakeRewards      : Uint128
-                      Reward accumulated so far across all cycles. This only includes the rewards that the SSN can distribute to its delegators.
+                      (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegators.
                       It does not include SSN's own commission.
   Name              : String
                       A human-readable name for this SSN.
@@ -30,39 +31,78 @@ library SSNList
   CommissionRewards : Uint128
                       Number of ZILs earned as commission by the SSN.
 *)    
-(* Invariant 1: StakeAmount + BufferedDeposit < MaxStake *)
+(* Invariant 1: StakeAmount + BufferedDeposit < MaxStake < ContractMaxStake *)
 (* Invariant 2: ActiveStatus = (Minstake < StakeAmount)  *)
 
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128
 
+(* SSNRewardShare Data Type *)
+(* 
+  SSNRewardShare has the following fields:
+
+  SSNAddress        : ByStr20
+                      Address of the SSN.
+  RewardPercentage  : Uint128
+                      This is the integer representation of the percentage of the staked amount that will be given as reward to the SSN.
+                      If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer.
+                      If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs.
+*)
+    
 type SsnRewardShare =
-(* Addresss and Percentage reward *)
 | SsnRewardShare of ByStr20 Uint128
 
+
+(* Delegator Data Type *)
 (* 
     Each delegator has the following fields:
 
     StakeAmount       : Uint128
-                        Represents the amount staked so far. This is the sum total of
-                        amount staked across all SSNs. 
+                        Represents the amount staked so far. This is the sum total of amount staked across all SSNs. 
     StakeRewards      : Uint128
                         The rewards accumulatd so far from all SSNs. This is the sum total of reward accumulated across all SSNs. 
-    Buffereddeposit   : Uint128
-                        The deposit that needs to be in buffer until the next reward cycle and cannot be immediately
-                        considered as a part of the staking. This is the sum total of buffereddeposits made across all SSNs.  
+                            considered as a part of the staking. This is the sum total of buffereddeposits made across all SSNs.  
+    BufferedDeposit   : Uint128
+                        Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered for the next one.
 *)    
 
 type Delegator =
 | Delegator of Uint128 Uint128 Uint128
 
+(* DelegatorCycleInfo Data Type *)
+(* 
+    Each DelegatorCycleInfo has the following fields:
+    SSNAddress          : ByStr20
+                          Address of the SSN.
+    StakeDuringTheCycle : Uint128 
+                          Represents the amount staked during this cycle for the given SSN.
+    DelegatorAddress    : ByStr20
+                          Address of Delegator. 
+*)    
 
-(* AddressofSSN StakeDuringTheCycle AddressofDelegator*)
-type PairForDelegatorCycle = 
-| PairForDelegatorCycle of ByStr20 Uint128 ByStr20
+type DelegatorCycleInfo = 
+| DelegatorCycleInfo of ByStr20 Uint128 ByStr20
 
-type PairForStakeSSNCycle =
-| PairForStakeSSNCycle of Uint128 Uint128
+(* SSNCycleInfo Data Type *)
+(* 
+    Each SSNCycleInfo has the following fields:
+    TotalStakeDuringTheCycle            : Uint128 
+                                          Represents the amount staked during this cycle for the given SSN.
+    TotalRewardEarnedDuringTheCycle    : Uint128 
+                                         Represents the amount staked during this cycle for the given SSN.
+*)    
+
+type SSNCycleInfo =
+| SSNCycleInfo of Uint128 Uint128
+
+(* DelegatorAndRewards Data Type *)
+(* 
+    Each DelegatorAndRewards has the following fields:
+    DelegatorAddress    : ByStr20
+                          Address of Delegator.
+    RewardToBeSent      : Uint128 
+                          Reward that can be sent to the delegator.
+*)    
 
 type DelegatorAndRewards = 
 | DelegatorAndRewards of ByStr20 Uint128
@@ -82,9 +122,9 @@ let uint32_zero = Uint32 0
 (* This function help us to tell if current block number need to be reward *)
 let reward_filter = 
   fun (lastrewardblock : Uint32) =>
-    fun (current_pair : Pair Uint32 PairForDelegatorCycle) => 
+    fun (current_pair : Pair Uint32 DelegatorCycleInfo) => 
         match current_pair with
-        | Pair currentblock (PairForDelegatorCycle ssn block delegator) =>
+        | Pair currentblock (DelegatorCycleInfo ssn block delegator) =>
           builtin lt lastrewardblock currentblock
       end
 
@@ -172,7 +212,7 @@ let combine_buffered_and_direct =
 let calculate_rewards_per_cycle_for_delegator = 
   fun (delegator : ByStr20) =>
   fun (staking_per_cycle_for_delegator : Map Uint32 Uint128) =>
-    fun (staking_and_rewards_per_cycle_for_ssn : Map Uint32 PairForStakeSSNCycle) =>
+    fun (staking_and_rewards_per_cycle_for_ssn : Map Uint32 SSNCycleInfo) =>
       (* record rewards should be sent per cycle for delegator *)
       fun (result_map : Map Uint32 DelegatorAndRewards) => 
         fun (cycle : Uint32) =>
@@ -183,7 +223,7 @@ let calculate_rewards_per_cycle_for_delegator =
             match staking_and_rewards_per_cycle_for_ssn_o with
             | Some staking_and_rewards_of_ssn_adt =>
               match staking_and_rewards_of_ssn_adt with
-              | PairForStakeSSNCycle total_staking total_rewards =>
+              | SSNCycleInfo total_staking total_rewards =>
                 let reward_tmp = builtin mul total_rewards staking_of_delegator in
                 let reward_tmp = builtin div reward_tmp total_staking in
                 let delegator_and_rewards = DelegatorAndRewards delegator reward_tmp in
@@ -397,7 +437,7 @@ field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr2
 
 (* Keeps track of stakes deposited at SSNs *)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
-field stakeSSNPerCyle : Map ByStr20 (Map Uint32 PairForStakeSSNCycle) = Emp ByStr20 (Map Uint32 PairForStakeSSNCycle)
+field stakeSSNPerCyle : Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (Map Uint32 SSNCycleInfo)
 
 (* Keeps track of the cycle number when a delegator last withdrew its rewards *)
 (* AddressOfDelegator -> CycleNumberWhenLastWithdrawn *)
@@ -523,7 +563,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
 
         new_stake_amount = builtin add stake_amount buffereddeposit;
         (* TODO  During this cylce, the SSN only earned t as rewards that could be given to delegators not delegator_reward *)
-        p = PairForStakeSSNCycle stake_amount delegator_reward;
+        p = SSNCycleInfo stake_amount delegator_reward;
         stakeSSNPerCyle[ssnaddr][lastreward_block] := p;
 
         ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission;
