@@ -107,33 +107,30 @@ type SSNCycleInfo =
 type DelegatorAndRewards = 
 | DelegatorAndRewards of ByStr20 Uint128
 
-
-
-
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
 
-let uint32_one = Uint32 1
+let uint128_one =  Uint128 1
 
-let uint32_zero = Uint32 0
+let uint128_zero = Uint128 0
 
 (* This function help us to tell if current block number need to be reward *)
 let reward_filter = 
-  fun (lastrewardblock : Uint32) =>
-    fun (current_pair : Pair Uint32 DelegatorCycleInfo) => 
+  fun (lastrewardcycle : Uint128) =>
+    fun (current_pair : Pair Uint128 DelegatorCycleInfo) => 
         match current_pair with
         | Pair currentblock (DelegatorCycleInfo ssn block delegator) =>
-          builtin lt lastrewardblock currentblock
+          builtin lt lastrewardcycle currentblock
       end
 
 (* left < element <= right *)
 (* This function is used for filting out those cycles that need to compute rewards for delegators *)
 let list_between =
-  fun (left : Uint32) =>
-    fun (right : Uint32) =>
-      fun (element : Uint32) => 
+  fun (left : Uint128) =>
+    fun (right : Uint128) =>
+      fun (element : Uint128) => 
         let res = builtin lt left element in
         match res with
         | True =>
@@ -149,13 +146,13 @@ let list_between =
 (* Input: [1:1000,2:2000,3:3000] *)
 (* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
 let caculate_all_stake_per_cycle = 
-  fun (delegate_map : Map Uint32 Uint128) => 
-    fun (result_map : Map Uint32 Uint128) => 
-      fun(k : Uint32) =>
+  fun (delegate_map : Map Uint128 Uint128) => 
+    fun (result_map : Map Uint128 Uint128) => 
+      fun(k : Uint128) =>
         (* TODO please take of here, it's an counter or actual block number? *)
         (* TODO we may not want to sub by one if it is actual block number *)
         (* TODO use a map to record counter => block number if we have to *)
-        let m = builtin sub k uint32_one in
+        let m = builtin sub k uint128_one in
         let result_map_o = builtin get result_map m in 
         let delegate_map_o = builtin get delegate_map k in
         match result_map_o with
@@ -182,11 +179,11 @@ let caculate_all_stake_per_cycle =
 (* TODO Can be made more succint *)
 
 let combine_buffered_and_direct = 
-  fun (direct : Map Uint32 Uint128) =>
-    fun (buffered : Map Uint32 Uint128) =>
-      fun(result : Map Uint32 Uint128) => 
-        fun(k : Uint32) =>
-          let m = builtin sub k uint32_one in
+  fun (direct : Map Uint128 Uint128) =>
+    fun (buffered : Map Uint128 Uint128) =>
+      fun(result : Map Uint128 Uint128) => 
+        fun(k : Uint128) =>
+          let m = builtin sub k uint128_one in
            (* if it takes effect from this cycle, then it must be deposited in last cycle *)
           let direct_o = builtin get direct k in
           match direct_o with
@@ -211,11 +208,11 @@ let combine_buffered_and_direct =
 
 let calculate_rewards_per_cycle_for_delegator = 
   fun (delegator : ByStr20) =>
-  fun (staking_per_cycle_for_delegator : Map Uint32 Uint128) =>
-    fun (staking_and_rewards_per_cycle_for_ssn : Map Uint32 SSNCycleInfo) =>
+  fun (staking_per_cycle_for_delegator : Map Uint128 Uint128) =>
+    fun (staking_and_rewards_per_cycle_for_ssn : Map Uint128 SSNCycleInfo) =>
       (* record rewards should be sent per cycle for delegator *)
-      fun (result_map : Map Uint32 DelegatorAndRewards) => 
-        fun (cycle : Uint32) =>
+      fun (result_map : Map Uint128 DelegatorAndRewards) => 
+        fun (cycle : Uint128) =>
           let staking_per_cycle_for_delegator_o = builtin get staking_per_cycle_for_delegator cycle in
           let staking_and_rewards_per_cycle_for_ssn_o = builtin get staking_and_rewards_per_cycle_for_ssn cycle in
           match staking_per_cycle_for_delegator_o with
@@ -235,21 +232,20 @@ let calculate_rewards_per_cycle_for_delegator =
           end
 
   let deposit_value_or_empty = 
-    fun (optional_value : Option (Map Uint32 Uint128)) =>
+    fun (optional_value : Option (Map Uint128 Uint128)) =>
       match optional_value with
       | Some value => value
-      | None =>  Emp Uint32 Uint128
+      | None =>  Emp Uint128 Uint128
       end
 
   let block_or_zero = 
-    fun (optional_value : Option Uint32) =>
+    fun (optional_value : Option Uint128) =>
       match optional_value with
       | Some value => value
-      | None => uint32_zero
+      | None => uint128_zero
       end
           
 
-let uint128_zero = Uint128 0
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
@@ -437,26 +433,26 @@ field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr2
 
 (* Keeps track of stakes deposited at SSNs *)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
-field stakeSSNPerCyle : Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (Map Uint32 SSNCycleInfo)
+field stakeSSNPerCyle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 
 (* Keeps track of the cycle number when a delegator last withdrew its rewards *)
 (* AddressOfDelegator -> CycleNumberWhenLastWithdrawn *)
-field lastWithdrawCycleForDelegator : Map ByStr20 Uint32 = Emp ByStr20 Uint32
+field lastWithdrawCycleForDelegator : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 
 (* Keeps track of buffered deposit for a delegator *)
 (* AddressOfDelegator -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
-field bufferedDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+field bufferedDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 
 (* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
 (* AddressofDelegator -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
-field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 
 (* TODO Let's assume that rewardCylce is a counter. This counter gets increased everytime reward is added by the verifer.
    This should simplify some of the contract logic. 
 *)
 
-field rewardCycleList : List Uint32   =  Nil {Uint32} 
+field rewardCycleList : List Uint128   =  Nil {Uint128} 
 
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -467,7 +463,7 @@ field contractmaxstake : Uint128 = Uint128 0
 field totalstakedeposit : Uint128 = Uint128 0
 
 field contractadmin : ByStr20  = init_admin
-field lastrewardblocknum : Uint32 = Uint32 0
+field lastrewardcycle : Uint128 = Uint128 0
 field paused : Bool = True
 
 (* Procedures *)
@@ -536,7 +532,7 @@ end
 procedure UpdateStakeReward(entry : SsnRewardShare)
   (* TODO Is this the new value of lastblock as updated in the transition? *)
   (* TODO So bufferedDeposit and DirectDeposit do not get updated here, right? *)
-  lastreward_block <- lastrewardblocknum;
+  lastreward_block <- lastrewardcycle;
   match entry with
   | SsnRewardShare ssnaddr reward_percent =>
     curval <- ssnlist[ssnaddr];
@@ -576,7 +572,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
 end
 
 (* this procedure is to send rewards to delegator for every reward cycle *)
-procedure send_delegator_rewards(entry : Pair Uint32 DelegatorAndRewards)
+procedure send_delegator_rewards(entry : Pair Uint128 DelegatorAndRewards)
   match entry with
   | Pair cycle delegator_and_rewards  =>
     match delegator_and_rewards with
@@ -852,7 +848,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
     new_buff_amount  = builtin add _amount buffereddeposit;
     new_stake_amount = builtin add new_buff_amount stake_amount;
     pass = builtin lt maxstake_l new_stake_amount;
-    last_reward_block_number <- lastrewardblocknum;
+    last_reward_block_number <- lastrewardcycle;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
       TransferFunds multisig_tag_addfunds _amount initiator;
@@ -938,25 +934,19 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param reward_blocknum: tx block num when ssns were verified *)
 (* @param initiator: The original caller who called the proxy *)
 (* TODO, let's change the reward_blocknum to a counter that gets increased every time this transition is called. *)
-transition AssignStakeReward(ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator: ByStr20)
   IsPaused;
   CallerIsProxy;
   CallerIsVerifier initiator;
-  last_reward_block <- lastrewardblocknum;
-  res = builtin lt reward_blocknum last_reward_block;
-  match res with
-  | True  => 
-  | False =>
-    forall ssnreward_list UpdateStakeReward;
-    lastrewardblocknum := reward_blocknum;
-    reward_cycle_list <- rewardCycleList;
-    (* TODO Why do this? Why not just use the Cons constructor *)
-    new_reward_cycle_list = Cons {Uint32} reward_blocknum reward_cycle_list;
-    rewardCycleList := new_reward_cycle_list
-  end 
+  last_reward_block <- lastrewardcycle;
+  forall ssnreward_list UpdateStakeReward;
+  newLastRewardCycleNum = builtin add uint128_one last_reward_block;
+  lastrewardcycle := newLastRewardCycleNum;
+  reward_cycle_list <- rewardCycleList;
+  new_reward_cycle_list = Cons {Uint128} newLastRewardCycleNum reward_cycle_list;
+  rewardCycleList := new_reward_cycle_list
 end
 
 
@@ -986,14 +976,14 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
   DelegatorExists ssn_operator delegator;
   lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
   last_withdraw_block = block_or_zero lastWithdrawCycleForDelegator_m;
-  last_reward_blocknum <- lastrewardblocknum;
+  last_reward_blocknum <- lastrewardcycle;
   reward_cycle_list <- rewardCycleList;
   list_between_fun = list_between last_withdraw_block last_reward_blocknum;
-  list_between_fun_uint32 = @list_filter Uint32;
+  list_between_fun_uint128 = @list_filter Uint128;
 
   (* those are the cycles that we want to compute for computing rewards *)
   (* TODO can be simplified if reward cycle is a counter *)
-  list_need_compute_rewards = list_between_fun_uint32 list_between_fun reward_cycle_list;
+  list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
 
   (* direct deposit *)
   directDepositForDelegator_m <- directDepositForDelegator[delegator][ssn_operator];
@@ -1004,9 +994,9 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
   buffered_deposits_for_delegator = deposit_value_or_empty bufferedDepositForDelegator_m;
 
   (* combine two deposit list *)
-  init_map = Emp Uint32 Uint128;
-  foldl = @list_foldl Uint32 Map Uint32 Uint128;
-  staking_init_map = Emp Uint32 Uint128;
+  init_map = Emp Uint128 Uint128;
+  foldl = @list_foldl Uint128 Map Uint128 Uint128;
+  staking_init_map = Emp Uint128 Uint128;
   iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
   combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
 
@@ -1019,8 +1009,8 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
   match stake_ssn_per_cycle_m with 
   | Some stake_ssn_per_cycle =>
     (* to calculate staking rewards per cycle for delegator *)
-    reward_per_cycle_for_delegator_init = Emp Uint32 DelegatorAndRewards;
-    foldl_a = @list_foldl Uint32 Map Uint32 DelegatorAndRewards;
+    reward_per_cycle_for_delegator_init = Emp Uint128 DelegatorAndRewards;
+    foldl_a = @list_foldl Uint128 Map Uint128 DelegatorAndRewards;
     calculate_rewards_per_cycle_for_delegator_iter = calculate_rewards_per_cycle_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
     rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycle_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
 
