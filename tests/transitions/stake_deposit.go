@@ -369,6 +369,59 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 				panic("check exception error")
 			}
 		}
+
+		// 8.6 remove ssn
+		m := p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+		before := m["balance"].(string)
+		fmt.Println("balance bofore removing ssn: ",before)
+
+		// 4.2 remove exist ssn
+		parameters := []contract2.Value{
+			{
+				VName: "ssnaddr",
+				Type:  "ByStr20",
+				Value: ssnaddr,
+			},
+		}
+		args, _ = json.Marshal(parameters)
+		if err3, output := ExecZli("contract", "call",
+			"-k", pri1,
+			"-a", proxy,
+			"-t", "remove_ssn",
+			"-f", "true",
+			"-r", string(args)); err3 != nil {
+			panic("call transaction error: " + err3.Error())
+		} else {
+			tx := strings.TrimSpace(strings.Split(output, "confirmed!")[1])
+			fmt.Println("transaction id = ", tx)
+			payload := p.Provider.GetTransaction(tx).Result.(map[string]interface{})
+			receipt := payload["receipt"].(map[string]interface{})
+			success := receipt["success"].(bool)
+			if success {
+				res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+				r, _ := json.Marshal(res)
+				fmt.Println(string(r))
+				ssnList, _ := res["ssnlist"]
+				ssnMap := ssnList.(map[string]interface{})
+				ssn := ssnMap[ssnaddr]
+				if ssn == nil {
+					m = p.Provider.GetBalance(p.ImplAddress).Result.(map[string]interface{})
+					after := m["balance"].(string)
+					if after != "0" {
+						panic("check balance failed")
+					}
+				} else {
+					fmt.Println("test remove ssn failed: check state failed")
+				}
+
+			} else {
+				panic("test remove ssn failed")
+			}
+		}
+
+
+
+
 	}
 	fmt.Println("------------------------ end StakeDeposit ------------------------")
 }
