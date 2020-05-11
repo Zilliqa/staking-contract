@@ -12,7 +12,7 @@ const URL_API = API;
 const URL_RAW = API;
 const CHAIN_ID = 1;
 const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89'; // admin
-const STAKING_PROXY_ADDR = toBech32Address("0xDB5Dc7118765A84B6c6A582280fA37A1DD2d9f69"); // checksum proxy address
+const STAKING_PROXY_ADDR = toBech32Address("0x651b97542A0B339052d61eB13f6c4FcDBA1a0172"); // checksum proxy address
 const STAKE_AMOUNT = units.toQa('1500', units.Units.Zil); // stake amount defined in Zil converted to Qa
 const SSN_ADDR = "0xf6dad9e193fa2959a849b81caf9cb6ecde466771" // ssn address to be registered with '0x'
 
@@ -39,16 +39,6 @@ async function main() {
                     value: `${SSN_ADDR}`
                 },
                 {
-                    vname: 'stake_amount',
-                    type: 'Uint128',
-                    value: `${STAKE_AMOUNT}`
-                },
-                {
-                    vname: 'rewards',
-                    type: 'Uint128',
-                    value: '0'
-                },
-                {
                     vname: 'urlraw',
                     type: 'String',
                     value: `${URL_RAW}`
@@ -57,12 +47,7 @@ async function main() {
                     vname: 'urlapi',
                     type: 'String',
                     value: `${URL_API}`
-                },
-                {
-                    vname: 'buffered_deposit',
-                    type: 'Uint128',
-                    value: '0'
-                },
+                }
             ],
             {
                 version: VERSION,
