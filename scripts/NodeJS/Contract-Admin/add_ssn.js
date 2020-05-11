@@ -12,8 +12,7 @@ const URL_API = API;
 const URL_RAW = API;
 const CHAIN_ID = 1;
 const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89'; // admin
-const STAKING_PROXY_ADDR = toBech32Address("0x651b97542A0B339052d61eB13f6c4FcDBA1a0172"); // checksum proxy address
-const STAKE_AMOUNT = units.toQa('1500', units.Units.Zil); // stake amount defined in Zil converted to Qa
+const STAKING_PROXY_ADDR = toBech32Address("0x35C36cEC66a7f5f5393f8b84eB56F4bd552dDb87"); // checksum proxy address
 const SSN_ADDR = "0xf6dad9e193fa2959a849b81caf9cb6ecde466771" // ssn address to be registered with '0x'
 
 const zilliqa = new Zilliqa(API);
