@@ -9,7 +9,7 @@ const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypt
 const API = 'http://localhost:5555'
 const CHAIN_ID = 1;
 const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89';
-const STAKING_PROXY_ADDR = toBech32Address("0xDB5Dc7118765A84B6c6A582280fA37A1DD2d9f69"); // checksum proxy address
+const STAKING_PROXY_ADDR = toBech32Address("0x35C36cEC66a7f5f5393f8b84eB56F4bd552dDb87"); // checksum proxy address
 const FUNDS = units.toQa('4000', units.Units.Zil); // deposit amount in ZIL converted to Qa
 
 const zilliqa = new Zilliqa(API);
@@ -28,7 +28,7 @@ async function main() {
     try {
         const contract = zilliqa.contracts.at(STAKING_PROXY_ADDR);
         const callTx = await contract.call(
-            'deposit_funds',
+            'AddFunds',
             [],
             {
                 version: VERSION,
