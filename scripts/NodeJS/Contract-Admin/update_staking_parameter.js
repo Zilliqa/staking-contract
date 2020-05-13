@@ -1,5 +1,5 @@
 /*
- * update max stake
+ * update contract max stake
  * used by admin only
  */
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
@@ -10,8 +10,10 @@ const { toBech32Address, getAddressFromPrivateKey } = require('@zilliqa-js/crypt
 const API = 'http://localhost:5555'
 const CHAIN_ID = 1;
 const PRIVATE_KEY = 'e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89'; // admin
-const STAKING_PROXY_ADDR = toBech32Address("0xDB5Dc7118765A84B6c6A582280fA37A1DD2d9f69"); // checksum proxy address
-const MAX_STAKE = units.toQa('5000', units.Units.Zil); // max stake amount in ZIL converted to Qa
+const STAKING_PROXY_ADDR = toBech32Address("0x651b97542A0B339052d61eB13f6c4FcDBA1a0172"); // checksum proxy address
+const CONTRACT_MAX_STAKE = units.toQa('4000', units.Units.Zil); // contract max stake amount in ZIL converted to Qa
+const MAX_STAKE = units.toQa('3000', units.Units.Zil); // max stake amount in ZIL converted to Qa
+const MIN_STAKE = units.toQa('10', units.Units.Zil); // min stake amount in ZIL converted to Qa
 
 const zilliqa = new Zilliqa(API);
 const MSG_VERSION = 1;
@@ -25,16 +27,26 @@ async function main() {
     console.log("Your account address is: %o", `${address}`);
     console.log("proxy: %o\n", STAKING_PROXY_ADDR);
 
-    console.log("------------------------ begin update max stake ------------------------\n");
+    console.log("------------------------ begin update staking parameter ------------------------\n");
     try {
         const contract = zilliqa.contracts.at(STAKING_PROXY_ADDR);
         const callTx = await contract.call(
-            'update_maxstake',
+            'update_staking_parameter',
             [
+                {
+                    vname: 'min_stake',
+                    type: 'Uint128',
+                    value: `${MIN_STAKE}`
+                },
                 {
                     vname: 'max_stake',
                     type: 'Uint128',
                     value: `${MAX_STAKE}`
+                },
+                {
+                    vname: 'contract_max_stake',
+                    type: 'Uint128',
+                    value: `${CONTRACT_MAX_STAKE}`
                 }
             ],
             {
@@ -53,7 +65,7 @@ async function main() {
     } catch (err) {
         console.log(err);
     }
-    console.log("------------------------ end update max stake ------------------------\n");
+    console.log("------------------------ end update staking parameter ------------------------\n");
 }
 
 main();
