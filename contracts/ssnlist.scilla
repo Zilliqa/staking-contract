@@ -342,14 +342,23 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
     e = mk_ssn_already_exists_error ssnaddr;
     throw e
   | False =>
-    stake_amount = Uint128 0;
-    status = False;
-    buffered_deposit = Uint128 0;
-    rewards = Uint128 0;
-    s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
-    ssnlist[ssnaddr] := s;
-    e = mk_ssn_added_event ssnaddr;
-    event e
+    ssns <- ssnlist;
+    current_ssn_number = builtin size ssns;
+    less_than_max = builtin lt current_ssn_number max_ssn_node_number;
+    match less_than_max with
+    | True =>
+      stake_amount = Uint128 0;
+      status = False;
+      buffered_deposit = Uint128 0;
+      rewards = Uint128 0;
+      s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
+      ssnlist[ssnaddr] := s;
+      e = mk_ssn_added_event ssnaddr;
+      event e      
+    | False =>
+      e = mk_ssn_list_full_error initiator;
+      throw e
+    end
   end
 end
 
