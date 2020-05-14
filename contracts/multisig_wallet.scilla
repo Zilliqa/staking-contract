@@ -448,7 +448,7 @@ transition SubmitCustomDrainContractBalanceTransaction (proxyContract : ByStr20)
 end
 
 
-(* Submit a new ContractMaxStake transaction for future signoff *)
+(* Submit a new ContractStakingParameter transaction for future signoff *)
 transition SubmitCustomUpdateStakingParameterTransaction (proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
   transaction = UpdateContractStakeParameter min_stake max_stake contract_max_stake;
   SubmitCustomTransaction proxyContract transaction
