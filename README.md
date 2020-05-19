@@ -48,7 +48,7 @@ The table below summarizes the purpose of the three contracts that ZIP-3 will br
 
 # Security audit of smart contract
 
-The smart contracts has been audited by [Quantstamp](https://quantstamp.com/). A copy of the security audit report can be found [here](Staked Seed Node (SSN) Operations - Report.pdf) or over at [Quantstamp certification website](https://certificate.quantstamp.com/).
+The smart contracts has been audited by [Quantstamp](https://quantstamp.com/). A copy of the security audit report can be found [here](Staked_Seed_Node_SSN_Operations-Report.pdf) or on [Quantstamp certification website](https://certificate.quantstamp.com/).
 
 # SSNList Contract Specification
 
