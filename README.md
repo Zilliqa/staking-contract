@@ -10,6 +10,7 @@ In the sections below, we describe in detail:
 # Table of Content
 
 - [Overview](#overview)
+- [Security audit of smart contract](#Security-audit-of-smart-contract)
 - [SSNList Contract Specification](#ssnlist-contract-specification)
   * [Roles and Privileges](#roles-and-privileges)
   * [Immutable Parameters](#immutable-parameters)
@@ -44,6 +45,10 @@ The table below summarizes the purpose of the three contracts that ZIP-3 will br
 |SSNList| [`ssnlist.scilla`](./contracts/ssnlist.scilla)  | The main contract that keeps track of Staked Seed Nodes _aka_ SSNs, the amount staked, and available rewards.|
 |SSNListProxy| [`proxy.scilla`](./contracts/proxy.scilla)  | A proxy contract that sits on top of the SSNList contract. Any call to the `SSNList` contract must come from `SSNListProxy`. This contract facilitates upgradeability of the `SSNList` contract in case a bug is found.|
 |Wallet| [`multisig_wallet.scilla`](./contracts/multisig_wallet.scilla)  | A multisig wallet contract tailored to work with the `SSNListproxy` contract. Certain transitions in the `SSNListProxy` contract can only be invoked when k-out-of-n users have agreed to do so. This logic is handled using the `Wallet` contract. |
+
+# Security audit of smart contract
+
+The smart contracts has been audited by [Quantstamp](https://quantstamp.com/). A copy of the security audit report can be found [here](Staked_Seed_Node_SSN_Operations-Report.pdf) or on [Quantstamp certification website](https://certificate.quantstamp.com/).
 
 # SSNList Contract Specification
 
