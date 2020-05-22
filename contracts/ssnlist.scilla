@@ -421,8 +421,9 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
     TransferFunds add_funds_tag funds ssnaddr;
     delete ssnlist[ssnaddr];
     totalstakedeposit_l <- totalstakedeposit;
-    totalstakedeposit_l = builtin sub totalstakedeposit_l stake_amount;
-    totalstakedeposit := totalstakedeposit_l;
+    deposit_amount = builtin add stake_amount buffereddeposit;
+    tmp = builtin sub totalstakedeposit_l deposit_amount;
+    totalstakedeposit := tmp;
     e = mk_ssn_removed_event ssnaddr;
     event e
   | None =>
