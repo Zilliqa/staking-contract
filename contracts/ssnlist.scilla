@@ -128,7 +128,6 @@ let mk_withdraw_stake_rewards_event =
     fun (buffdeposit: Uint128) =>
       { _exception : "SSN withdrawal not allowed when some deposit is bufferred"; ssn_address : ssn; buffered_stake_amount : buffdeposit }
 
-(* Ssn - active_status , stake_amount, rewards, urlraw, urlapi, buffereddeposit *)
 type ActiveStatus =
 | Active
 | Inactive
@@ -143,8 +142,13 @@ let active_status_from_neg_bool =
     | False => const_active
     end
 
+(* UrlInfo - urlraw, urlapi *)
+type UrlInfo =
+| UrlInfo of String String
+
+(* Ssn - active_status , stake_amount, rewards, urlinfo, buffereddeposit *)
 type Ssn =
-| Ssn of ActiveStatus Uint128 Uint128 String String Uint128
+| Ssn of ActiveStatus Uint128 Uint128 Uint128 UrlInfo
 
 (* address reward_percentage *)
 type SsnRewardShare =
@@ -246,14 +250,14 @@ procedure update_stake_reward (entry : SsnRewardShare)
     | None =>
       e = mk_ssn_not_exists_error ssnaddr;
       throw e
-    | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
+    | Some (Ssn status stake_amount rewards buffereddeposit urlinfo) =>
       hundred = Uint128 100;
       new_reward = builtin mul stake_amount reward_percent;
       new_reward = builtin div new_reward hundred;
       new_reward = builtin div new_reward uint128_10_power_7;
       total_reward = builtin add new_reward rewards;
       new_stake_amount = builtin add stake_amount buffereddeposit;
-      ssn = Ssn status new_stake_amount total_reward urlraw urlapi uint128_zero;
+      ssn = Ssn status new_stake_amount total_reward uint128_zero urlinfo;
       ssnlist[ssnaddr] := ssn;
       e = mk_assign_stake_reward_event ssnaddr total_reward;
       event e
@@ -365,7 +369,8 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
       status = const_inactive;
       buffered_deposit = Uint128 0;
       rewards = Uint128 0;
-      s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
+      urlinfo = UrlInfo urlraw urlapi;
+      s = Ssn status stake_amount rewards buffered_deposit urlinfo;
       ssnlist[ssnaddr] := s;
       e = mk_ssn_added_event ssnaddr;
       event e      
@@ -411,7 +416,8 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
         totalstakedeposit_l = builtin add totalstakedeposit_l stake_amount;
         totalstakedeposit := totalstakedeposit_l
       end;
-      s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
+      urlinfo = UrlInfo urlraw urlapi;
+      s = Ssn status stake_amount rewards buffered_deposit urlinfo;
       ssnlist[ssnaddr] := s
     | False =>
       e = mk_ssn_list_full_error initiator;
@@ -429,7 +435,7 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
   validate_admin initiator;
   ssn_optional <- ssnlist[ssnaddr];
   match ssn_optional with
-  | Some (Ssn _ stake_amount rewards urlraw urlapi buffereddeposit) =>
+  | Some (Ssn _ stake_amount rewards buffereddeposit _) =>
     funds_temp = builtin add stake_amount rewards;
     funds = builtin add funds_temp buffereddeposit;
     TransferFunds add_funds_tag funds ssnaddr;
@@ -460,7 +466,7 @@ transition stake_deposit (initiator: ByStr20)
   | None =>
     e = mk_ssn_not_exists_error initiator;
     throw e
-  | Some (Ssn _ stake_amount rewards urlraw urlapi buffereddeposit) =>
+  | Some (Ssn _ stake_amount rewards buffereddeposit urlinfo) =>
     (* check if first non-zero deposit *)
     minstake_l <- minstake;
     maxstake_l <- maxstake;
@@ -491,13 +497,13 @@ transition stake_deposit (initiator: ByStr20)
           pass = builtin eq stake_amount uint128_zero;
           match pass with
           | True =>
-            ssn = Ssn const_active _amount rewards urlraw urlapi uint128_zero;
+            ssn = Ssn const_active _amount rewards uint128_zero urlinfo;
             ssnlist[initiator] := ssn;
             e = mk_stake_deposit_event initiator _amount;
             event e
           | False =>
             (* Update new buffered deposit until next assign_stake_reward is finished *)
-            ssn = Ssn const_active stake_amount rewards urlraw urlapi new_buff_amount;
+            ssn = Ssn const_active stake_amount rewards new_buff_amount urlinfo;
             ssnlist[initiator] := ssn;
             e = mk_stake_buffered_deposit_event initiator _amount;
             event e
@@ -532,7 +538,7 @@ transition withdraw_stake_rewards (initiator : ByStr20)
   | None =>
     e = mk_ssn_not_exists_error initiator;
     throw e
-  | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
+  | Some (Ssn status stake_amount rewards buffereddeposit urlinfo) =>
     (* check if basic stake deposit is already withdrawn by ssn. If so, remove the ssn from list as well *)
     pass = builtin eq stake_amount uint128_zero;
     match pass with
@@ -541,7 +547,7 @@ transition withdraw_stake_rewards (initiator : ByStr20)
       delete ssnlist[initiator]
     | False =>
       (* Update state to have 0 rewards. *)
-      ssn = Ssn status stake_amount uint128_zero urlraw urlapi buffereddeposit;
+      ssn = Ssn status stake_amount uint128_zero buffereddeposit urlinfo;
       ssnlist[initiator] := ssn
     end;
     TransferFunds add_funds_tag rewards initiator;
@@ -561,7 +567,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
   | None =>
     e = mk_ssn_not_exists_error initiator;
     throw e
-  | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
+  | Some (Ssn status stake_amount rewards buffereddeposit urlinfo) =>
     pass = builtin eq buffereddeposit uint128_zero;
     match pass with
     | False =>
@@ -580,7 +586,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             throw e
           | False => (* pass minstake check for withdrawal *)
             (* Update the stake amount *)
-            ssn = Ssn status bal_left rewards urlraw urlapi buffereddeposit;
+            ssn = Ssn status bal_left rewards buffereddeposit urlinfo;
             ssnlist[initiator] := ssn;
             (* Update the total stake deposit with contract *)
             totalstakedeposit_l <- totalstakedeposit;
@@ -601,7 +607,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
               (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
               delete ssnlist[initiator]
             | False =>
-              ssn = Ssn const_inactive uint128_zero rewards urlraw urlapi buffereddeposit;
+              ssn = Ssn const_inactive uint128_zero rewards buffereddeposit urlinfo;
               ssnlist[initiator] := ssn
             end;
             totalstakedeposit_l <- totalstakedeposit;
