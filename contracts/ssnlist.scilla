@@ -221,7 +221,7 @@ procedure validate_proxy ()
 end
 
 (* Can be called by the proxy only *)
-procedure is_paused ()
+procedure validate_not_paused ()
   paused_l <- paused;
   match paused_l with
   | False =>
@@ -316,7 +316,7 @@ end
 (* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
 transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   validate_admin initiator;
   less_than = builtin lt min_stake max_stake;
@@ -347,7 +347,7 @@ end
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
 (* @param initiator: The original caller who called the proxy *)
 transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiator : ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   validate_admin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -386,7 +386,7 @@ end
 (* @param buffered_deposit: Any buffered stake deposit *)
 (* @param initiator: The original caller who called the proxy *)
 transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   validate_admin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -425,7 +425,7 @@ end
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
 transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   validate_admin initiator;
   ssn_optional <- ssnlist[ssnaddr];
@@ -452,7 +452,7 @@ end
 (* @dev: Stake amount of existing ssn in ssnlist will be updated with new amount only if existing stake amount is 0. Balance of contract account will increase. Balance of initiator will decrease.      *)
 (* @param initiator: The original caller who called the proxy *)
 transition stake_deposit (initiator: ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   (* Accept the deposit from SSN and add to contract balance. *)
   (* Transfer back to initiator if any of the validation failed *)
@@ -517,7 +517,7 @@ end
 (* @param reward_blocknum: tx block num when ssns were verified *)
 (* @param initiator: The original caller who called the proxy *)
 transition assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint128, initiator: ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   validate_verifier initiator;
   forall ssnreward_list update_stake_reward;
@@ -527,7 +527,7 @@ end
 (* @dev: Withdraw stake reward. Used by ssn only. *)
 (* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_rewards (initiator : ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   curval <- ssnlist[initiator];
   match curval with
@@ -556,7 +556,7 @@ end
 (* @param amount: token amount to be withdrawn *)
 (* @param initiator: The original caller who called the proxy *)
 transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   curval <- ssnlist[initiator];
   match curval with
@@ -619,7 +619,7 @@ end
 (* @dev: Move token amount from initiator to recipient i.e. contract address. *)
 (* @param initiator: The original caller who called the proxy *)
 transition AddFunds (initiator : ByStr20)
-  is_paused;
+  validate_not_paused;
   validate_proxy;
   accept;
   e = mk_add_funds_event initiator;
