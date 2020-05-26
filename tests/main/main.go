@@ -77,6 +77,8 @@ func main() {
 	transitions.TestAssignStakeReward(pri1, pri2, api)
 
 	transitions.TestWithdrawAmount(pri1, pri2, api)
+	
+	transitions.TestRemoveSSN(pri1,pri2,api)
 
 	endTime := time.Now()
 	interval := endTime.Sub(fromTime).Minutes()
