@@ -154,6 +154,16 @@ type Ssn =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
+let calculate_new_reward =
+  fun (stake : Uint128) =>
+  fun (reward_percentage : Uint128) =>
+  fun (old_reward : Uint128) =>
+    let hundred = Uint128 100 in
+    let stake_times_percentage = builtin mul stake reward_percentage in
+    let percentage_of_stake = builtin div stake_times_percentage hundred in
+    let additional_stake_fraction = builtin div percentage_of_stake uint128_10_power_7 in
+    builtin add additional_stake_fraction old_reward
+
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
@@ -251,11 +261,7 @@ procedure update_stake_reward (entry : SsnRewardShare)
       e = mk_ssn_not_exists_error ssnaddr;
       throw e
     | Some (Ssn status stake_amount rewards buffereddeposit urlinfo) =>
-      hundred = Uint128 100;
-      new_reward = builtin mul stake_amount reward_percent;
-      new_reward = builtin div new_reward hundred;
-      new_reward = builtin div new_reward uint128_10_power_7;
-      total_reward = builtin add new_reward rewards;
+      total_reward = calculate_new_reward stake_amount reward_percent rewards;
       new_stake_amount = builtin add stake_amount buffereddeposit;
       ssn = Ssn status new_stake_amount total_reward uint128_zero urlinfo;
       ssnlist[ssnaddr] := ssn;
