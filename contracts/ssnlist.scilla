@@ -217,6 +217,32 @@ procedure remove_from_ssn_list (key : ByStr20)
   delete ssnlist[key]
 end  
 
+(* Increase total stake deposit *)
+procedure increase_totalstakedeposit (amount : Uint128, check_max : Bool, initiator : ByStr20, new_stake_amount : Uint128)
+  deposit <- totalstakedeposit;
+  new_deposit = builtin add deposit amount;
+  match check_max with
+  | False =>
+  | True =>
+    max_stake <- contractmaxstake;
+    pass = builtin lt max_stake new_deposit;
+    match pass with
+    | True =>
+      e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount max_stake;
+      throw e
+    | False =>
+    end
+  end;
+  totalstakedeposit := new_deposit
+end
+
+(* Decrease total stake deposit *)
+procedure decrease_totalstakedeposit (amount : Uint128)
+  deposit <- totalstakedeposit;
+  new_deposit = builtin sub deposit amount;
+  totalstakedeposit := new_deposit
+end
+
 (* Can be called by the verifier only *)
 procedure validate_verifier (initiator : ByStr20)
   verifier_l <- verifier;
@@ -438,11 +464,9 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       match pass with
       | True =>
       | False =>
-        (* Update the total stake deposit *)
-        temp_total_stake_deposit <- totalstakedeposit;
+        (* Update the total stake deposit. Do not check that max has been exceeded *)
         deposit_amount = builtin add stake_amount buffered_deposit;
-        new_total_stake_deposit = builtin add temp_total_stake_deposit deposit_amount;
-        totalstakedeposit := new_total_stake_deposit
+        increase_totalstakedeposit deposit_amount const_false initiator deposit_amount
       end;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
       add_to_ssn_list ssnaddr s
@@ -467,10 +491,8 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
     funds = builtin add funds_temp buffereddeposit;
     TransferFunds add_funds_tag funds ssnaddr;
     remove_from_ssn_list ssnaddr;
-    totalstakedeposit_l <- totalstakedeposit;
     deposit_amount = builtin add stake_amount buffereddeposit;
-    tmp = builtin sub totalstakedeposit_l deposit_amount;
-    totalstakedeposit := tmp;
+    decrease_totalstakedeposit deposit_amount;
     e = mk_ssn_removed_event ssnaddr;
     event e
   | None =>
@@ -512,32 +534,21 @@ transition stake_deposit (initiator: ByStr20)
         e = mk_stake_deposit_above_stake_limit_error initiator new_stake_amount maxstake_l;
         throw e
       | False =>
-        totalstakedeposit_l <- totalstakedeposit;
-        newStakeDeposit = builtin add totalstakedeposit_l _amount;
-        contractmaxstake_l <- contractmaxstake;
-        pass = builtin lt contractmaxstake_l newStakeDeposit;
+        (* Add to total stake. Check that max stake has not been exceeded *)
+        increase_totalstakedeposit _amount const_true initiator new_stake_amount;
+        pass = builtin eq stake_amount uint128_zero;
         match pass with
-        | True => (* total stake deposit for contract goes above contractmaxstake limit *)
-          e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount contractmaxstake_l;
-          throw e
+        | True =>
+          ssn = Ssn const_active _amount rewards urlraw urlapi uint128_zero;
+          add_to_ssn_list initiator ssn;
+          e = mk_stake_deposit_event initiator _amount;
+          event e
         | False =>
-          (* Check if its first time deposit or redeposit of stake after withdrawal of all stake *)
-          pass = builtin eq stake_amount uint128_zero;
-          match pass with
-          | True =>
-            ssn = Ssn const_active _amount rewards urlraw urlapi uint128_zero;
-            add_to_ssn_list initiator ssn;
-            e = mk_stake_deposit_event initiator _amount;
-            event e
-          | False =>
-            (* Update new buffered deposit until next assign_stake_reward is finished *)
-            ssn = Ssn const_active stake_amount rewards urlraw urlapi new_buff_amount;
-            add_to_ssn_list initiator ssn;
-            e = mk_stake_buffered_deposit_event initiator _amount;
-            event e
-          end;
-          (* Update the new total stake deposit of contract *)
-          totalstakedeposit := newStakeDeposit
+          (* Update new buffered deposit until next assign_stake_reward is finished *)
+          ssn = Ssn const_active stake_amount rewards urlraw urlapi new_buff_amount;
+          add_to_ssn_list initiator ssn;
+          e = mk_stake_buffered_deposit_event initiator _amount;
+          event e
         end
       end
     end
@@ -615,12 +626,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
           | False => (* pass minstake check for withdrawal *)
             (* Update the stake amount *)
             ssn = Ssn status bal_left rewards urlraw urlapi buffereddeposit;
-            add_to_ssn_list initiator ssn;
-            (* Update the total stake deposit with contract *)
-            totalstakedeposit_l <- totalstakedeposit;
-            tmp = builtin sub totalstakedeposit_l amount;
-            totalstakedeposit := tmp;
-            TransferFunds add_funds_tag amount initiator
+            add_to_ssn_list initiator ssn
           end
       | False => (* requested withdrawal equals balance or greater than balance *)
           pass = builtin eq amount stake_amount;
@@ -637,13 +643,12 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             | False =>
               ssn = Ssn const_inactive uint128_zero rewards urlraw urlapi buffereddeposit;
               add_to_ssn_list initiator ssn
-            end;
-            totalstakedeposit_l <- totalstakedeposit;
-            tmp = builtin sub totalstakedeposit_l amount;
-            totalstakedeposit := tmp;
-            TransferFunds add_funds_tag amount initiator
+            end
           end
-        end
+        end;
+      (* Update the total stake deposit with contract *)
+      decrease_totalstakedeposit amount;
+      TransferFunds add_funds_tag amount initiator
     end
   end
 end
