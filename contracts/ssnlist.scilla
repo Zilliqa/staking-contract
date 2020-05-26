@@ -393,10 +393,10 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       | True =>
       | False =>
         (* Update the total stake deposit *)
-        totalstakedeposit_l <- totalstakedeposit;
+        temp_total_stake_deposit <- totalstakedeposit;
         deposit_amount = builtin add stake_amount buffered_deposit;
-        totalstakedeposit_l = builtin add totalstakedeposit_l deposit_amount;
-        totalstakedeposit := totalstakedeposit_l
+        new_total_stake_deposit = builtin add temp_total_stake_deposit deposit_amount;
+        totalstakedeposit := new_total_stake_deposit
       end;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
       ssnlist[ssnaddr] := s
