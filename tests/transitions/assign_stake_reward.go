@@ -79,7 +79,7 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		{
 			VName: "buffered_deposit",
 			Type:  "Uint128",
-			Value: "0",
+			Value: "1000",
 		},
 	}
 	args, _ := json.Marshal(parameters)
@@ -156,12 +156,19 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		}
 	}
 
+	// check totalstakedeposit
+	res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+	totalstakedeposit := res["totalstakedeposit"].(string)
+	if totalstakedeposit != "200000001000" {
+		panic("check totalstakedeposit error")
+	}
+
 	// 3. reward ssn1
 	err = p.assignStakeReward(pri1, ssn1, "50")
 	if err != nil {
 		panic("reward ssn1 failed: " + err.Error())
 	}
-	res := p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
+	res = p.Provider.GetSmartContractState(p.ImplAddress).Result.(map[string]interface{})
 	sshmap := res["ssnlist"].(map[string]interface{})
 	ssn := sshmap[ssn1]
 	if ssn == nil {
