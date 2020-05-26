@@ -475,7 +475,7 @@ transition stake_deposit (initiator: ByStr20)
           e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount contractmaxstake_l;
           throw e
         | False =>
-          (* Check if its first time deposit *)
+          (* Check if its first time deposit or redeposit of stake after withdrawal of all stake *)
           pass = builtin eq stake_amount uint128_zero;
           match pass with
           | True =>
