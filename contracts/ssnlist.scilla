@@ -460,7 +460,7 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       match pass with
       | True =>
       | False =>
-        (* Update the total stake deposit. Do not check that max has been exceeded *)
+        (* Update the total stake deposit *)
         deposit_amount = builtin add stake_amount buffered_deposit;
         increase_totalstakedeposit deposit_amount initiator deposit_amount
       end;
