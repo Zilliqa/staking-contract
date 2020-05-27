@@ -218,20 +218,16 @@ procedure remove_from_ssn_list (key : ByStr20)
 end  
 
 (* Increase total stake deposit *)
-procedure increase_totalstakedeposit (amount : Uint128, check_max : Bool, initiator : ByStr20, new_stake_amount : Uint128)
+procedure increase_totalstakedeposit (amount : Uint128, initiator : ByStr20, new_stake_amount : Uint128)
   deposit <- totalstakedeposit;
   new_deposit = builtin add deposit amount;
-  match check_max with
-  | False =>
+  max_stake <- contractmaxstake;
+  pass = builtin lt max_stake new_deposit;
+  match pass with
   | True =>
-    max_stake <- contractmaxstake;
-    pass = builtin lt max_stake new_deposit;
-    match pass with
-    | True =>
-      e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount max_stake;
-      throw e
-    | False =>
-    end
+    e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount max_stake;
+    throw e
+  | False =>
   end;
   totalstakedeposit := new_deposit
 end
@@ -466,7 +462,7 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
       | False =>
         (* Update the total stake deposit. Do not check that max has been exceeded *)
         deposit_amount = builtin add stake_amount buffered_deposit;
-        increase_totalstakedeposit deposit_amount const_false initiator deposit_amount
+        increase_totalstakedeposit deposit_amount initiator deposit_amount
       end;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
       add_to_ssn_list ssnaddr s
@@ -535,7 +531,7 @@ transition stake_deposit (initiator: ByStr20)
         throw e
       | False =>
         (* Add to total stake. Check that max stake has not been exceeded *)
-        increase_totalstakedeposit _amount const_true initiator new_stake_amount;
+        increase_totalstakedeposit _amount initiator new_stake_amount;
         pass = builtin eq stake_amount uint128_zero;
         match pass with
         | True =>
