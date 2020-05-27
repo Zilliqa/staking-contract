@@ -9,8 +9,8 @@ In the sections below, we describe in detail:
 
 # Table of Content
 
-- [Overview](#overview)
 - [Disclaimer](#disclaimer)
+- [Overview](#overview)
 - [Security audit of smart contract](#Security-audit-of-smart-contract)
 - [SSNList Contract Specification](#ssnlist-contract-specification)
   * [Roles and Privileges](#roles-and-privileges)
