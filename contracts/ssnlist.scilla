@@ -375,11 +375,11 @@ transition update_staking_parameter (min_stake : Uint128, max_stake : Uint128, c
   validate_not_paused;
   validate_proxy;
   validate_admin initiator;
-  less_than = builtin lt min_stake max_stake;
-  match less_than with
+  min_less_than_max = builtin lt min_stake max_stake;
+  match min_less_than_max with
   | True =>
-    less_than = builtin lt max_stake contract_max_stake;
-    match less_than with
+    max_less_than_contract_max = builtin lt max_stake contract_max_stake;
+    match max_less_than_contract_max with
     | True =>
       minstake := min_stake;
       maxstake := max_stake;
@@ -518,14 +518,14 @@ transition stake_deposit (initiator: ByStr20)
     maxstake_l <- maxstake;
     new_buff_amount = builtin add _amount buffereddeposit;
     new_stake_amount = builtin add new_buff_amount stake_amount;
-    pass = builtin lt new_stake_amount minstake_l;
-    match pass with
+    new_stake_less_than_min_stake = builtin lt new_stake_amount minstake_l;
+    match new_stake_less_than_min_stake with
     | True => (* stake deposit below minstake limit *)
       e = mk_stake_deposit_below_stake_limit_error initiator new_stake_amount minstake_l;
       throw e
     | False =>
-      pass = builtin lt maxstake_l new_stake_amount;
-      match pass with
+      max_stake_less_than_new_stake = builtin lt maxstake_l new_stake_amount;
+      match max_stake_less_than_new_stake with
       | True => (* stake deposit above maxstake limit *)
         e = mk_stake_deposit_above_stake_limit_error initiator new_stake_amount maxstake_l;
         throw e
@@ -603,19 +603,19 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
     e = mk_ssn_not_exists_error initiator;
     throw e
   | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
-    pass = builtin eq buffereddeposit uint128_zero;
-    match pass with
+    buffer_is_zero = builtin eq buffereddeposit uint128_zero;
+    match buffer_is_zero with
     | False =>
       e = mk_withdraw_stake_buffered_deposit_exist_error initiator buffereddeposit;
       throw e
     | True =>
-      pass = builtin lt amount stake_amount;
-      match pass with
+      amount_less_than_stake = builtin lt amount stake_amount;
+      match amount_less_than_stake with
       | True => (* Partial withdrawal. so check for min balance after withdrawal for min stake limit *)
           bal_left = builtin sub stake_amount amount;
           minstake_l <- minstake;
-          pass = builtin lt bal_left minstake_l;
-          match pass with
+          bal_left_less_than_min_stake = builtin lt bal_left minstake_l;
+          match bal_left_less_than_min_stake with
           | True =>
             e = mk_withdraw_below_stake_limit_error initiator minstake_l;
             throw e
@@ -625,14 +625,14 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             add_to_ssn_list initiator ssn
           end
       | False => (* requested withdrawal equals balance or greater than balance *)
-          pass = builtin eq amount stake_amount;
-          match pass with
+          amount_is_stake = builtin eq amount stake_amount;
+          match amount_is_stake with
           | False => (* withdrawal above available balance *)
             e = mk_withdraw_above_stake_error initiator;
             throw e
           | True => (* pass withdrawal checks *)
-            pass = builtin eq rewards uint128_zero;
-            match pass with
+            reward_is_zero = builtin eq rewards uint128_zero;
+            match reward_is_zero with
             | True =>
               (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
               remove_from_ssn_list initiator
