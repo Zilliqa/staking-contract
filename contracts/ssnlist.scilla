@@ -10,6 +10,7 @@ let one_msg =
     Cons {Message} m e
 
 let uint128_zero = Uint128 0
+let uint32_one = Uint32 1
 let const_true = True
 let const_false = False
 let uint128_10_power_7 = Uint128 10000000
@@ -178,6 +179,8 @@ contract SSNList(
 (* Mutable fields *)
 
 field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
+(* Keep track of size explicitly, to avoid fetching entire map in order to check its size *)
+field ssnlist_size : Uint32 = Uint32 0
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
 field maxstake : Uint128 = Uint128 0
@@ -188,6 +191,31 @@ field lastrewardblocknum : Uint128 = Uint128 0
 field paused : Bool = True
 
 (* Procedures *)
+(* Add/update key/value pair to ssn_list, and update size accordingly *)
+procedure add_to_ssn_list (key : ByStr20, value : Ssn)
+  already_exists <- exists ssnlist[key];
+  match already_exists with
+  | True =>
+  | False =>
+    siz <- ssnlist_size;
+    new_size = builtin add siz uint32_one;
+    ssnlist_size := new_size
+  end;
+  ssnlist[key] := value
+end
+
+(* Remove key/value pair from ssn_list, and update size accordingly *)
+procedure remove_from_ssn_list (key : ByStr20)
+  already_exists <- exists ssnlist[key];
+  match already_exists with
+  | False =>
+  | True =>
+    siz <- ssnlist_size;
+    new_size = builtin sub siz uint32_one;
+    ssnlist_size := new_size
+  end;
+  delete ssnlist[key]
+end  
 
 (* Can be called by the verifier only *)
 procedure validate_verifier (initiator : ByStr20)
@@ -260,7 +288,7 @@ procedure update_stake_reward (entry : SsnRewardShare)
       total_reward = calculate_new_reward stake_amount reward_percent rewards;
       new_stake_amount = builtin add stake_amount buffereddeposit;
       ssn = Ssn status new_stake_amount total_reward urlraw urlapi uint128_zero;
-      ssnlist[ssnaddr] := ssn;
+      add_to_ssn_list ssnaddr ssn;
       e = mk_assign_stake_reward_event ssnaddr total_reward;
       event e
     end
@@ -362,8 +390,7 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
     e = mk_ssn_already_exists_error ssnaddr;
     throw e
   | False =>
-    ssns <- ssnlist;
-    current_ssn_number = builtin size ssns;
+    current_ssn_number <- ssnlist_size;
     less_than_max = builtin lt current_ssn_number max_ssn_node_number;
     match less_than_max with
     | True =>
@@ -372,7 +399,7 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
       buffered_deposit = Uint128 0;
       rewards = Uint128 0;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
-      ssnlist[ssnaddr] := s;
+      add_to_ssn_list ssnaddr s;
       e = mk_ssn_added_event ssnaddr;
       event e      
     | False =>
@@ -401,8 +428,7 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
     e = mk_ssn_already_exists_error ssnaddr;
     throw e
   | False =>
-    ssns <- ssnlist;
-    current_ssn_number = builtin size ssns;
+    current_ssn_number <- ssnlist_size;
     less_than_max = builtin lt current_ssn_number max_ssn_node_number;
     match less_than_max with
     | True =>
@@ -419,7 +445,7 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
         totalstakedeposit := new_total_stake_deposit
       end;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
-      ssnlist[ssnaddr] := s
+      add_to_ssn_list ssnaddr s
     | False =>
       e = mk_ssn_list_full_error initiator;
       throw e
@@ -440,7 +466,7 @@ transition remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)
     funds_temp = builtin add stake_amount rewards;
     funds = builtin add funds_temp buffereddeposit;
     TransferFunds add_funds_tag funds ssnaddr;
-    delete ssnlist[ssnaddr];
+    remove_from_ssn_list ssnaddr;
     totalstakedeposit_l <- totalstakedeposit;
     deposit_amount = builtin add stake_amount buffereddeposit;
     tmp = builtin sub totalstakedeposit_l deposit_amount;
@@ -500,13 +526,13 @@ transition stake_deposit (initiator: ByStr20)
           match pass with
           | True =>
             ssn = Ssn const_active _amount rewards urlraw urlapi uint128_zero;
-            ssnlist[initiator] := ssn;
+            add_to_ssn_list initiator ssn;
             e = mk_stake_deposit_event initiator _amount;
             event e
           | False =>
             (* Update new buffered deposit until next assign_stake_reward is finished *)
             ssn = Ssn const_active stake_amount rewards urlraw urlapi new_buff_amount;
-            ssnlist[initiator] := ssn;
+            add_to_ssn_list initiator ssn;
             e = mk_stake_buffered_deposit_event initiator _amount;
             event e
           end;
@@ -546,11 +572,11 @@ transition withdraw_stake_rewards (initiator : ByStr20)
     match pass with
     | True =>
       (* entire stake withdrawn and also reward is withdrawn, so remove ssn *)
-      delete ssnlist[initiator]
+      remove_from_ssn_list initiator
     | False =>
       (* Update state to have 0 rewards. *)
       ssn = Ssn status stake_amount uint128_zero urlraw urlapi buffereddeposit;
-      ssnlist[initiator] := ssn
+      add_to_ssn_list initiator ssn
     end;
     TransferFunds add_funds_tag rewards initiator;
     e = mk_withdraw_stake_rewards_event initiator rewards;
@@ -589,7 +615,7 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
           | False => (* pass minstake check for withdrawal *)
             (* Update the stake amount *)
             ssn = Ssn status bal_left rewards urlraw urlapi buffereddeposit;
-            ssnlist[initiator] := ssn;
+            add_to_ssn_list initiator ssn;
             (* Update the total stake deposit with contract *)
             totalstakedeposit_l <- totalstakedeposit;
             tmp = builtin sub totalstakedeposit_l amount;
@@ -607,10 +633,10 @@ transition withdraw_stake_amount (amount : Uint128, initiator: ByStr20)
             match pass with
             | True =>
               (* entire stake withdrawed and also reward is withdrawed, so remove ssn *)
-              delete ssnlist[initiator]
+              remove_from_ssn_list initiator
             | False =>
               ssn = Ssn const_inactive uint128_zero rewards urlraw urlapi buffereddeposit;
-              ssnlist[initiator] := ssn
+              add_to_ssn_list initiator ssn
             end;
             totalstakedeposit_l <- totalstakedeposit;
             tmp = builtin sub totalstakedeposit_l amount;
