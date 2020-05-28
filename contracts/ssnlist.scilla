@@ -575,8 +575,8 @@ transition withdraw_stake_rewards (initiator : ByStr20)
     throw e
   | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
     (* check if basic stake deposit is already withdrawn by ssn. If so, remove the ssn from list as well *)
-    pass = builtin eq stake_amount uint128_zero;
-    match pass with
+    stake_amount_zero = builtin eq stake_amount uint128_zero;
+    match stake_amount_zero with
     | True =>
       (* entire stake withdrawn and also reward is withdrawn, so remove ssn *)
       remove_from_ssn_list initiator
