@@ -220,16 +220,16 @@ end
 (* Increase total stake deposit *)
 procedure increase_totalstakedeposit (amount : Uint128, initiator : ByStr20, new_stake_amount : Uint128)
   deposit <- totalstakedeposit;
-  new_deposit = builtin add deposit amount;
-  max_stake <- contractmaxstake;
-  pass = builtin lt max_stake new_deposit;
+  new_total_deposit = builtin add deposit amount;
+  contract_max_stake <- contractmaxstake;
+  pass = builtin lt contract_max_stake new_total_deposit;
   match pass with
   | True =>
-    e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount max_stake;
+    e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount contract_max_stake;
     throw e
   | False =>
   end;
-  totalstakedeposit := new_deposit
+  totalstakedeposit := new_total_deposit
 end
 
 (* Decrease total stake deposit *)
