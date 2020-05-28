@@ -398,7 +398,6 @@ transition add_ssn (ssnaddr : ByStr20, urlraw : String, urlapi : String, initiat
       status = const_inactive;
       buffered_deposit = Uint128 0;
       rewards = Uint128 0;
-      urlinfo = UrlInfo urlraw urlapi;
       s = Ssn status stake_amount rewards urlraw urlapi buffered_deposit;
       add_to_ssn_list ssnaddr s;
       e = mk_ssn_added_event ssnaddr;
