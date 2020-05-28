@@ -220,16 +220,16 @@ end
 (* Increase total stake deposit *)
 procedure increase_totalstakedeposit (amount : Uint128, initiator : ByStr20, new_stake_amount : Uint128)
   deposit <- totalstakedeposit;
-  new_deposit = builtin add deposit amount;
-  max_stake <- contractmaxstake;
-  pass = builtin lt max_stake new_deposit;
+  new_total_deposit = builtin add deposit amount;
+  contract_max_stake <- contractmaxstake;
+  pass = builtin lt contract_max_stake new_total_deposit;
   match pass with
   | True =>
-    e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount max_stake;
+    e = mk_total_stake_deposit_above_contract_stake_limit_error initiator new_stake_amount contract_max_stake;
     throw e
   | False =>
   end;
-  totalstakedeposit := new_deposit
+  totalstakedeposit := new_total_deposit
 end
 
 (* Decrease total stake deposit *)
@@ -454,10 +454,10 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
     less_than_max = builtin lt current_ssn_number max_ssn_node_number;
     match less_than_max with
     | True =>
-      pass = builtin eq stake_amount uint128_zero;
+      stake_amount_is_zero = builtin eq stake_amount uint128_zero;
       (* set status as inactive if stake_amount is 0 *)
-      status = active_status_from_neg_bool pass;
-      match pass with
+      status = active_status_from_neg_bool stake_amount_is_zero;
+      match stake_amount_is_zero with
       | True =>
       | False =>
         (* Update the total stake deposit *)
@@ -505,7 +505,7 @@ transition stake_deposit (initiator: ByStr20)
   validate_not_paused;
   validate_proxy;
   (* Accept the deposit from SSN and add to contract balance. *)
-  (* Transfer back to initiator if any of the validation failed *)
+  (* Throw exception and revert if any of the validation failed *)
   accept;
   curval <- ssnlist[initiator];
   match curval with
@@ -575,8 +575,8 @@ transition withdraw_stake_rewards (initiator : ByStr20)
     throw e
   | Some (Ssn status stake_amount rewards urlraw urlapi buffereddeposit) =>
     (* check if basic stake deposit is already withdrawn by ssn. If so, remove the ssn from list as well *)
-    pass = builtin eq stake_amount uint128_zero;
-    match pass with
+    stake_amount_zero = builtin eq stake_amount uint128_zero;
+    match stake_amount_zero with
     | True =>
       (* entire stake withdrawn and also reward is withdrawn, so remove ssn *)
       remove_from_ssn_list initiator
