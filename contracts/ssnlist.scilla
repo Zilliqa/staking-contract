@@ -505,7 +505,7 @@ transition stake_deposit (initiator: ByStr20)
   validate_not_paused;
   validate_proxy;
   (* Accept the deposit from SSN and add to contract balance. *)
-  (* Transfer back to initiator if any of the validation failed *)
+  (* Throw exception and revert if any of the validation failed *)
   accept;
   curval <- ssnlist[initiator];
   match curval with
