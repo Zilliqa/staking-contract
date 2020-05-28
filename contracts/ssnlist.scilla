@@ -454,10 +454,10 @@ transition add_ssn_after_upgrade (ssnaddr : ByStr20, stake_amount : Uint128, rew
     less_than_max = builtin lt current_ssn_number max_ssn_node_number;
     match less_than_max with
     | True =>
-      pass = builtin eq stake_amount uint128_zero;
+      stake_amount_is_zero = builtin eq stake_amount uint128_zero;
       (* set status as inactive if stake_amount is 0 *)
-      status = active_status_from_neg_bool pass;
-      match pass with
+      status = active_status_from_neg_bool stake_amount_is_zero;
+      match stake_amount_is_zero with
       | True =>
       | False =>
         (* Update the total stake deposit *)
