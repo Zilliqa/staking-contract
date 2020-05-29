@@ -16,7 +16,6 @@ let const_false = False
 let uint128_10_power_7 = Uint128 10000000
 let empty_tag = ""
 let add_funds_tag = "AddFunds"
-let multisig_tag_addfunds = "AddFunds"
 let max_ssn_node_number = Uint32 20
 
 (* events *)
@@ -363,7 +362,7 @@ transition drain_contract_balance (initiator : ByStr20)
   validate_proxy;
   validate_admin initiator;
   bal <- _balance;
-  TransferFunds multisig_tag_addfunds bal initiator
+  TransferFunds add_funds_tag bal initiator
 end
 
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
