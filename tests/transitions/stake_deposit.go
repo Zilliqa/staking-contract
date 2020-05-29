@@ -178,7 +178,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 					panic("test first time stake deposit failed, tx:" + tx)
 				} else {
 					ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
-					if ssnStatus == "True" {
+					if ssnStatus == "Active" {
 						fmt.Println("test first time stake deposit succeed")
 					} else {
 						panic("test first time stake deposit failed, tx:" + tx)
@@ -253,7 +253,7 @@ func (p *Proxy) StakeDeposit(pri1, pri2 string, api string) {
 				panic("test stake deposit (after first time deposit) error, tx:" + tx)
 			} else {
 				ssnStatus := ssn.(map[string]interface{})["arguments"].([]interface{})[0].(map[string]interface{})["constructor"].(string)
-				if ssnStatus == "True" {
+				if ssnStatus == "Active" {
 					fmt.Println("test stake deposit (after first time deposit) succeed")
 				} else {
 					panic("test stake deposit (after first time deposit) error, tx:" + tx)
