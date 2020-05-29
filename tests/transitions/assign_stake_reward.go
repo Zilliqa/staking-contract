@@ -28,6 +28,9 @@ func TestAssignStakeReward(pri1, pri2, api string) {
 		panic("test assign stake reward failed: update verifier error: " + err2.Error())
 	}
 
+	_ = p.updateStakingParameter(pri1, "1000000000", "5000000000", "100000000000000000")
+
+
 	ssn1 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri1))
 	ssn2 := "0x" + keytools.GetAddressFromPrivateKey(util.DecodeHex(pri2))
 
