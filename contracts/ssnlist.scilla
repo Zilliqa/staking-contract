@@ -418,6 +418,11 @@ let mk_withdraw_stake_rewards_event =
     fun (sender : ByStr20) =>
       { _eventname : "Update staking parameter event"; sender : sender}
 
+ let mk_send_delegator_rewards_event = 
+    fun (address : ByStr20) =>
+    fun (amount : Uint128) =>
+      { _eventname : "Send delegator rewards event"; address : address; amount :  amount}
+
 
 
 (***************************************************)
@@ -585,9 +590,10 @@ procedure send_delegator_rewards(entry : Pair Uint128 DelegatorAndRewards)
   match entry with
   | Pair cycle delegator_and_rewards  =>
     match delegator_and_rewards with
-    (* TODO event? *)
     | DelegatorAndRewards address amount =>
-      TransferFunds multisig_tag_addfunds amount address
+      TransferFunds multisig_tag_addfunds amount address;
+      e = mk_send_delegator_rewards_event address amount;
+      event e
     end
   end
   
@@ -859,7 +865,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
     new_buff_amount  = builtin add _amount buffereddeposit;
     new_stake_amount = builtin add new_buff_amount stake_amount;
     pass = builtin lt maxstake_l new_stake_amount;
-    last_reward_block_number <- lastrewardcycle;
+    last_reward_cycle <- lastrewardcycle;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
       TransferFunds multisig_tag_addfunds _amount initiator;
@@ -872,9 +878,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
         (* The SSN is active so add the delegated stake to the buffer *)
         ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount commission commision_rewards;
         ssnlist[ssnaddr] := ssn;
-        (* record this to direct deposit for delegator *)
-        (* TODO Why is this a direct deposit and not a buffer deposit? *)
-        stake_amount_for_delegator_o <- directDepositForDelegator[initiator][ssnaddr][last_reward_block_number];
+        (* record this to buffer deposit for delegator *)
+        stake_amount_for_delegator_o <- bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle];
         d <- delegators[ssnaddr][initiator];
         match d with
         | Some (Delegator amount reward buffered_deposit) =>
@@ -884,23 +889,14 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
           match stake_amount_for_delegator_o with
           | Some stake_amount_for_delegator =>
             new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-            (* TODO Should not be in directDeposit but in bufferedDeposit*)
-            directDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := new_stake_amount_for_delegator
+            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_delegator
           | None =>
-            directDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := _amount
+            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
           end
         | None =>
           d_new = Delegator uint128_zero uint128_zero _amount;
           delegators[ssnaddr][initiator] := d_new;
-          (* TODO Since this delegator is depositing for the first time, why do we need the following branch? *)
-          match stake_amount_for_delegator_o with
-          | Some stake_amount_for_delegator =>
-            new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-            (* TODO Also this should be bufferdeposit *)
-            directDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := new_stake_amount_for_delegator
-          | None =>
-            directDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := _amount
-          end
+          bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
         end
       | False =>
         (* The SSN is inactive so add the delegated stake to stake_amount *)
@@ -910,9 +906,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
         ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards;
         ssnlist[ssnaddr] := ssn;
         d <- delegators[ssnaddr][initiator];
-        (* record this to buffered deposit for delegator *)
-        (* TODO You should be using directdeposit here *)
-        stake_amount_for_delegator_o <- bufferedDepositForDelegator[initiator][ssnaddr][last_reward_block_number];
+        (* record this to direct deposit for delegator *)
+        stake_amount_for_delegator_o <- directDepositForDelegator[initiator][ssnaddr][last_reward_cycle];
         match d with
         | Some (Delegator amount reward buffered_deposit) =>
           new_stake_amount_delegator = builtin add _amount amount;
@@ -921,22 +916,14 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
           match stake_amount_for_delegator_o with
           | Some stake_amount_for_delegator =>
             new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-            (* TODO Should use DirectDeposit here *)
-            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := new_stake_amount_for_delegator
+            directDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_delegator
           | None =>
-            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := _amount
+          directDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
           end
         | None =>
           d_new = Delegator _amount uint128_zero uint128_zero;
           delegators[ssnaddr][initiator] := d_new;
-          (* TODO There is no need for this branch right? *)
-          match stake_amount_for_delegator_o with
-          | Some stake_amount_for_delegator =>
-            new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := new_stake_amount_for_delegator
-          | None =>
-            bufferedDepositForDelegator[initiator][ssnaddr][last_reward_block_number] := _amount
-          end
+          bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
         end
       end
     end
