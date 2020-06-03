@@ -933,14 +933,13 @@ end
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO, let's change the reward_blocknum to a counter that gets increased every time this transition is called. *)
 transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator: ByStr20)
   IsPaused;
   CallerIsProxy;
   CallerIsVerifier initiator;
-  last_reward_block <- lastrewardcycle;
+  last_reward_cycle <- lastrewardcycle;
   forall ssnreward_list UpdateStakeReward;
-  newLastRewardCycleNum = builtin add uint128_one last_reward_block;
+  newLastRewardCycleNum = builtin add uint128_one last_reward_cycle;
   lastrewardcycle := newLastRewardCycleNum;
   reward_cycle_list <- rewardCycleList;
   new_reward_cycle_list = Cons {Uint128} newLastRewardCycleNum reward_cycle_list;
@@ -973,14 +972,13 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
   CallerIsProxy;
   DelegatorExists ssn_operator delegator;
   lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
-  last_withdraw_block = block_or_zero lastWithdrawCycleForDelegator_m;
-  last_reward_blocknum <- lastrewardcycle;
+  last_withdraw_cycle = block_or_zero lastWithdrawCycleForDelegator_m;
+  last_reward_cycle <- lastrewardcycle;
   reward_cycle_list <- rewardCycleList;
-  list_between_fun = list_between last_withdraw_block last_reward_blocknum;
+  list_between_fun = list_between last_withdraw_cycle last_reward_cycle;
   list_between_fun_uint128 = @list_filter Uint128;
 
   (* those are the cycles that we want to compute for computing rewards *)
-  (* TODO can be simplified if reward cycle is a counter *)
   list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
 
   (* direct deposit *)
@@ -1015,7 +1013,7 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
     (* to send those rewards and update last withdraw cycle of delegator *)
     rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
     forall rewards_delegator_per_cycle_list send_delegator_rewards;
-    lastWithdrawCycleForDelegator[delegator] := last_reward_blocknum;
+    lastWithdrawCycleForDelegator[delegator] := last_reward_cycle;
     (* TODO do we have to do soemthing with Delegators map? *)
     (* TODO Should we do something with ssn map here? *)
     e = mk_update_delegate_cycle_event ssn_operator delegator;
@@ -1052,7 +1050,7 @@ end
 
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
-transition DepositFunds(initiator : ByStr20)
+transition AddFunds(initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
   accept;
