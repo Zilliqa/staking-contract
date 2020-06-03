@@ -142,16 +142,14 @@ let list_between =
         | False => False
         end
 
-(* This function is used for calculating the exact amount per cycle for delegators *)
+(* This function is used for calculating the exact staking amount per cycle for delegators *)
+(* Example: *)
 (* Input: [1:1000,2:2000,3:3000] *)
 (* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
 let caculate_all_stake_per_cycle = 
   fun (delegate_map : Map Uint128 Uint128) => 
     fun (result_map : Map Uint128 Uint128) => 
       fun(k : Uint128) =>
-        (* TODO please take of here, it's an counter or actual block number? *)
-        (* TODO we may not want to sub by one if it is actual block number *)
-        (* TODO use a map to record counter => block number if we have to *)
         let m = builtin sub k uint128_one in
         let result_map_o = builtin get result_map m in 
         let delegate_map_o = builtin get delegate_map k in
@@ -173,11 +171,10 @@ let caculate_all_stake_per_cycle =
         end
 
 (* This function is used for combining direct deposit and buffered deposit into one with correct secquence *)
+(* Example: *)
 (* Direct deposit: [1:1000,2:2000:3:3000] *)
 (* Buffered deposit: [1:1000,2:2000:3:3000]*)
 (* Result deposit: [1:1000,2:2000+1000:3:3000+2000] *)
-(* TODO Can be made more succint *)
-
 let combine_buffered_and_direct = 
   fun (direct : Map Uint128 Uint128) =>
     fun (buffered : Map Uint128 Uint128) =>
@@ -186,9 +183,9 @@ let combine_buffered_and_direct =
           let m = builtin sub k uint128_one in
            (* if it takes effect from this cycle, then it must be deposited in last cycle *)
           let direct_o = builtin get direct k in
+          let buffered_o = builtin get buffered m in
           match direct_o with
-          | Some direct_amount => 
-            let buffered_o = builtin get buffered m in
+          | Some direct_amount =>
             match buffered_o with
             | Some buffered_amount =>
               let amount = builtin add direct_amount buffered_amount in 
@@ -197,10 +194,9 @@ let combine_buffered_and_direct =
               builtin put result k direct_amount
             end
           | None =>
-            let buffered_o =  builtin get buffered m in
             match buffered_o with
             | Some buffered_amount =>
-              builtin put result k buffered_amount
+              builtin put result k buffered_amount 
             | None =>
               result
             end
@@ -251,8 +247,9 @@ let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
 let empty_tag = ""
 let multisig_tag_addfunds = "AddFunds"
-(* events *)
 
+
+(* events *)
 let mk_contract_frozen_error =
   fun (sender : ByStr20) =>
     { _exception : "Contract freezed failure"; sender : sender }
@@ -279,8 +276,6 @@ let mk_stake_deposit_below_min_for_ssn_error =
       fun (delegator : ByStr20) =>
       fun (amount : Uint128) =>
         { _exception : "Delegator stake deposit below min_stake for this SSN"; delegator : delegator; ssn : ssn; stake : amount}
-
-
 
 let mk_ssn_already_exists_event =
   fun (ssn : ByStr20) =>
