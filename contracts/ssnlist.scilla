@@ -562,11 +562,13 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
         reward_commission_tmp = builtin div reward_commission_tmp uint128_10_power_7;
         total_reward_commission = builtin add reward_commission_tmp commission_rewards;
 
-        delegator_reward = let t = builtin sub new_reward total_reward_commission in builtin add t rewards;
+
+        reward_should_be_given = builtin sub new_reward total_reward_commission;
+        delegator_reward = builtin add reward_should_be_given rewards;
 
         new_stake_amount = builtin add stake_amount buffereddeposit;
-        (* TODO  During this cylce, the SSN only earned t as rewards that could be given to delegators not delegator_reward *)
-        p = SSNCycleInfo stake_amount delegator_reward;
+        (* During this cylce, the SSN only earned t as rewards that could be given to delegators *)
+        p = SSNCycleInfo stake_amount reward_should_be_given;
         stakeSSNPerCyle[ssnaddr][lastreward_block] := p;
 
         ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission;
