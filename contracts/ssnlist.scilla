@@ -30,12 +30,14 @@ library SSNList
                       Percentage of incoming rewards that the SSN takes.
   CommissionRewards : Uint128
                       Number of ZILs earned as commission by the SSN.
+  ReceivedAddress   : ByStr20
+                      Address will be used to receive commission.
 *)    
 (* Invariant 1: StakeAmount + BufferedDeposit < MaxStake < ContractMaxStake *)
 (* Invariant 2: ActiveStatus = (Minstake < StakeAmount)  *)
 
 type Ssn =
-| Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128
+| Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 
 (* SSNRewardShare Data Type *)
 (* 
@@ -551,7 +553,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
     | None =>
       e = mk_ssn_not_exists_event ssnaddr;
       event e
-    | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards) =>
+    | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
       match active_status with
       | False => throw
       | True  => 
@@ -575,7 +577,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
         p = SSNCycleInfo stake_amount reward_should_be_given;
         stakeSSNPerCyle[ssnaddr][lastreward_block] := p;
 
-        ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission;
+        ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission received_address;
         ssnlist[ssnaddr] := ssn;
         e = mk_assign_stake_reward_event ssnaddr total_reward_commission;
         event e
@@ -725,8 +727,9 @@ end
 (* @param commission: Percentage of incoming rewards that the SSN takes *)
 (* @param commission_rewards: Number of ZILs earned as commission *)
 (* @param minimum_delegate_amount: Minimum nb. of ZILs required for delegation *)
+(* @param received_address: Address that will be used to receive commission *)
 (* @param initiator: The original caller who called the proxy *)
-transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buffered_deposit : Uint128,  commission : Uint128, commission_rewards : Uint128, minimum_delegate_amount : Uint128, initiator : ByStr20)
+transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buffered_deposit : Uint128,  commission : Uint128, commission_rewards : Uint128, minimum_delegate_amount : Uint128, received_address : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
@@ -750,7 +753,7 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
       totalstakedeposit_l <- totalstakedeposit;
       totalstakedeposit_l = builtin add totalstakedeposit_l stake_amount;
       totalstakedeposit := totalstakedeposit_l;
-      s = Ssn status stake_amount rewards name urlraw urlapi buffered_deposit commission commission_rewards;
+      s = Ssn status stake_amount rewards name urlraw urlapi buffered_deposit commission commission_rewards received_address;
       ssnlist[ssnaddr] := s;
       e = mk_ssn_added_event ssnaddr;
       event e
@@ -830,8 +833,8 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
   CallerIsProxy;
   curval <- ssnlist[initiator];
   match curval with
-  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards) =>
-    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit new_rate commision_rewards;
+  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
+    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit new_rate commision_rewards received_address;
     ssnlist[initiator] := ssn
   | None =>
     e = mk_ssn_not_exists_event initiator;
@@ -854,7 +857,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
     TransferFunds empty_tag _amount initiator;
     e = mk_ssn_not_exists_event initiator;
     event e
-  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards) =>
+  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
     minstake_l <- minstake;
     maxstake_l <- maxstake;
     new_buff_amount  = builtin add _amount buffereddeposit;
@@ -871,7 +874,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
       match active_status with
       | True  => 
         (* The SSN is active so add the delegated stake to the buffer *)
-        ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount commission commision_rewards;
+        ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
         (* record this to buffer deposit for delegator *)
         stake_amount_for_delegator_o <- bufferedDepositForDelegator[initiator][ssnaddr][last_reward_cycle];
@@ -898,7 +901,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
         new_stake_amount  = builtin add _amount stake_amount;
         status = builtin lt minstake_l new_stake_amount;
         (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
-        ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards;
+        ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
         d <- delegators[ssnaddr][initiator];
         (* record this to direct deposit for delegator *)
@@ -950,10 +953,10 @@ transition WithdrawCommission(initiator : ByStr20)
   | None =>
     e = mk_ssn_not_exists_event initiator;
     event e
-  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards) =>
-    TransferFunds multisig_tag_addfunds commission_rewards initiator;
+  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
+    TransferFunds multisig_tag_addfunds commission_rewards received_address;
     e = mk_withdraw_stake_rewards_event initiator rewards;  
-    ssn = Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission uint128_zero;
+    ssn = Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission uint128_zero received_address;
     ssnlist[initiator] := ssn
   end
 end
