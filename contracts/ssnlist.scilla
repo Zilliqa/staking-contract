@@ -842,6 +842,23 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
   end
 end
 
+(* @dev : To update the received address for a given SSN *)
+(* @param new_address: The new received address *)
+(* @param initiator: The original caller who called the proxy. This is SSN address. *)
+transition UpdateReceivedAddress(new_address : ByStr20, initiator : ByStr20)
+  IsPaused;
+  CallerIsProxy;
+  curval <- ssnlist[initiator];
+  match curval with
+  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
+    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards new_address;
+    ssnlist[initiator] := ssn
+  | None =>
+    e = mk_ssn_not_exists_event initiator;
+    event e
+  end
+end
+
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the delegator wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the delegator. *)
