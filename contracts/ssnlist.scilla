@@ -1102,6 +1102,7 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator: ByStr20)
         delete bufferedDepositForDelegator[initiator][ssn];
         delete directDepositForDelegator[initiator][ssn];
         delete depositAmountForDelegator[initiator][ssn];
+        delete lastWithdrawCycleForDelegator[initiator][ssn];
         match ssn_o with
         | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
           new_amount = builtin sub stake_amount deposit_amount;
