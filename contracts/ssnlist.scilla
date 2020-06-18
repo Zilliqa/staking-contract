@@ -249,7 +249,7 @@ let empty_tag = ""
 let multisig_tag_addfunds = "AddFunds"
 
 
-(* events *)
+(* errors and events *)
 let mk_contract_frozen_error =
   fun (sender : ByStr20) =>
     { _exception : "Contract freezed failure"; sender : sender }
@@ -290,6 +290,10 @@ let mk_delegator_has_buffered_deposit_error =
   fun (ssn : ByStr20) =>
   fun (delegator : ByStr20) =>
     { _exception : "Delegator still has buffered deposit"; ssn_address : ssn; delegator_address : delegator }
+
+let mk_change_commission_error = 
+  fun (ssn : ByStr20) =>
+    { _exception: "SSN has already set a commission for this cycle"; ssn_address : ssn}
     
 
 let mk_ssn_already_exists_event =
@@ -476,6 +480,10 @@ field directDepositForDelegator : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)
 (* Record deposit amount for every delegator for every ssn *)
 (* AddressofDelegator -> (AddressofSSN -> StakeAmount) *)
 field depositAmountForDelegator : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
+(* Record commission for ssn of every cycle*)
+(* AddressofSSN -> (Cycle -> commission ) *)
+field commissionForSSN : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 
 (* TODO Let's assume that rewardCylce is a counter. This counter gets increased everytime reward is added by the verifer.
    This should simplify some of the contract logic. 
@@ -809,6 +817,8 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
       totalstakedeposit := totalstakedeposit_l;
       s = Ssn status stake_amount rewards name urlraw urlapi buffered_deposit commission commission_rewards received_address;
       ssnlist[ssnaddr] := s;
+      last_reward_cycle <- lastrewardcycle;
+      commissionForSSN[ssnaddr][last_reward_cycle] := commission;
       e = mk_ssn_added_event ssnaddr;
       event e
     end
@@ -854,6 +864,7 @@ transition RemoveSSN(ssnaddr : ByStr20, initiator: ByStr20)
     event e
   | True =>
     delete ssnlist[ssnaddr];
+    delete commissionForSSN[ssnaddr];
     e = mk_ssn_removed_event ssnaddr;
     event e
   end
@@ -889,8 +900,17 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
   curval <- ssnlist[initiator];
   match curval with
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
-    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit new_rate commision_rewards received_address;
-    ssnlist[initiator] := ssn
+    last_reward_cycle <- lastrewardcycle;
+    old_commission_o <- commissionForSSN[initiator][last_reward_cycle];
+    match old_commission_o with
+    | Some old_commission =>
+      e = mk_change_commission_error initiator;
+      throw e
+    | None =>
+      commissionForSSN[initiator][last_reward_cycle] := commission;
+      ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit new_rate commision_rewards received_address;
+      ssnlist[initiator] := ssn
+    end
   | None =>
     e = mk_ssn_not_exists_event initiator;
     event e
