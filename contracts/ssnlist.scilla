@@ -448,8 +448,8 @@ field delegators : Map ByStr20 (Map ByStr20 Delegator) = Emp ByStr20 (Map ByStr2
 field stakeSSNPerCyle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 
 (* Keeps track of the cycle number when a delegator last withdrew its rewards *)
-(* AddressOfDelegator -> CycleNumberWhenLastWithdrawn *)
-field lastWithdrawCycleForDelegator : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+(* AddressOfDelegator -> ( AddressOfSSN -> CycleNumberWhenLastWithdrawn) *)
+field lastWithdrawCycleForDelegator : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 
 (* Keeps track of buffered deposit for a delegator *)
 (* AddressOfDelegator -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
@@ -597,7 +597,6 @@ procedure send_delegator_rewards(entry : Pair Uint128 DelegatorAndRewards)
       event e
     end
   end
-  
 end
 
 
@@ -890,7 +889,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
       (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
       match active_status with
       | True  => 
-        (* The SSN is active so add the delegated stake to the buffer *)
+        (* The SSN is active so  taddhe delegated stake to the buffer *)
         ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
         (* record this to buffer deposit for delegator *)
@@ -972,7 +971,8 @@ transition WithdrawCommission(initiator : ByStr20)
     event e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
     TransferFunds multisig_tag_addfunds commission_rewards received_address;
-    e = mk_withdraw_stake_rewards_event initiator rewards;  
+    e = mk_withdraw_stake_rewards_event initiator rewards;
+    event e;  
     ssn = Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission uint128_zero received_address;
     ssnlist[initiator] := ssn
   end
@@ -986,7 +986,7 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
   IsPaused;
   CallerIsProxy;
   DelegatorExists ssn_operator delegator;
-  lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator];
+  lastWithdrawCycleForDelegator_m <- lastWithdrawCycleForDelegator[delegator][ssn_operator];
   last_withdraw_cycle = block_or_zero lastWithdrawCycleForDelegator_m;
   last_reward_cycle <- lastrewardcycle;
   reward_cycle_list <- rewardCycleList;
@@ -1028,7 +1028,7 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
     (* to send those rewards and update last withdraw cycle of delegator *)
     rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
     forall rewards_delegator_per_cycle_list send_delegator_rewards;
-    lastWithdrawCycleForDelegator[delegator] := last_reward_cycle;
+    lastWithdrawCycleForDelegator[delegator][ssn_operator] := last_reward_cycle;
     (* TODO do we have to do soemthing with Delegators map? *)
     (* TODO Should we do something with ssn map here? *)
     e = mk_update_delegate_cycle_event ssn_operator delegator;
@@ -1048,14 +1048,7 @@ transition WithdrawAll(ssn: ByStr20, initiator: ByStr20)
   delegator <- delegators[ssn][initiator];
   match delegator with
   | Some (Delegator amount reward) =>
-    amount_to_send = builtin add amount reward;
-    delete delegators[ssn][initiator];
-    delete lastWithdrawCycleForDelegator[initiator];
-    delete bufferedDepositForDelegator[initiator];
-    delete directDepositForDelegator[initiator];
-    TransferFunds multisig_tag_addfunds amount_to_send initiator;
-    e = mk_delegator_withdraw_all_event ssn initiator;
-    event e 
+    
   | None => 
     e = mk_delegator_existence_failed_error ssn initiator;
     throw e
