@@ -285,6 +285,13 @@ let mk_update_staking_parameter_error =
   fun (contract_max_stake : Uint128) =>
     { _exception : "Update staking parameter error"; sender : sender; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake }
 
+ 
+let mk_delegator_has_buffered_deposit_error = 
+  fun (ssn : ByStr20) =>
+  fun (delegator : ByStr20) =>
+    { _exception : "Delegator still has buffered deposit"; ssn_address : ssn; delegator_address : delegator }
+    
+
 let mk_ssn_already_exists_event =
   fun (ssn : ByStr20) =>
     { _eventname : "SSN already exists"; ssn_address : ssn }
@@ -967,7 +974,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator: ByStr20)
             new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
             directDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_delegator
           | None =>
-          directDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
+            directDepositForDelegator[initiator][ssnaddr][last_reward_cycle] := _amount
         end
       end
     end
@@ -1061,6 +1068,7 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, delegator: ByStr20)
     lastWithdrawCycleForDelegator[delegator][ssn_operator] := last_reward_cycle;
     (* TODO do we have to do soemthing with Delegators map? *)
     (* TODO Should we do something with ssn map here? *)
+    (* No and No *)
     e = mk_update_delegate_cycle_event ssn_operator delegator;
     event e
   | None => (* ssn has no rewards *)
@@ -1107,10 +1115,13 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator: ByStr20)
           TransferFunds multisig_tag_addfunds deposit_amount initiator;
           e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
           event e
-        | None => throw
+        | None =>
+          e = mk_delegator_has_buffered_deposit_error ssn initiator;
+          throw e
         end
-        
       | None =>
+        e = mk_ssn_not_exists_event initiator;
+        event e
       end
     end
     
