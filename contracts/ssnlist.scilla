@@ -1,4 +1,4 @@
-\scilla_version 0
+scilla_version 0
 
 import ListUtils
 
@@ -367,6 +367,12 @@ let mk_delegator_withdraw_rewards_event =
   fun (delegator : ByStr20) => 
   fun (amount : Uint128) =>
     { _eventname : "Delegator withdraw rewards"; ssn_address : ssn; delegator_address : delegator; rewards_amount : amount }
+
+let mk_delegator_withdraw_deposit_amount_event = 
+  fun (ssn: ByStr20) =>
+  fun (delegator: ByStr20) =>
+  fun (amount: Uint128) =>
+    { _eventname : "Delegator withdraw deposit"; ssn_address : ssn; delegator_address : delegator; deposit_amount : amount }
 
 
 let mk_delegator_rewards_event = 
@@ -1104,7 +1110,10 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator: ByStr20)
           ssnlist[ssn] := ssn_o;
           new_amount_for_delegator = builtin sub amount deposit_amount;
           delegator_o = Delegator new_amount_for_delegator reward;
-          delegators[ssn][initiator] := delegator_o
+          delegators[ssn][initiator] := delegator_o;
+          TransferFunds multisig_tag_addfunds deposit_amount initiator;
+          e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
+          event e
         | None => throw
         end
         
