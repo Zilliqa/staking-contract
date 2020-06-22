@@ -61,13 +61,10 @@ type SsnRewardShare =
 
     StakeAmount       : Uint128
                         Represents the amount staked so far. This is the sum total of amount staked across all SSNs. 
-    StakeRewards      : Uint128
-                        The rewards accumulatd so far from all SSNs. This is the sum total of reward accumulated across all SSNs. 
-                            considered as a part of the staking. This is the sum total of buffereddeposits made across all SSNs.  
 *)    
 
 type Delegator =
-| Delegator of Uint128 Uint128
+| Delegator of Uint128
 
 (* DelegatorCycleInfo Data Type *)
 (* 
@@ -632,12 +629,12 @@ end
 procedure FillInDelegators(ssnaddr : ByStr20, delegator : ByStr20)
   d <- delegators[ssnaddr][delegator];
   match d with
-  | Some (Delegator amount reward) =>
+  | Some (Delegator amount) =>
     new_amount_delegator = builtin add _amount amount;
-    d_new = Delegator new_amount_delegator reward;
+    d_new = Delegator new_amount_delegator;
     delegators[ssnaddr][delegator] := d_new
   | None =>
-    d_new = Delegator _amount uint128_zero;
+    d_new = Delegator _amount;
     delegators[ssnaddr][delegator] := d_new
   end
 end
@@ -654,31 +651,6 @@ procedure HasRewardToWithdraw(ssnaddr : ByStr20, delegator : ByStr20)
   end
   
   
-end
-
-(*TODO  We neeed to be careful with this one *)
-(* Should we just remove it? *)
-procedure MeetMinimumDelegateAmount(ssnaddr : ByStr20, initiator: ByStr20, minimum_delegate_amount : Uint128)
-  d <- delegators[ssnaddr][initiator];
-  match d with
-  | Some (Delegator amount reward) =>
-    new_amount = builtin add amount _amount;
-    pass = builtin lt new_amount minimum_delegate_amount;
-    match pass with
-    | True =>
-      e = mk_stake_deposit_below_min_for_ssn_error ssnaddr initiator _amount;
-      throw e
-    | False =>
-    end
-  | None =>
-    pass = builtin lt _amount minimum_delegate_amount;
-    match pass with
-    | True =>
-      e = mk_stake_deposit_below_min_for_ssn_error ssnaddr initiator _amount;
-      throw e
-    | False =>
-    end
-  end
 end
 
 
@@ -820,7 +792,7 @@ end
 (* @param initiator: The original caller who called the proxy *)
 (* TODO This could be expensive *)
 (* TODO Missing check on the minimum stake amount *)
-transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : Uint128, rewards : Uint128, initiator : ByStr20)
+transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : Uint128, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
@@ -830,7 +802,7 @@ transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : U
     e = mk_delegator_already_exists_event ssnaddr delegator;
     event e
   | False =>
-    d = Delegator stake_amount rewards;
+    d = Delegator stake_amount;
     delegators[ssnaddr][delegator] := d;
     e = mk_delegator_added_event ssnaddr delegator;
     event e
@@ -1093,7 +1065,7 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator : ByStr20)
   last_reward_cycle <- lastrewardcycle;
   ssn_option <- ssnlist[ssn];
   match delegator with
-  | Some (Delegator amount reward) =>
+  | Some (Delegator amount) =>
     (* first we need to make sure there is no deposit within buffered stake *)
     has_buffered_value <- buffered_deposit_for_delegator[initiator][ssn][last_reward_cycle];
     match has_buffered_value with
@@ -1115,7 +1087,7 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator : ByStr20)
           ssn_option = Ssn status new_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
           ssnlist[ssn] := ssn_option;
           new_amount_for_delegator = builtin sub amount deposit_amount;
-          delegator_option = Delegator new_amount_for_delegator reward;
+          delegator_option = Delegator new_amount_for_delegator;
           delegators[ssn][initiator] := delegator_option;
           TransferFunds multisig_tag_addfunds deposit_amount initiator;
           e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
