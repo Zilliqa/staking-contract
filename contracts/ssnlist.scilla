@@ -567,9 +567,6 @@ end
 
 
 procedure UpdateStakeReward(entry : SsnRewardShare)
-  (* TODO Is this the new value of lastblock as updated in the transition? *)
-  (* TODO So bufferedDeposit and DirectDeposit do not get updated here, right? *)
-  (* Yes *)
   lastreward_block <- lastrewardcycle;
   match entry with
   | SsnRewardShare ssnaddr reward_percent =>
@@ -739,11 +736,16 @@ end
 
 (* @dev: Drain the entire contract's balance. Used by current admin only in case of emergency. *)
 (* @param initiator: The original caller who called the proxy *)
-transition DrainContractBalance(initiator : ByStr20)
+transition DrainContractBalance(initiator : ByStr20, amount : Uint128)
   CallerIsProxy;
   CallerIsAdmin initiator;
   bal <- _balance;
-  TransferFunds multisig_tag_addfunds bal initiator
+  less_than = builtin lt bal amount;
+  match less_than with
+  | True => throw
+  | False => 
+    TransferFunds multisig_tag_addfunds amount initiator
+  end
 end
 
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
