@@ -1073,9 +1073,6 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20, delegator : ByStr20)
     rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
     forall rewards_delegator_per_cycle_list SendDelegatorRewards;
     last_withdraw_cycle_for_delegator[delegator][ssn_operator] := last_reward_cycle;
-    (* TODO do we have to do soemthing with Delegators map? *)
-    (* TODO Should we do something with ssn map here? *)
-    (* No and No *)
     e = mk_update_delegate_cycle_event ssn_operator delegator;
     event e
   | None => (* ssn has no rewards *)
@@ -1147,4 +1144,60 @@ transition AddFunds(initiator : ByStr20)
   accept;
   e = mk_deposit_funds_event initiator;
   event e
+end
+
+transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  lastrewardcycle := cycle
+end
+
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  reward_cycle_list := list
+end
+
+transition PopulateCommissionForSSN(initiator : ByStr20, ssn_address : ByStr20, cycle : Uint128, commission : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  commission_for_ssn[ssn_address][cycle] := commission
+end
+
+transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  stake_ssn_per_cycle[ssn_address][cycle] := info
+end
+
+transition PopulateLastWithdrawCycleForDelegator(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  last_withdraw_cycle_for_delegator[delegator_address][ssn_address] := cycle
+end
+
+transition PopulateBufferedDeposit(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  buffered_deposit_for_delegator[delegator_address][ssn_address][cycle] := amount
+end
+
+transition PopulateDirectDeposit(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  direct_deposit_for_delegator[delegator_address][ssn_address][cycle] := amount
+end
+
+transition PopulateDepositAmountForDelegator(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
+  IsPaused;
+  CallerIsProxy;
+  CallerIsAdmin initiator;
+  deposit_amount_for_delegator[delegator_address][ssn_address] := amount
 end
