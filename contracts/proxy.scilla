@@ -12,8 +12,6 @@ let one_msg =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
-
-
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 
