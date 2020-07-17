@@ -710,6 +710,7 @@ end
 (* @param max_stake: New maxstake value *)
 (* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
+(*TODO: Remove duplicate CallerIsProxy *)
 transition UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
   CallerIsProxy;
   CallerIsProxy;
@@ -750,6 +751,7 @@ end
 (* @param minimum_delegate_amount: Minimum nb. of ZILs required for delegation *)
 (* @param received_address: Address that will be used to receive commission *)
 (* @param initiator: The original caller who called the proxy *)
+(* TODO: Allow operation when contract is pause*)
 transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buffered_deposit : Uint128,  commission : Uint128, commission_rewards : Uint128, minimum_delegate_amount : Uint128, received_address : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -792,6 +794,7 @@ end
 (* @param initiator: The original caller who called the proxy *)
 (* TODO This could be expensive *)
 (* TODO Missing check on the minimum stake amount *)
+(* TODO: Allow operation when contract is pause*)
 transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : Uint128, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -812,6 +815,7 @@ end
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
+(* TODO: Refund SSN operators and delegators *))
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -833,6 +837,7 @@ end
 (* @param ssnaddr: Address of the ssn *)
 (* @param delegator: Address of the delegator to be removed *)
 (* @param initiator: The original caller who called the proxy *)
+(* TODO: Refund SSN delegators *))
 transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -896,6 +901,8 @@ end
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the delegator wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the delegator. *)
+(* TODO: revert using exception instead of transfer. 2 occurance in this transition *)
+(* TODO: minstake_tmp new_stake_amount should be greater or equal to min stake *)
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -976,7 +983,8 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator : B
   reward_cycle_list := new_reward_cycle_list
 end
 
-
+(* TODO: Add description *)
+(* Throw exception if SSN do not exists *)
 transition WithdrawCommission(initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
