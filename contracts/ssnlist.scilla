@@ -293,6 +293,10 @@ let mk_change_commission_error =
     { _exception : "SSN has already set a commission for this cycle"; ssn_address : ssn}
     
 
+let mk_ssn_not_exists_error =
+  fun (ssn : ByStr20) =>
+    { _exception : "SSN doesn't exist"; ssn_address : ssn }
+
 let mk_ssn_already_exists_event =
   fun (ssn : ByStr20) =>
     { _eventname : "SSN already exists"; ssn_address : ssn }
@@ -311,9 +315,6 @@ let mk_delegator_added_event =
   fun (delegator : ByStr20) =>
     { _eventname : "Delegator added"; ssn_address : ssn; delegator_address : delegator }
 
-let mk_ssn_not_exists_event =
-  fun (ssn : ByStr20) =>
-    { _eventname : "SSN doesn't exist"; ssn_address : ssn }
 
 let mk_delegator_not_exists_event =
   fun (ssn : ByStr20) =>
@@ -555,8 +556,8 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
-      e = mk_ssn_not_exists_event ssnaddr;
-      event e
+      e = mk_ssn_not_exists_error ssnaddr;
+      throw e
     | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
       match active_status with
       | False => throw
@@ -710,9 +711,7 @@ end
 (* @param max_stake: New maxstake value *)
 (* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
-(*TODO: Remove duplicate CallerIsProxy *)
 transition UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
-  CallerIsProxy;
   CallerIsProxy;
   CallerIsAdmin initiator;
   min_less_than_max = builtin lt min_stake max_stake;
@@ -751,9 +750,7 @@ end
 (* @param minimum_delegate_amount: Minimum nb. of ZILs required for delegation *)
 (* @param received_address: Address that will be used to receive commission *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO: Allow operation when contract is pause*)
 transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buffered_deposit : Uint128,  commission : Uint128, commission_rewards : Uint128, minimum_delegate_amount : Uint128, received_address : ByStr20, initiator : ByStr20)
-  IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -794,9 +791,7 @@ end
 (* @param initiator: The original caller who called the proxy *)
 (* TODO This could be expensive *)
 (* TODO Missing check on the minimum stake amount *)
-(* TODO: Allow operation when contract is pause*)
 transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : Uint128, initiator : ByStr20)
-  IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   already_exists <- exists delegators[ssnaddr][delegator];
@@ -815,7 +810,6 @@ end
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO: Refund SSN operators and delegators *))
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -823,8 +817,8 @@ transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | False =>
-    e = mk_ssn_not_exists_event ssnaddr;
-    event e
+    e = mk_ssn_not_exists_error ssnaddr;
+    throw e
   | True =>
     delete ssnlist[ssnaddr];
     delete commission_for_ssn[ssnaddr];
@@ -837,7 +831,7 @@ end
 (* @param ssnaddr: Address of the ssn *)
 (* @param delegator: Address of the delegator to be removed *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO: Refund SSN delegators *))
+(* TODO: Refund SSN delegators *)
 transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -876,8 +870,8 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
       ssnlist[initiator] := ssn
     end
   | None =>
-    e = mk_ssn_not_exists_event initiator;
-    event e
+    e = mk_ssn_not_exists_error initiator;
+    throw e
   end
 end
 
@@ -893,8 +887,8 @@ transition UpdateReceivedAddress(new_address : ByStr20, initiator : ByStr20)
     ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards new_address;
     ssnlist[initiator] := ssn
   | None =>
-    e = mk_ssn_not_exists_event initiator;
-    event e
+    e = mk_ssn_not_exists_error initiator;
+    throw e
   end
 end
 
@@ -913,8 +907,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   match curval with
   | None =>
     TransferFunds empty_tag _amount initiator;
-    e = mk_ssn_not_exists_event initiator;
-    event e
+    e = mk_ssn_not_exists_error initiator;
+    throw e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
     minstake_tmp <- minstake;
     maxstake_tmp <- maxstake;
@@ -991,8 +985,8 @@ transition WithdrawCommission(initiator : ByStr20)
   curval <- ssnlist[initiator];
   match curval with
   | None =>
-    e = mk_ssn_not_exists_event initiator;
-    event e
+    e = mk_ssn_not_exists_error initiator;
+    throw e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
     TransferFunds multisig_tag_addfunds commission_rewards received_address;
     e = mk_withdraw_stake_rewards_event initiator rewards;
@@ -1105,8 +1099,8 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator : ByStr20)
           throw e
         end
       | None =>
-        e = mk_ssn_not_exists_event initiator;
-        event e
+        e = mk_ssn_not_exists_error initiator;
+        throw e
       end
     end
     
