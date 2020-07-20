@@ -303,6 +303,15 @@ let mk_delegator_not_exists_error =
   fun (delegator : ByStr20) =>
     { _exception : "Delegator doesn't exist"; ssn_address : ssn; delegator_address : delegator}
 
+
+let mk_delegated_stake_deposit_above_stake_limit_error =
+  fun (ssn : ByStr20) =>
+  fun (delegator : ByStr20) =>
+  fun (amount : Uint128) =>
+  fun (maxstake : Uint128) =>
+    { _exception : "Delegator stake deposit above max_stake limit"; ssn_address : ssn; delegator_address : delegator; requested_deposit : amount; max_stake : maxstake }
+  
+
 let mk_ssn_already_exists_event =
   fun (ssn : ByStr20) =>
     { _eventname : "SSN already exists"; ssn_address : ssn }
@@ -354,12 +363,6 @@ let mk_stake_deposit_above_stake_limit_event =
   fun (maxstake : Uint128) =>
     { _eventname : "SSN stake deposit above max_stake limit"; ssn_address : ssn; requested_deposit : amount; max_stake : maxstake }
 
-let mk_delegated_stake_deposit_above_stake_limit_event =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-  fun (amount : Uint128) =>
-  fun (maxstake : Uint128) =>
-    { _eventname : "Delegator stake deposit above max_stake limit"; ssn_address : ssn; delegator_address : delegator; requested_deposit : amount; max_stake : maxstake }
 
 let mk_total_stake_deposit_above_contract_stake_limit_event =
   fun (ssn : ByStr20) =>
@@ -996,7 +999,6 @@ end
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the delegator wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the delegator. *)
-(* TODO: revert using exception instead of transfer. 2 occurance in this transition *)
 (* TODO: minstake_tmp new_stake_amount should be greater or equal to min stake *)
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   IsPaused;
@@ -1007,7 +1009,6 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   curval <- ssnlist[ssnaddr];
   match curval with
   | None =>
-    TransferFunds empty_tag _amount initiator;
     e = mk_ssn_not_exists_error initiator;
     throw e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
@@ -1018,9 +1019,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     pass = builtin lt maxstake_tmp new_stake_amount;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
-      TransferFunds multisig_tag_addfunds _amount initiator;
-      e = mk_delegated_stake_deposit_above_stake_limit_event ssnaddr initiator _amount maxstake_tmp;
-      event e
+      e = mk_delegated_stake_deposit_above_stake_limit_error ssnaddr initiator _amount maxstake_tmp;
+      throw e
     | False => 
       last_reward_cycle <- lastrewardcycle;
       (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
