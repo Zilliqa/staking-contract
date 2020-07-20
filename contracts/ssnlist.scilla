@@ -297,6 +297,12 @@ let mk_ssn_not_exists_error =
   fun (ssn : ByStr20) =>
     { _exception : "SSN doesn't exist"; ssn_address : ssn }
 
+
+let mk_delegator_not_exists_error =
+  fun (ssn : ByStr20) =>
+  fun (delegator : ByStr20) =>
+    { _exception : "Delegator doesn't exist"; ssn_address : ssn; delegator_address : delegator}
+
 let mk_ssn_already_exists_event =
   fun (ssn : ByStr20) =>
     { _eventname : "SSN already exists"; ssn_address : ssn }
@@ -315,11 +321,6 @@ let mk_delegator_added_event =
   fun (delegator : ByStr20) =>
     { _eventname : "Delegator added"; ssn_address : ssn; delegator_address : delegator }
 
-
-let mk_delegator_not_exists_event =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator doesn't exist"; ssn_address : ssn; delegator_address : delegator}
 
 let mk_ssn_removed_event =
   fun (ssn : ByStr20) =>
@@ -650,9 +651,107 @@ procedure HasRewardToWithdraw(ssnaddr : ByStr20, delegator : ByStr20)
     throw
   | False =>
   end
-  
-  
 end
+
+procedure DistributeStakeAmount(initiator: ByStr20, ssn: ByStr20)
+  delegator <- delegators[ssn][initiator];
+  last_reward_cycle <- lastrewardcycle;
+  ssn_option <- ssnlist[ssn];
+  match delegator with
+  | Some (Delegator amount) =>
+    (* first we need to make sure there is no deposit within buffered stake *)
+    has_buffered_value <- buffered_deposit_for_delegator[initiator][ssn][last_reward_cycle];
+    match has_buffered_value with
+    | Some value => throw
+    | None =>
+      HasRewardToWithdraw ssn initiator;
+      deposit_amount_option <- deposit_amount_for_delegator[initiator][ssn];
+      match deposit_amount_option with
+      | Some deposit_amount =>
+        delete buffered_deposit_for_delegator[initiator][ssn];
+        delete direct_deposit_for_delegator[initiator][ssn];
+        delete deposit_amount_for_delegator[initiator][ssn];
+        delete last_withdraw_cycle_for_delegator[initiator][ssn];
+        match ssn_option with
+        | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
+          new_amount = builtin sub stake_amount deposit_amount;
+          minstake_tmp <- minstake;
+          status = builtin lt minstake_tmp new_amount;
+          ssn_option = Ssn status new_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
+          ssnlist[ssn] := ssn_option;
+          new_amount_for_delegator = builtin sub amount deposit_amount;
+          delegator_option = Delegator new_amount_for_delegator;
+          delegators[ssn][initiator] := delegator_option;
+          TransferFunds multisig_tag_addfunds deposit_amount initiator;
+          e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
+          event e
+        | None =>
+          e = mk_delegator_has_buffered_deposit_error ssn initiator;
+          throw e
+        end
+      | None =>
+        e = mk_ssn_not_exists_error initiator;
+        throw e
+      end
+    end
+    
+  | None => 
+    e = mk_delegator_existence_failed_error ssn initiator;
+    throw e
+  end
+end
+
+
+procedure DistributeStakeRewards(delegator: ByStr20, ssn_operator: ByStr20)
+  last_withdraw_cycle_for_delegator_m <- last_withdraw_cycle_for_delegator[delegator][ssn_operator];
+  last_withdraw_cycle = block_or_zero last_withdraw_cycle_for_delegator_m;
+  last_reward_cycle <- lastrewardcycle;
+  reward_cycle_list <- reward_cycle_list;
+  list_between_fun = list_between last_withdraw_cycle last_reward_cycle;
+  list_between_fun_uint128 = @list_filter Uint128;
+
+  (* those are the cycles that we want to compute for computing rewards *)
+  list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
+
+  (* direct deposit *)
+  direct_deposit_for_delegator_m <- direct_deposit_for_delegator[delegator][ssn_operator];
+  direct_deposits_for_delegator = deposit_value_or_empty direct_deposit_for_delegator_m;
+
+  (* buffered deposit *)
+  buffered_deposit_for_delegator_m <- buffered_deposit_for_delegator[delegator][ssn_operator];
+  buffered_deposits_for_delegator = deposit_value_or_empty buffered_deposit_for_delegator_m;
+
+  (* combine two deposit list *)
+  init_map = Emp Uint128 Uint128;
+  foldl = @list_foldl Uint128 Map Uint128 Uint128;
+  staking_init_map = Emp Uint128 Uint128;
+  iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
+  combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
+
+
+  (* to calculate final staking per cycle for delegators *)
+  iter = caculate_all_stake_per_cycle combined_direct_and_buffered_map;
+  stake_delegator_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
+
+  stake_ssn_per_cycle_m <- stake_ssn_per_cycle[ssn_operator];
+  match stake_ssn_per_cycle_m with 
+  | Some stake_ssn_per_cycle =>
+    (* to calculate staking rewards per cycle for delegator *)
+    reward_per_cycle_for_delegator_init = Emp Uint128 DelegatorAndRewards;
+    foldl_a = @list_foldl Uint128 Map Uint128 DelegatorAndRewards;
+    calculate_rewards_per_cycle_for_delegator_iter = calculate_rewards_per_cycle_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
+    rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycle_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
+
+    (* to send those rewards and update last withdraw cycle of delegator *)
+    rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
+    forall rewards_delegator_per_cycle_list SendDelegatorRewards;
+    last_withdraw_cycle_for_delegator[delegator][ssn_operator] := last_reward_cycle;
+    e = mk_update_delegate_cycle_event ssn_operator delegator;
+    event e
+  | None => (* ssn has no rewards *)
+  end    
+end
+
 
 
 (* Transitions *)
@@ -831,7 +930,6 @@ end
 (* @param ssnaddr: Address of the ssn *)
 (* @param delegator: Address of the delegator to be removed *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO: Refund SSN delegators *)
 transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -839,9 +937,12 @@ transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20, initiator : B
   already_exists <- exists delegators[ssnaddr][delegator];
   match already_exists with
   | False =>
-    e = mk_delegator_not_exists_event ssnaddr delegator;
-    event e
+    e = mk_delegator_not_exists_error ssnaddr delegator;
+    throw e
   | True =>
+    (* Refund SSN delegators *)
+    DistributeStakeRewards delegator ssnaddr;
+    DistributeStakeAmount delegator ssnaddr;
     delete delegators[ssnaddr][delegator];
     delete deposit_amount_for_delegator[delegator][ssnaddr];
     e = mk_delegator_removed_event ssnaddr delegator;
@@ -977,8 +1078,8 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator : B
   reward_cycle_list := new_reward_cycle_list
 end
 
-(* TODO: Add description *)
-(* Throw exception if SSN do not exists *)
+(* @dev: Withdraw commission. Can be called by a ssn operator. *)
+(* @param initiator: The original caller who called the proxy *)
 transition WithdrawCommission(initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -997,117 +1098,23 @@ transition WithdrawCommission(initiator : ByStr20)
 end
 
 
-
 (* @dev: Withdraw stake reward. Can be called by a delegator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawStakeRewards(ssn_operator : ByStr20, delegator : ByStr20)
   IsPaused;
   CallerIsProxy;
   DelegatorExists ssn_operator delegator;
-  last_withdraw_cycle_for_delegator_m <- last_withdraw_cycle_for_delegator[delegator][ssn_operator];
-  last_withdraw_cycle = block_or_zero last_withdraw_cycle_for_delegator_m;
-  last_reward_cycle <- lastrewardcycle;
-  reward_cycle_list <- reward_cycle_list;
-  list_between_fun = list_between last_withdraw_cycle last_reward_cycle;
-  list_between_fun_uint128 = @list_filter Uint128;
-
-  (* those are the cycles that we want to compute for computing rewards *)
-  list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
-
-  (* direct deposit *)
-  direct_deposit_for_delegator_m <- direct_deposit_for_delegator[delegator][ssn_operator];
-  direct_deposits_for_delegator = deposit_value_or_empty direct_deposit_for_delegator_m;
-
-  (* buffered deposit *)
-  buffered_deposit_for_delegator_m <- buffered_deposit_for_delegator[delegator][ssn_operator];
-  buffered_deposits_for_delegator = deposit_value_or_empty buffered_deposit_for_delegator_m;
-
-  (* combine two deposit list *)
-  init_map = Emp Uint128 Uint128;
-  foldl = @list_foldl Uint128 Map Uint128 Uint128;
-  staking_init_map = Emp Uint128 Uint128;
-  iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
-  combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
-
-
-  (* to calculate final staking per cycle for delegators *)
-  iter = caculate_all_stake_per_cycle combined_direct_and_buffered_map;
-  stake_delegator_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
-
-  stake_ssn_per_cycle_m <- stake_ssn_per_cycle[ssn_operator];
-  match stake_ssn_per_cycle_m with 
-  | Some stake_ssn_per_cycle =>
-    (* to calculate staking rewards per cycle for delegator *)
-    reward_per_cycle_for_delegator_init = Emp Uint128 DelegatorAndRewards;
-    foldl_a = @list_foldl Uint128 Map Uint128 DelegatorAndRewards;
-    calculate_rewards_per_cycle_for_delegator_iter = calculate_rewards_per_cycle_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
-    rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycle_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
-
-    (* to send those rewards and update last withdraw cycle of delegator *)
-    rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
-    forall rewards_delegator_per_cycle_list SendDelegatorRewards;
-    last_withdraw_cycle_for_delegator[delegator][ssn_operator] := last_reward_cycle;
-    e = mk_update_delegate_cycle_event ssn_operator delegator;
-    event e
-  | None => (* ssn has no rewards *)
-  end    
+  DistributeStakeRewards delegator ssn_operator
 end
 
 (* @dev: Withdraw all amount owed by the contract. Used by delegators. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
 (* @param initiator: The original caller who called the proxy. *)
 (* @note: Withdraws stake + buffer + reward in one go. *)
-(* TODO Redo this *)
-(* Xiaohuo: its not easy to send all in one, but I just do withdraw stake amount there *)
-(* to withdraw deposit amount, there is no deposit still in buffer, and all rewards should be withdrawn already *)
 transition WithdrawStakeAmount(ssn: ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
-  delegator <- delegators[ssn][initiator];
-  last_reward_cycle <- lastrewardcycle;
-  ssn_option <- ssnlist[ssn];
-  match delegator with
-  | Some (Delegator amount) =>
-    (* first we need to make sure there is no deposit within buffered stake *)
-    has_buffered_value <- buffered_deposit_for_delegator[initiator][ssn][last_reward_cycle];
-    match has_buffered_value with
-    | Some value => throw
-    | None =>
-      HasRewardToWithdraw ssn initiator;
-      deposit_amount_option <- deposit_amount_for_delegator[initiator][ssn];
-      match deposit_amount_option with
-      | Some deposit_amount =>
-        delete buffered_deposit_for_delegator[initiator][ssn];
-        delete direct_deposit_for_delegator[initiator][ssn];
-        delete deposit_amount_for_delegator[initiator][ssn];
-        delete last_withdraw_cycle_for_delegator[initiator][ssn];
-        match ssn_option with
-        | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
-          new_amount = builtin sub stake_amount deposit_amount;
-          minstake_tmp <- minstake;
-          status = builtin lt minstake_tmp new_amount;
-          ssn_option = Ssn status new_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
-          ssnlist[ssn] := ssn_option;
-          new_amount_for_delegator = builtin sub amount deposit_amount;
-          delegator_option = Delegator new_amount_for_delegator;
-          delegators[ssn][initiator] := delegator_option;
-          TransferFunds multisig_tag_addfunds deposit_amount initiator;
-          e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
-          event e
-        | None =>
-          e = mk_delegator_has_buffered_deposit_error ssn initiator;
-          throw e
-        end
-      | None =>
-        e = mk_ssn_not_exists_error initiator;
-        throw e
-      end
-    end
-    
-  | None => 
-    e = mk_delegator_existence_failed_error ssn initiator;
-    throw e
-  end
+  DistributeStakeAmount initiator ssn
 end
 
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
