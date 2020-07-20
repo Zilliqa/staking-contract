@@ -238,12 +238,29 @@ let calculate_rewards_per_cycle_for_delegator =
       | None => uint128_zero
       end
           
-
+let uint128_less_or_equal = 
+  fun (a : Uint128) =>
+    fun (b : Uint128) =>
+      let less = builtin lt a b in
+      match less with
+      | True => True
+      | False =>
+        let equal = builtin eq a b in
+        match equal with
+        | True => True
+        | False => False
+        end
+      end
+          
+    
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
 let empty_tag = ""
 let multisig_tag_addfunds = "AddFunds"
+
+
+
 
 
 (* errors and events *)
@@ -999,7 +1016,6 @@ end
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the delegator wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the delegator. *)
-(* TODO: minstake_tmp new_stake_amount should be greater or equal to min stake *)
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
@@ -1043,7 +1059,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       | False =>
         (* The SSN is inactive so add the delegated stake to stake_amount *)
         new_stake_amount  = builtin add _amount stake_amount;
-        status = builtin lt minstake_tmp new_stake_amount;
+        status = uint128_less_or_equal minstake_tmp new_stake_amount;
         (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
         ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
