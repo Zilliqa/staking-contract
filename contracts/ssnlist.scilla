@@ -1,6 +1,6 @@
 scilla_version 0
 
-import ListUtils
+import ListUtils IntUtils
 
 library SSNList
 
@@ -237,21 +237,6 @@ let calculate_rewards_per_cycle_for_delegator =
       | Some value => value
       | None => uint128_zero
       end
-          
-let uint128_less_or_equal = 
-  fun (a : Uint128) =>
-    fun (b : Uint128) =>
-      let less = builtin lt a b in
-      match less with
-      | True => True
-      | False =>
-        let equal = builtin eq a b in
-        match equal with
-        | True => True
-        | False => False
-        end
-      end
-          
     
 let bool_active = True
 let bool_inactive = False
@@ -1059,7 +1044,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       | False =>
         (* The SSN is inactive so add the delegated stake to stake_amount *)
         new_stake_amount  = builtin add _amount stake_amount;
-        status = uint128_less_or_equal minstake_tmp new_stake_amount;
+        status = uint128_le minstake_tmp new_stake_amount;
         (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
         ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
