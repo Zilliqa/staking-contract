@@ -92,8 +92,8 @@ type ProxyTransaction =
 | UpdateVerifier of ByStr20
 (* DrainContractBalance () *)
 | DrainContractBalance
-(* UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
-| UpdateStakingParameter of Uint128 Uint128 Uint128
+(* UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
+| UpdateStakingParameters of Uint128 Uint128 Uint128
 (* AddSSN (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
 | AddSSN of ByStr20 Uint128 Uint128 String String Uint128
 (* RemoveSSN (ssnaddr : ByStr20) *)
@@ -202,10 +202,10 @@ let custom_transaction_msg_as_list =
         {_recipient : proxyContract;
          _tag : "DrainContractBalance";
          _amount : Uint128 0}
-      | UpdateStakingParameter min_stake max_stake contract_max_stake =>
+      | UpdateStakingParameters min_stake max_stake contract_max_stake =>
         (* UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
         {_recipient : proxyContract ;
-          _tag : "UpdateStakingParameter";
+          _tag : "UpdateStakingParameters";
           _amount : zeroUint128;
           min_stake : min_stake;
           max_stake : max_stake;
@@ -543,8 +543,8 @@ transition SubmitCustomDrainContractBalanceTransaction (proxyContract : ByStr20)
 end
 
 (* Submit a new ContractStakingParameter transaction for future signoff *)
-transition SubmitCustomUpdateStakingParameterTransaction (proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
-  transaction = UpdateStakingParameter min_stake max_stake contract_max_stake;
+transition SubmitCustomUpdateStakingParametersTransaction (proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
+  transaction = UpdateStakingParameters min_stake max_stake contract_max_stake;
   SubmitCustomTransaction proxyContract transaction
 end
 

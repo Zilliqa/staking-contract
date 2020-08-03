@@ -100,9 +100,9 @@ end
 (* @param min_stake: New min_stake value *)
 (* @param max_stake: New maxstake value *)
 (* @param contract_max_stake: New contract_max_stake value *)
-transition UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
+transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateStakingParameter"; _recipient : current_impl; _amount : zero; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake; initiator : _sender};
+    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end

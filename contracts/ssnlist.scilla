@@ -277,7 +277,7 @@ let mk_stake_deposit_below_min_for_ssn_error =
         { _exception : "Delegator stake deposit below min_stake for this SSN"; delegator : delegator; ssn : ssn; stake : amount}
         
         
-let mk_update_staking_parameter_error =
+let mk_update_staking_parameters_error =
   fun (sender : ByStr20) =>
   fun (min_stake : Uint128) =>
   fun (max_stake : Uint128) =>
@@ -435,7 +435,7 @@ let mk_withdraw_stake_rewards_event =
     fun (buffdeposit: Uint128) =>
       { _eventname : "SSN withdrawal not allowed when some deposit is bufferred"; ssn_address : ssn; buffered_stake_amount : buffdeposit }
       
- let mk_update_staking_parameter_event =
+ let mk_update_staking_parameters_event =
     fun (sender : ByStr20) =>
       { _eventname : "Update staking parameter event"; sender : sender}
 
@@ -815,7 +815,7 @@ end
 (* @param max_stake: New maxstake value *)
 (* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
   CallerIsProxy;
   CallerIsAdmin initiator;
   min_less_than_max = builtin lt min_stake max_stake;
@@ -827,14 +827,14 @@ transition UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, con
       minstake := min_stake;
       maxstake := max_stake;
       contractmaxstake := contract_max_stake;
-      e = mk_update_staking_parameter_event initiator;
+      e = mk_update_staking_parameters_event initiator;
       event e
     | False =>
-      e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
+      e = mk_update_staking_parameters_error initiator min_stake max_stake contract_max_stake;
       throw e
     end
   | False =>
-     e = mk_update_staking_parameter_error initiator min_stake max_stake contract_max_stake;
+     e = mk_update_staking_parameters_error initiator min_stake max_stake contract_max_stake;
      throw e
   end
 
