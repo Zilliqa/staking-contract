@@ -1,19 +1,15 @@
 scilla_version 0
-
 import ListUtils IntUtils
-
 library SSNList
-
 (* A non-custodial staking contract with admin privileges *)
-
 (* SSN Data Type *)
-(* 
+(*
   Each SSN has the following fields:
 
   ActiveStatus      : Bool
                       Represents whether the SSN has the minnimum stake amount and therefore ready to participate in staking and receive rewards.
   StakeAmount       : Uint128
-                      Total stake that can be used for reward calculation. 
+                      Total stake that can be used for reward calculation.
   StakeRewards      : Uint128
                       (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegators.
                       It does not include SSN's own commission.
@@ -21,7 +17,7 @@ library SSNList
                       A human-readable name for this SSN.
   URLRaw            : String
                       Represents "ip:port" of the SSN serving raw API requests.
-  URLApi            : String 
+  URLApi            : String
                       Representing URL exposed by SSN serving public API requests.
   BufferedDeposit   : Uint128
                       Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered
@@ -32,15 +28,13 @@ library SSNList
                       Number of ZILs earned as commission by the SSN.
   ReceivedAddress   : ByStr20
                       Address will be used to receive commission.
-*)    
+*)
 (* Invariant 1: StakeAmount + BufferedDeposit < MaxStake < ContractMaxStake *)
 (* Invariant 2: ActiveStatus = (Minstake < StakeAmount)  *)
-
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
-
 (* SSNRewardShare Data Type *)
-(* 
+(*
   SSNRewardShare has the following fields:
 
   SSNAddress        : ByStr20
@@ -50,84 +44,69 @@ type Ssn =
                       If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer.
                       If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs.
 *)
-    
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
-
-
 (* Delegator Data Type *)
-(* 
+(*
     Each delegator has the following fields:
 
     StakeAmount       : Uint128
-                        Represents the amount staked so far. This is the sum total of amount staked across all SSNs. 
-*)    
-
+                        Represents the amount staked so far. This is the sum total of amount staked across all SSNs.
+*)
 type Delegator =
 | Delegator of Uint128
-
 (* DelegatorCycleInfo Data Type *)
-(* 
+(*
     Each DelegatorCycleInfo has the following fields:
     SSNAddress          : ByStr20
                           Address of the SSN.
-    StakeDuringTheCycle : Uint128 
+    StakeDuringTheCycle : Uint128
                           Represents the amount staked during this cycle for the given SSN.
     DelegatorAddress    : ByStr20
-                          Address of Delegator. 
-*)    
-
-type DelegatorCycleInfo = 
+                          Address of Delegator.
+*)
+type DelegatorCycleInfo =
 | DelegatorCycleInfo of ByStr20 Uint128 ByStr20
-
 (* SSNCycleInfo Data Type *)
-(* 
+(*
     Each SSNCycleInfo has the following fields:
-    TotalStakeDuringTheCycle            : Uint128 
+    TotalStakeDuringTheCycle            : Uint128
                                           Represents the amount staked during this cycle for the given SSN.
-    TotalRewardEarnedDuringTheCycle    : Uint128 
+    TotalRewardEarnedDuringTheCycle    : Uint128
                                          Represents the amount staked during this cycle for the given SSN.
-*)    
-
+*)
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
-
 (* DelegatorAndRewards Data Type *)
-(* 
+(*
     Each DelegatorAndRewards has the following fields:
     DelegatorAddress    : ByStr20
                           Address of Delegator.
-    RewardToBeSent      : Uint128 
+    RewardToBeSent      : Uint128
                           Reward that can be sent to the delegator.
-*)    
-
-type DelegatorAndRewards = 
+*)
+type DelegatorAndRewards =
 | DelegatorAndRewards of ByStr20 Uint128
-
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
-
 let uint128_one =  Uint128 1
-
 let uint128_zero = Uint128 0
-
 (* This function help us to tell if current block number need to be reward *)
-let reward_filter = 
+let reward_filter =
   fun (lastrewardcycle : Uint128) =>
-    fun (current_pair : Pair Uint128 DelegatorCycleInfo) => 
+    fun (current_pair : Pair Uint128 DelegatorCycleInfo) =>
         match current_pair with
         | Pair currentblock (DelegatorCycleInfo ssn block delegator) =>
           builtin lt lastrewardcycle currentblock
       end
-
 (* left < element <= right *)
 (* This function is used for filting out those cycles that need to compute rewards for delegators *)
 let list_between =
   fun (left : Uint128) =>
     fun (right : Uint128) =>
-      fun (element : Uint128) => 
+      fun (element : Uint128) =>
         let res = builtin lt left element in
         match res with
         | True =>
@@ -138,17 +117,16 @@ let list_between =
           end
         | False => False
         end
-
 (* This function is used for calculating the exact staking amount per cycle for delegators *)
 (* Example: *)
 (* Input: [1:1000,2:2000,3:3000] *)
 (* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
-let caculate_all_stake_per_cycle = 
-  fun (delegate_map : Map Uint128 Uint128) => 
-    fun (result_map : Map Uint128 Uint128) => 
+let caculate_all_stake_per_cycle =
+  fun (delegate_map : Map Uint128 Uint128) =>
+    fun (result_map : Map Uint128 Uint128) =>
       fun(k : Uint128) =>
         let m = builtin sub k uint128_one in
-        let result_map_o = builtin get result_map m in 
+        let result_map_o = builtin get result_map m in
         let delegate_map_o = builtin get delegate_map k in
         match result_map_o with
         | Some last_amount =>
@@ -166,16 +144,15 @@ let caculate_all_stake_per_cycle =
           | None =>  result_map
           end
         end
-
 (* This function is used for combining direct deposit and buffered deposit into one with correct secquence *)
 (* Example: *)
 (* Direct deposit: [1:1000,2:2000:3:3000] *)
 (* Buffered deposit: [1:1000,2:2000:3:3000]*)
 (* Result deposit: [1:1000,2:2000+1000:3:3000+2000] *)
-let combine_buffered_and_direct = 
+let combine_buffered_and_direct =
   fun (direct : Map Uint128 Uint128) =>
     fun (buffered : Map Uint128 Uint128) =>
-      fun(result : Map Uint128 Uint128) => 
+      fun(result : Map Uint128 Uint128) =>
         fun(k : Uint128) =>
           let m = builtin sub k uint128_one in
            (* if it takes effect from this cycle, then it must be deposited in last cycle *)
@@ -185,7 +162,7 @@ let combine_buffered_and_direct =
           | Some direct_amount =>
             match buffered_o with
             | Some buffered_amount =>
-              let amount = builtin add direct_amount buffered_amount in 
+              let amount = builtin add direct_amount buffered_amount in
               builtin put result k amount
             | None =>
               builtin put result k direct_amount
@@ -193,18 +170,17 @@ let combine_buffered_and_direct =
           | None =>
             match buffered_o with
             | Some buffered_amount =>
-              builtin put result k buffered_amount 
+              builtin put result k buffered_amount
             | None =>
               result
             end
           end
-
-let calculate_rewards_per_cycle_for_delegator = 
+let calculate_rewards_per_cycle_for_delegator =
   fun (delegator : ByStr20) =>
   fun (staking_per_cycle_for_delegator : Map Uint128 Uint128) =>
     fun (staking_and_rewards_per_cycle_for_ssn : Map Uint128 SSNCycleInfo) =>
       (* record rewards should be sent per cycle for delegator *)
-      fun (result_map : Map Uint128 DelegatorAndRewards) => 
+      fun (result_map : Map Uint128 DelegatorAndRewards) =>
         fun (cycle : Uint128) =>
           let staking_per_cycle_for_delegator_o = builtin get staking_per_cycle_for_delegator cycle in
           let staking_and_rewards_per_cycle_for_ssn_o = builtin get staking_and_rewards_per_cycle_for_ssn cycle in
@@ -223,239 +199,60 @@ let calculate_rewards_per_cycle_for_delegator =
             end
           | None => result_map
           end
-
-  let deposit_value_or_empty = 
+  let deposit_value_or_empty =
     fun (optional_value : Option (Map Uint128 Uint128)) =>
       match optional_value with
       | Some value => value
       | None =>  Emp Uint128 Uint128
       end
-
-  let block_or_zero = 
+  let block_or_zero =
     fun (optional_value : Option Uint128) =>
       match optional_value with
       | Some value => value
       | None => uint128_zero
       end
-    
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
 let empty_tag = ""
 let multisig_tag_addfunds = "AddFunds"
-
-
-
-
-
-(* errors and events *)
-let mk_contract_frozen_error =
-  fun (sender : ByStr20) =>
-    { _exception : "Contract freezed failure"; sender : sender }
-
-let mk_verifier_validation_failed_error =
-  fun (sender : ByStr20) =>
-    { _exception : "Verifier validation failed"; sender : sender }
-
-let mk_admin_validation_failed_error =
-  fun (sender : ByStr20) =>
-    { _exception : "Admin validation failed"; sender : sender }
-
-let mk_proxy_validation_failed_error =
-  fun (sender : ByStr20) =>
-    { _exception : "Proxy validation failed"; sender : sender }
-
-let mk_delegator_existence_failed_error =
-    fun (ssn : ByStr20) =>
-    fun (delegator : ByStr20) =>
-      { _exception : "Delegator does not exist at SSN"; delegator : delegator; ssn : ssn}
-
-let mk_stake_deposit_below_min_for_ssn_error =
-      fun (ssn : ByStr20) =>
-      fun (delegator : ByStr20) =>
-      fun (amount : Uint128) =>
-        { _exception : "Delegator stake deposit below min_stake for this SSN"; delegator : delegator; ssn : ssn; stake : amount}
-        
-        
-let mk_update_staking_parameters_error =
-  fun (sender : ByStr20) =>
-  fun (min_stake : Uint128) =>
-  fun (max_stake : Uint128) =>
-  fun (contract_max_stake : Uint128) =>
-    { _exception : "Update staking parameter error"; sender : sender; min_stake : min_stake; max_stake : max_stake; contract_max_stake : contract_max_stake }
-
- 
-let mk_delegator_has_buffered_deposit_error = 
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _exception : "Delegator still has buffered deposit"; ssn_address : ssn; delegator_address : delegator }
-
-let mk_change_commission_error = 
-  fun (ssn : ByStr20) =>
-    { _exception : "SSN has already set a commission for this cycle"; ssn_address : ssn}
-    
-
-let mk_ssn_not_exists_error =
-  fun (ssn : ByStr20) =>
-    { _exception : "SSN doesn't exist"; ssn_address : ssn }
-
-
-let mk_delegator_not_exists_error =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _exception : "Delegator doesn't exist"; ssn_address : ssn; delegator_address : delegator}
-
-
-let mk_delegated_stake_deposit_above_stake_limit_error =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-  fun (amount : Uint128) =>
-  fun (maxstake : Uint128) =>
-    { _exception : "Delegator stake deposit above max_stake limit"; ssn_address : ssn; delegator_address : delegator; requested_deposit : amount; max_stake : maxstake }
-  
-
-let mk_ssn_already_exists_event =
-  fun (ssn : ByStr20) =>
-    { _eventname : "SSN already exists"; ssn_address : ssn }
-
-let mk_delegator_already_exists_event =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator already exists"; ssn_address : ssn; delegator_address : delegator }
-
-let mk_ssn_added_event =
-  fun (ssn : ByStr20) =>
-    { _eventname : "SSN added"; ssn_address : ssn }
-
-let mk_delegator_added_event =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator added"; ssn_address : ssn; delegator_address : delegator }
-
-
-let mk_ssn_removed_event =
-  fun (ssn : ByStr20) =>
-    { _eventname : "SSN removed"; ssn_address : ssn }
-
-let mk_delegator_removed_event =
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator removed"; ssn_address : ssn; delegator_address : delegator}
-
-let mk_stake_deposit_event =
-  fun (ssn : ByStr20) =>
-  fun (amount : Uint128) =>
-    { _eventname : "SSN updated stake"; ssn_address : ssn; new_stake_amount : amount }
-
-let mk_delegate_stake_deposit_event =
-    fun (ssn : ByStr20) =>
-    fun (delegator : ByStr20) =>
-    fun (amount : Uint128) =>
-      { _eventname : "Stake Delegated"; ssn_address : ssn; delegator : delegator; stake_amount : amount }
-
-let mk_stake_deposit_below_stake_limit_event =
-  fun (ssn : ByStr20) =>
-  fun (amount : Uint128) =>
-  fun (minstake : Uint128) =>
-    { _eventname : "SSN stake deposit below min_stake limit"; ssn_address : ssn; requested_deposit : amount; min_stake : minstake }
-
-let mk_stake_deposit_above_stake_limit_event =
-  fun (ssn : ByStr20) =>
-  fun (amount : Uint128) =>
-  fun (maxstake : Uint128) =>
-    { _eventname : "SSN stake deposit above max_stake limit"; ssn_address : ssn; requested_deposit : amount; max_stake : maxstake }
-
-
-let mk_total_stake_deposit_above_contract_stake_limit_event =
-  fun (ssn : ByStr20) =>
-  fun (amount : Uint128) =>
-  fun (contractmaxstake : Uint128) =>
-    { _eventname : "SSN stake deposit will result in contract stake deposit go above limit"; ssn_address : ssn; requested_deposit : amount; contract_max_stake : contractmaxstake }
-
-let mk_delegator_no_withdraw_record_event = 
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator no withdraw record"; ssn_address : ssn; delegator_address : delegator }
-
-let mk_delegator_withdraw_rewards_event = 
-  fun (ssn: ByStr20) =>
-  fun (delegator : ByStr20) => 
-  fun (amount : Uint128) =>
-    { _eventname : "Delegator withdraw rewards"; ssn_address : ssn; delegator_address : delegator; rewards_amount : amount }
-
-let mk_delegator_withdraw_deposit_amount_event = 
-  fun (ssn: ByStr20) =>
-  fun (delegator: ByStr20) =>
-  fun (amount: Uint128) =>
-    { _eventname : "Delegator withdraw deposit"; ssn_address : ssn; delegator_address : delegator; deposit_amount : amount }
-
-
-let mk_delegator_rewards_event = 
-  fun (ssn : ByStr20) => 
-  fun (delegator : ByStr20) =>
-  fun (rewards : Uint128) =>
-    { _eventname : "Delegator rewards"; ssn_address : ssn; delegator_address : delegator; rewards : rewards}
-
-let mk_delegator_withdraw_all_event = 
-  fun (ssn : ByStr20) =>
-    fun (delegator : ByStr20) =>
-      { _eventname : "Delegator withdraws entire amount"; ssn_address : ssn; delegator_address : delegator}
-
-
-let mk_update_delegate_cycle_event = 
-  fun (ssn : ByStr20) =>
-  fun (delegator : ByStr20) =>
-    { _eventname : "Delegator update cycle"; ssn_address : ssn; delegator_address : delegator }
-
-let mk_assign_stake_reward_event =
-  fun (ssn : ByStr20) =>
-  fun (total_reward : Uint128) =>
-    { _eventname : "SSN assign reward"; ssn_address : ssn; total_reward : total_reward }
-
-let mk_withdraw_stake_rewards_event =
-  fun (ssn : ByStr20) =>
-  fun (total_reward: Uint128) =>
-    { _eventname : "SSN withdraw reward"; ssn_address : ssn; withdraw_total_reward : total_reward }
-
- let mk_deposit_funds_event =
-  fun (sender : ByStr20) =>
-    { _eventname : "Verifier deposit funds"; verifier : sender }
-
- let mk_withdraw_below_stake_limit_event =
-    fun (ssn : ByStr20) =>
-    fun (minstake: Uint128) =>
-      { _eventname : "SSN withdrawal below min_stake limit"; ssn_address : ssn; minstake_limit : minstake }
-
- let mk_withdraw_above_stake_event =
-    fun (ssn : ByStr20) =>
-      { _eventname : "SSN withdrawal above stake"; ssn_address : ssn }
-
- let mk_withdraw_stake_buffered_deposit_exist =
-    fun (ssn : ByStr20) =>
-    fun (buffdeposit: Uint128) =>
-      { _eventname : "SSN withdrawal not allowed when some deposit is bufferred"; ssn_address : ssn; buffered_stake_amount : buffdeposit }
-      
- let mk_update_staking_parameters_event =
-    fun (sender : ByStr20) =>
-      { _eventname : "Update staking parameter event"; sender : sender}
-
- let mk_send_delegator_rewards_event = 
-    fun (address : ByStr20) =>
-    fun (amount : Uint128) =>
-      { _eventname : "Send delegator rewards event"; address : address; amount :  amount}
-
-
-
+type Error =
+  | ContractFreezedFailure
+  | VerifierValidationFailed
+  | AdminValidationFailed
+  | ProxyValidationFailed
+  | DelegatorDoesNotExistAtSSN
+  | DelegatorDepositBlowMin
+  | UpdateStakingParamError
+  | DelegatorHasBufferedDeposit
+  | ChangeCommissionError
+  | SSNNotExist
+  | DelegatorNotExist
+let make_error =
+  fun (result : Error) =>
+    let result_code =
+      match result with
+      | ContractFreezedFailure => Int32 -1
+      | VerifierValidationFailed => Int32 -2
+      | AdminValidationFailed => Int32 -3
+      | ProxyValidationFailed => Int32 -4
+      | DelegatorDoesNotExistAtSSN => Int32 -5
+      | DelegatorDepositBlowMin => Int32 -6
+      | UpdateStakingParamError => Int32 -7
+      | DelegatorHasBufferedDeposit => Int32 -8
+      | ChangeCommissionError => Int32 -9
+      | SSNNotExist => Int32 -10
+      | DelegatorNotExist => Int32 -11
+      end
+    in
+    { _exception : "Error"; code : result_code }
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
-
 contract SSNList(
   init_admin : ByStr20,
   proxy_address : ByStr20
 )
-
-
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
@@ -481,7 +278,7 @@ field deposit_amount_for_delegator : Map ByStr20 (Map ByStr20 Uint128) = Emp ByS
 (* Record commission for ssn of every cycle*)
 (* AddressofSSN -> (Cycle -> commission ) *)
 field commission_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
-field reward_cycle_list : List Uint128   =  Nil {Uint128} 
+field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
 field maxstake : Uint128 = Uint128 0
@@ -491,9 +288,12 @@ field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = Uint128 0
 field paused : Bool = True
-
 (* Procedures *)
-
+(* Internal functions, used like Solidity modifiers *)
+procedure ThrowError(err : Error)
+  e = make_error err;
+  throw e
+end
 (* Check if the initiator is verifier *)
 procedure CallerIsVerifier (initiator : ByStr20)
   verifier_tmp <- verifier;
@@ -503,49 +303,45 @@ procedure CallerIsVerifier (initiator : ByStr20)
     match is_verifier with
     | True =>
     | False =>
-      e = mk_verifier_validation_failed_error initiator;
-      throw e
+      e = VerifierValidationFailed;
+      ThrowError e
     end
   | None =>
-    e = mk_admin_validation_failed_error initiator;
-    throw e
+    e = AdminValidationFailed;
+    ThrowError e
   end
 end
-
 (* Check if the initiator is admin *)
 procedure CallerIsAdmin(initiator : ByStr20)
   contractadmin_tmp <- contractadmin;
   is_admin = builtin eq initiator contractadmin_tmp;
   match is_admin with
-  | True  => 
+  | True  =>
   | False =>
-    e = mk_admin_validation_failed_error initiator;
-    throw e
+    e = AdminValidationFailed;
+    ThrowError e
   end
 end
-
 (* Check if the caller is the proxy *)
 procedure CallerIsProxy()
   is_proxy = builtin eq _sender proxy_address;
   match is_proxy with
   | True  =>
   | False =>
-    e = mk_proxy_validation_failed_error _sender;
-    throw e
+    e = ProxyValidationFailed;
+    ThrowError e
   end
 end
-
 (* Check if the contract is paused *)
 procedure IsPaused()
   paused_tmp <- paused;
   match paused_tmp with
   | False =>
   | True  =>
-    e = mk_contract_frozen_error _sender;
-    throw e
+    e = ContractFreezedFailure;
+    ThrowError e
   end
 end
-
 (* Can be called by the contract admin only *)
 (* It is expected that transfer only happens to an exterally owned account*)
 procedure TransferFunds(tag: String, amount : Uint128, recipient : ByStr20)
@@ -553,8 +349,6 @@ procedure TransferFunds(tag: String, amount : Uint128, recipient : ByStr20)
     msgs = one_msg msg;
     send msgs
 end
-
-
 procedure UpdateStakeReward(entry : SsnRewardShare)
   lastreward_block <- lastrewardcycle;
   match entry with
@@ -562,41 +356,35 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
-      e = mk_ssn_not_exists_error ssnaddr;
-      throw e
+      e = SSNNotExist;
+      ThrowError e
     | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
       match active_status with
       | False => throw
-      | True  => 
+      | True  =>
         hundred = Uint128 100;
-
         new_reward = builtin mul stake_amount reward_percent;
         new_reward = builtin div new_reward hundred;
         new_reward = builtin div new_reward uint128_10_power_7;
-       
         reward_commission_tmp = builtin mul new_reward commission;
         reward_commission_tmp = builtin div reward_commission_tmp hundred;
         reward_commission_tmp = builtin div reward_commission_tmp uint128_10_power_7;
         total_reward_commission = builtin add reward_commission_tmp commission_rewards;
-
-
         reward_should_be_given = builtin sub new_reward total_reward_commission;
         delegator_reward = builtin add reward_should_be_given rewards;
-
         new_stake_amount = builtin add stake_amount buffereddeposit;
         (* During this cylce, the SSN only earned t as rewards that could be given to delegators *)
         p = SSNCycleInfo stake_amount reward_should_be_given;
         stake_ssn_per_cycle[ssnaddr][lastreward_block] := p;
-
         ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission received_address;
         ssnlist[ssnaddr] := ssn;
-        e = mk_assign_stake_reward_event ssnaddr total_reward_commission;
+        e = { _eventname : "SSN assign reward"; ssn_address : ssnaddr; total_reward : total_reward_commission };
+
         event e
       end
     end
   end
 end
-
 (* this procedure is to send rewards to delegator for every reward cycle *)
 procedure SendDelegatorRewards(entry : Pair Uint128 DelegatorAndRewards)
   match entry with
@@ -604,24 +392,21 @@ procedure SendDelegatorRewards(entry : Pair Uint128 DelegatorAndRewards)
     match delegator_and_rewards with
     | DelegatorAndRewards address amount =>
       TransferFunds multisig_tag_addfunds amount address;
-      e = mk_send_delegator_rewards_event address amount;
+      e = { _eventname : "Send delegator rewards event"; address : address; amount :  amount};
       event e
     end
   end
 end
-
-
 (* Check if a delegators exists for a given SSN *)
 procedure DelegatorExists(ssnaddr: ByStr20, delegator: ByStr20)
   if_exists <- exists delegators[ssnaddr][delegator];
   match if_exists with
   | True  =>
-  | False => 
-    e = mk_delegator_existence_failed_error delegator ssnaddr;  
-    throw e
+  | False =>
+    e = DelegatorDoesNotExistAtSSN;
+    ThrowError e
     end
 end
-
 procedure FillInDelegatorAmount(ssnaddr: ByStr20, delegator : ByStr20)
   deposit_amount <- deposit_amount_for_delegator[delegator][ssnaddr];
   match deposit_amount with
@@ -632,7 +417,6 @@ procedure FillInDelegatorAmount(ssnaddr: ByStr20, delegator : ByStr20)
     deposit_amount_for_delegator[delegator][ssnaddr] := _amount
   end
 end
-
 procedure FillInDelegators(ssnaddr : ByStr20, delegator : ByStr20)
   d <- delegators[ssnaddr][delegator];
   match d with
@@ -645,7 +429,6 @@ procedure FillInDelegators(ssnaddr : ByStr20, delegator : ByStr20)
     delegators[ssnaddr][delegator] := d_new
   end
 end
-
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, delegator : ByStr20)
   last_reward_cycle_for_delegator_tmp <- last_withdraw_cycle_for_delegator[delegator][ssnaddr];
   last_reward_cycle_for_delegator = block_or_zero last_reward_cycle_for_delegator_tmp;
@@ -657,7 +440,6 @@ procedure HasRewardToWithdraw(ssnaddr : ByStr20, delegator : ByStr20)
   | False =>
   end
 end
-
 procedure DistributeStakeAmount(initiator: ByStr20, ssn: ByStr20)
   delegator <- delegators[ssn][initiator];
   last_reward_cycle <- lastrewardcycle;
@@ -688,25 +470,22 @@ procedure DistributeStakeAmount(initiator: ByStr20, ssn: ByStr20)
           delegator_option = Delegator new_amount_for_delegator;
           delegators[ssn][initiator] := delegator_option;
           TransferFunds multisig_tag_addfunds deposit_amount initiator;
-          e = mk_delegator_withdraw_deposit_amount_event ssn initiator deposit_amount;
+          e = { _eventname : "Delegator withdraw deposit"; ssn_address : ssn; delegator_address : initiator; deposit_amount : deposit_amount };
           event e
         | None =>
-          e = mk_delegator_has_buffered_deposit_error ssn initiator;
-          throw e
+          e = DelegatorHasBufferedDeposit;
+          ThrowError e
         end
       | None =>
-        e = mk_ssn_not_exists_error initiator;
-        throw e
+        e = SSNNotExist;
+        ThrowError e
       end
     end
-    
-  | None => 
-    e = mk_delegator_existence_failed_error ssn initiator;
-    throw e
+  | None =>
+    e = DelegatorDoesNotExistAtSSN;
+    ThrowError e
   end
 end
-
-
 procedure DistributeStakeRewards(delegator: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_for_delegator_m <- last_withdraw_cycle_for_delegator[delegator][ssn_operator];
   last_withdraw_cycle = block_or_zero last_withdraw_cycle_for_delegator_m;
@@ -714,53 +493,41 @@ procedure DistributeStakeRewards(delegator: ByStr20, ssn_operator: ByStr20)
   reward_cycle_list <- reward_cycle_list;
   list_between_fun = list_between last_withdraw_cycle last_reward_cycle;
   list_between_fun_uint128 = @list_filter Uint128;
-
   (* those are the cycles that we want to compute for computing rewards *)
   list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
-
   (* direct deposit *)
   direct_deposit_for_delegator_m <- direct_deposit_for_delegator[delegator][ssn_operator];
   direct_deposits_for_delegator = deposit_value_or_empty direct_deposit_for_delegator_m;
-
   (* buffered deposit *)
   buffered_deposit_for_delegator_m <- buffered_deposit_for_delegator[delegator][ssn_operator];
   buffered_deposits_for_delegator = deposit_value_or_empty buffered_deposit_for_delegator_m;
-
   (* combine two deposit list *)
   init_map = Emp Uint128 Uint128;
   foldl = @list_foldl Uint128 Map Uint128 Uint128;
   staking_init_map = Emp Uint128 Uint128;
   iter = combine_buffered_and_direct direct_deposits_for_delegator buffered_deposits_for_delegator;
   combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
-
-
   (* to calculate final staking per cycle for delegators *)
   iter = caculate_all_stake_per_cycle combined_direct_and_buffered_map;
   stake_delegator_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
-
   stake_ssn_per_cycle_m <- stake_ssn_per_cycle[ssn_operator];
-  match stake_ssn_per_cycle_m with 
+  match stake_ssn_per_cycle_m with
   | Some stake_ssn_per_cycle =>
     (* to calculate staking rewards per cycle for delegator *)
     reward_per_cycle_for_delegator_init = Emp Uint128 DelegatorAndRewards;
     foldl_a = @list_foldl Uint128 Map Uint128 DelegatorAndRewards;
     calculate_rewards_per_cycle_for_delegator_iter = calculate_rewards_per_cycle_for_delegator delegator stake_delegator_per_cycle stake_ssn_per_cycle;
     rewards_delegator_per_cycle = foldl_a calculate_rewards_per_cycle_for_delegator_iter reward_per_cycle_for_delegator_init list_need_compute_rewards;
-
     (* to send those rewards and update last withdraw cycle of delegator *)
     rewards_delegator_per_cycle_list = builtin to_list rewards_delegator_per_cycle;
     forall rewards_delegator_per_cycle_list SendDelegatorRewards;
     last_withdraw_cycle_for_delegator[delegator][ssn_operator] := last_reward_cycle;
-    e = mk_update_delegate_cycle_event ssn_operator delegator;
+    e = { _eventname : "Delegator update cycle"; ssn_address : ssn_operator; delegator_address : delegator };
     event e
   | None => (* ssn has no rewards *)
-  end    
+  end
 end
-
-
-
 (* Transitions *)
-
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition Pause(initiator : ByStr20)
@@ -768,7 +535,6 @@ transition Pause(initiator : ByStr20)
   CallerIsAdmin initiator;
   paused := bool_active
 end
-
 (* @dev: unpause/unfreeze the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition UnPause(initiator : ByStr20)
@@ -776,7 +542,6 @@ transition UnPause(initiator : ByStr20)
   CallerIsAdmin initiator;
   paused := bool_inactive
 end
-
 (* @dev: Set the admin of the contract. Used by admin only. *)
 (* @param admin: New admin value *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -785,7 +550,6 @@ transition UpdateAdmin(admin : ByStr20, initiator : ByStr20)
   CallerIsAdmin initiator;
   contractadmin := admin
 end
-
 (* @dev: Set the verifier of the contract. Used by admin only. *)
 (* @param verif: New verifier value *)
 (* @param initiator: The original caller who called the proxy *)
@@ -795,7 +559,6 @@ transition UpdateVerifier(verif : ByStr20, initiator : ByStr20)
   newverifier = Some {ByStr20} verif;
   verifier := newverifier
 end
-
 (* @dev: Drain the entire contract's balance. Used by current admin only in case of emergency. *)
 (* @param initiator: The original caller who called the proxy *)
 transition DrainContractBalance(initiator : ByStr20, amount : Uint128)
@@ -805,11 +568,10 @@ transition DrainContractBalance(initiator : ByStr20, amount : Uint128)
   less_than = builtin lt bal amount;
   match less_than with
   | True => throw
-  | False => 
+  | False =>
     TransferFunds multisig_tag_addfunds amount initiator
   end
 end
-
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
 (* @param max_stake: New maxstake value *)
@@ -827,20 +589,17 @@ transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, co
       minstake := min_stake;
       maxstake := max_stake;
       contractmaxstake := contract_max_stake;
-      e = mk_update_staking_parameters_event initiator;
+      e = { _eventname : "Update staking parameter event"; sender : initiator};
       event e
     | False =>
-      e = mk_update_staking_parameters_error initiator min_stake max_stake contract_max_stake;
-      throw e
+      e = UpdateStakingParamError ;
+      ThrowError e
     end
   | False =>
-     e = mk_update_staking_parameters_error initiator min_stake max_stake contract_max_stake;
-     throw e
+     e = UpdateStakingParamError;
+     ThrowError e
   end
-
 end
-
-
 (* @dev   Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param stake_amount: Stake amount of ssn *)
@@ -860,7 +619,7 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True  =>
-    e = mk_ssn_already_exists_event ssnaddr;
+    e = { _eventname : "SSN already exists"; ssn_address : ssnaddr };
     event e
   | False =>
     minstake_tmp <- minstake;
@@ -868,8 +627,8 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
     total_amount = builtin add stake_amount buffered_deposit;
     pass = builtin lt maxstake_tmp total_amount;
     match pass with
-    | True  =>         
-      e = mk_stake_deposit_above_stake_limit_event ssnaddr stake_amount maxstake_tmp;
+    | True  =>
+      e = { _eventname : "SSN stake deposit above max_stake limit"; ssn_address : ssnaddr; requested_deposit : stake_amount; max_stake : maxstake_tmp };
       event e
     | False =>
       status = builtin lt minstake_tmp stake_amount;
@@ -881,12 +640,11 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
       ssnlist[ssnaddr] := s;
       last_reward_cycle <- lastrewardcycle;
       commission_for_ssn[ssnaddr][last_reward_cycle] := commission;
-      e = mk_ssn_added_event ssnaddr;
+      e = { _eventname : "SSN added"; ssn_address : ssnaddr };
       event e
     end
   end
 end
-
 (* @dev: Adds a new delegator. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
 (* @param delegator: Address of the delegator *)
@@ -901,16 +659,15 @@ transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : U
   already_exists <- exists delegators[ssnaddr][delegator];
   match already_exists with
   | True =>
-    e = mk_delegator_already_exists_event ssnaddr delegator;
+    e = { _eventname : "Delegator already exists"; ssn_address : ssnaddr; delegator_address : delegator };
     event e
   | False =>
     d = Delegator stake_amount;
     delegators[ssnaddr][delegator] := d;
-    e = mk_delegator_added_event ssnaddr delegator;
+    e = { _eventname : "Delegator added"; ssn_address : ssnaddr; delegator_address : delegator };
     event e
   end
 end
-
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
@@ -921,16 +678,15 @@ transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | False =>
-    e = mk_ssn_not_exists_error ssnaddr;
-    throw e
+    e = SSNNotExist;
+    ThrowError e
   | True =>
     delete ssnlist[ssnaddr];
     delete commission_for_ssn[ssnaddr];
-    e = mk_ssn_removed_event ssnaddr;
+    e = { _eventname : "SSN removed"; ssn_address : ssnaddr };
     event e
   end
 end
-
 (* @dev: Remove a specific delegator for a given SSN. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn *)
 (* @param delegator: Address of the delegator to be removed *)
@@ -942,15 +698,15 @@ transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20, initiator : B
   already_exists <- exists delegators[ssnaddr][delegator];
   match already_exists with
   | False =>
-    e = mk_delegator_not_exists_error ssnaddr delegator;
-    throw e
+    e = DelegatorNotExist;
+    ThrowError e
   | True =>
     (* Refund SSN delegators *)
     DistributeStakeRewards delegator ssnaddr;
     DistributeStakeAmount delegator ssnaddr;
     delete delegators[ssnaddr][delegator];
     delete deposit_amount_for_delegator[delegator][ssnaddr];
-    e = mk_delegator_removed_event ssnaddr delegator;
+    e = { _eventname : "Delegator removed"; ssn_address : ssnaddr; delegator_address : delegator};
     event e
   end
 end
@@ -968,16 +724,16 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
     old_commission_option <- commission_for_ssn[initiator][last_reward_cycle];
     match old_commission_option with
     | Some old_commission =>
-      e = mk_change_commission_error initiator;
-      throw e
+      e = ChangeCommissionError;
+      ThrowError e
     | None =>
       commission_for_ssn[initiator][last_reward_cycle] := commission;
       ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit new_rate commision_rewards received_address;
       ssnlist[initiator] := ssn
     end
   | None =>
-    e = mk_ssn_not_exists_error initiator;
-    throw e
+    e = SSNNotExist;
+    ThrowError e
   end
 end
 
@@ -993,8 +749,8 @@ transition UpdateReceivedAddress(new_address : ByStr20, initiator : ByStr20)
     ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards new_address;
     ssnlist[initiator] := ssn
   | None =>
-    e = mk_ssn_not_exists_error initiator;
-    throw e
+    e = SSNNotExist;
+    ThrowError e
   end
 end
 
@@ -1010,8 +766,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   curval <- ssnlist[ssnaddr];
   match curval with
   | None =>
-    e = mk_ssn_not_exists_error initiator;
-    throw e
+    e = SSNNotExist;
+    ThrowError e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commision_rewards received_address) =>
     minstake_tmp <- minstake;
     maxstake_tmp <- maxstake;
@@ -1020,15 +776,15 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     pass = builtin lt maxstake_tmp new_stake_amount;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
-      e = mk_delegated_stake_deposit_above_stake_limit_error ssnaddr initiator _amount maxstake_tmp;
+      e = { _exception : "Delegator stake deposit above max_stake limit"; ssn_address : ssnaddr; delegator_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
       throw e
-    | False => 
+    | False =>
       last_reward_cycle <- lastrewardcycle;
       (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
       FillInDelegatorAmount ssnaddr initiator;
       FillInDelegators ssnaddr initiator;
       match active_status with
-      | True  => 
+      | True  =>
         (* The SSN is active so add the delegated stake to the buffer *)
         ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount commission commision_rewards received_address;
         ssnlist[ssnaddr] := ssn;
@@ -1062,7 +818,6 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     end
   end
 end
-
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
@@ -1078,7 +833,6 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator : B
   new_reward_cycle_list = Cons {Uint128} newLastRewardCycleNum reward_cycle_list;
   reward_cycle_list := new_reward_cycle_list
 end
-
 (* @dev: Withdraw commission. Can be called by a ssn operator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawCommission(initiator : ByStr20)
@@ -1087,18 +841,16 @@ transition WithdrawCommission(initiator : ByStr20)
   curval <- ssnlist[initiator];
   match curval with
   | None =>
-    e = mk_ssn_not_exists_error initiator;
-    throw e
+    e = SSNNotExist;
+    ThrowError e
   | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission commission_rewards received_address) =>
     TransferFunds multisig_tag_addfunds commission_rewards received_address;
-    e = mk_withdraw_stake_rewards_event initiator rewards;
-    event e;  
+    e = { _eventname : "SSN withdraw reward"; ssn_address : initiator; withdraw_total_reward : rewards };
+    event e;
     ssn = Ssn active_status stake_amount rewards name urlraw urlapi buffereddeposit commission uint128_zero received_address;
     ssnlist[initiator] := ssn
   end
 end
-
-
 (* @dev: Withdraw stake reward. Can be called by a delegator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawStakeRewards(ssn_operator : ByStr20, delegator : ByStr20)
@@ -1107,7 +859,6 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20, delegator : ByStr20)
   DelegatorExists ssn_operator delegator;
   DistributeStakeRewards delegator ssn_operator
 end
-
 (* @dev: Withdraw all amount owed by the contract. Used by delegators. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -1117,66 +868,57 @@ transition WithdrawStakeAmount(ssn: ByStr20, initiator : ByStr20)
   CallerIsProxy;
   DistributeStakeAmount initiator ssn
 end
-
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition AddFunds(initiator : ByStr20)
   IsPaused;
   CallerIsProxy;
   accept;
-  e = mk_deposit_funds_event initiator;
+  e = { _eventname : "Verifier deposit funds"; verifier : initiator };
   event e
 end
-
 transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   lastrewardcycle := cycle
 end
-
 transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   reward_cycle_list := list
 end
-
 transition PopulateCommissionForSSN(initiator : ByStr20, ssn_address : ByStr20, cycle : Uint128, commission : Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   commission_for_ssn[ssn_address][cycle] := commission
 end
-
 transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   stake_ssn_per_cycle[ssn_address][cycle] := info
 end
-
 transition PopulateLastWithdrawCycleForDelegator(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   last_withdraw_cycle_for_delegator[delegator_address][ssn_address] := cycle
 end
-
 transition PopulateBufferedDeposit(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   buffered_deposit_for_delegator[delegator_address][ssn_address][cycle] := amount
 end
-
 transition PopulateDirectDeposit(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
   IsPaused;
   CallerIsProxy;
   CallerIsAdmin initiator;
   direct_deposit_for_delegator[delegator_address][ssn_address][cycle] := amount
 end
-
 transition PopulateDepositAmountForDelegator(initiator : ByStr20, delegator_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
   IsPaused;
   CallerIsProxy;
