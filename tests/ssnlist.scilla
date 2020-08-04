@@ -233,9 +233,9 @@ msgs = one_msg msg;
 send msgs
 end
 procedure UpdateStakeReward(entry : SsnRewardShare)
-lastreward_block <- lastrewardcycle;
+lastreward_blk <- lastrewardcycle;
 match entry with
-| SsnRewardShare ssnaddr reward_percent =>
+| SsnRewardShare ssnaddr reward_pct =>
 curval <- ssnlist[ssnaddr];
 match curval with
 | None =>
@@ -246,7 +246,7 @@ match active_status with
 | False => throw
 | True  =>
 hundred = Uint128 100;
-new_reward = builtin mul stake_amount reward_percent;
+new_reward = builtin mul stake_amount reward_pct;
 new_reward = builtin div new_reward hundred;
 new_reward = builtin div new_reward uint128_10_power_7;
 reward_commission_tmp = builtin mul new_reward commission;
@@ -257,7 +257,7 @@ reward_should_be_given = builtin sub new_reward total_reward_commission;
 delegator_reward = builtin add reward_should_be_given rewards;
 new_stake_amount = builtin add stake_amount buffereddeposit;
 p = SSNCycleInfo stake_amount reward_should_be_given;
-stake_ssn_per_cycle[ssnaddr][lastreward_block] := p;
+stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
 ssn = Ssn active_status new_stake_amount delegator_reward name urlraw urlapi uint128_zero commission total_reward_commission received_address;
 ssnlist[ssnaddr] := ssn;
 e = { _eventname : "SSN assign reward"; ssn_address : ssnaddr; total_reward : total_reward_commission };

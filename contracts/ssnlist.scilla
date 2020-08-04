@@ -340,9 +340,9 @@ procedure TransferFunds(tag: String, amt : Uint128, recipient : ByStr20)
     send msgs
 end
 procedure UpdateStakeReward(entry : SsnRewardShare)
-  lastreward_block <- lastrewardcycle;
+  lastreward_blk <- lastrewardcycle;
   match entry with
-  | SsnRewardShare ssnaddr reward_percent =>
+  | SsnRewardShare ssnaddr reward_pct =>
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
@@ -353,7 +353,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
       | False => throw
       | True  =>
         hundred = Uint128 100;
-        new_reward = builtin mul stake_amt reward_percent;
+        new_reward = builtin mul stake_amt reward_pct;
         new_reward = builtin div new_reward hundred;
         new_reward = builtin div new_reward uint128_10_power_7;
         reward_comm_tmp = builtin mul new_reward comm;
@@ -365,10 +365,10 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
         new_stake_amt = builtin add stake_amt buffdeposit;
         (* During this cylce, the SSN only earned t as rewards that could be given to delegs *)
         p = SSNCycleInfo stake_amt expected_reward;
-        stake_ssn_per_cycle[ssnaddr][lastreward_block] := p;
+        stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm received_address;
         ssnlist[ssnaddr] := ssn;
-        e = { _eventname : "SSN assign reward"; ssn_address : ssnaddr; total_reward : total_reward_comm };
+        e = { _eventname : "SSN assign reward"; ssn_addr : ssnaddr; total_reward : total_reward_comm };
         event e
       end
     end
@@ -459,7 +459,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
           deleg_option = Deleg new_amt_for_deleg;
           delegs[ssn][initiator] := deleg_option;
           TransferFunds multisig_tag_addfunds deposit_amt initiator;
-          e = { _eventname : "Deleg withdraw deposit"; ssn_address : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
+          e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
           event e
         | None =>
           e = DelegHasBufferedDeposit;
@@ -511,7 +511,7 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     rewards_deleg_per_cycle_list = builtin to_list rewards_deleg_per_cycle;
     forall rewards_deleg_per_cycle_list SendDelegRewards;
     last_withdraw_cycle_deleg[deleg][ssn_operator] := last_reward_cycle;
-    e = { _eventname : "Deleg update cycle"; ssn_address : ssn_operator; deleg_address : deleg };
+    e = { _eventname : "Deleg update cycle"; ssn_addr : ssn_operator; deleg_address : deleg };
     event e
   | None => (* ssn has no rewards *)
   end
@@ -578,7 +578,7 @@ transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, co
       minstake := min_stake;
       maxstake := max_stake;
       contractmaxstake := contract_max_stake;
-      e = { _eventname : "Update staking parameter event"; sender : initiator};
+      e = { _eventname : "Update staking parameter"; sender : initiator};
       event e
     | False =>
       e = UpdateStakingParamError;
@@ -608,7 +608,7 @@ transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, nam
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True  =>
-    e = { _eventname : "SSN already exists"; ssn_address : ssnaddr };
+    e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
     event e
   | False =>
     minstake_tmp <- minstake;
@@ -617,7 +617,7 @@ transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, nam
     pass = builtin lt maxstake_tmp total_amt;
     match pass with
     | True  =>
-      e = { _eventname : "Stake deposit > max_stake"; ssn_address : ssnaddr; requested_deposit : stake_amt; max_stake : maxstake_tmp };
+      e = { _eventname : "Stake deposit > max_stake"; ssn_addr : ssnaddr; requested_deposit : stake_amt; max_stake : maxstake_tmp };
       event e
     | False =>
       status = builtin lt minstake_tmp stake_amt;
@@ -629,7 +629,7 @@ transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, nam
       ssnlist[ssnaddr] := s;
       last_reward_cycle <- lastrewardcycle;
       comm_for_ssn[ssnaddr][last_reward_cycle] := comm;
-      e = { _eventname : "SSN added"; ssn_address : ssnaddr };
+      e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
       event e
     end
   end
@@ -648,12 +648,12 @@ transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, ini
   alr_exists <- exists delegs[ssnaddr][deleg];
   match alr_exists with
   | True =>
-    e = { _eventname : "Deleg exists"; ssn_address : ssnaddr; deleg_address : deleg };
+    e = { _eventname : "Deleg exists"; ssn_addr : ssnaddr; deleg_address : deleg };
     event e
   | False =>
     d = Deleg stake_amt;
     delegs[ssnaddr][deleg] := d;
-    e = { _eventname : "Deleg added"; ssn_address : ssnaddr; deleg_address : deleg };
+    e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
     event e
   end
 end
@@ -672,7 +672,7 @@ transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
   | True =>
     delete ssnlist[ssnaddr];
     delete comm_for_ssn[ssnaddr];
-    e = { _eventname : "SSN removed"; ssn_address : ssnaddr };
+    e = { _eventname : "SSN removed"; ssn_addr : ssnaddr };
     event e
   end
 end
@@ -695,7 +695,7 @@ transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
     DistributeStakeAmt deleg ssnaddr;
     delete delegs[ssnaddr][deleg];
     delete deposit_amt_deleg[deleg][ssnaddr];
-    e = { _eventname : "Deleg removed"; ssn_address : ssnaddr; deleg_address : deleg};
+    e = { _eventname : "Deleg removed"; ssn_addr : ssnaddr; deleg_address : deleg};
     event e
   end
 end
@@ -765,7 +765,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     pass = builtin lt maxstake_tmp new_stake_amt;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
-      e = { _exception : "Deleg stake deposit > max_stake"; ssn_address : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
+      e = { _exception : "Deleg stake deposit > max_stake"; ssn_addr : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
       throw e
     | False =>
       last_reward_cycle <- lastrewardcycle;
@@ -834,7 +834,7 @@ transition WithdrawComm(initiator : ByStr20)
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
     TransferFunds multisig_tag_addfunds comm_rewards received_addr;
-    e = { _eventname : "SSN withdraw reward"; ssn_address : initiator; withdraw_total_reward : rewards };
+    e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_total_reward : rewards };
     event e;
     ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero received_addr;
     ssnlist[initiator] := ssn
