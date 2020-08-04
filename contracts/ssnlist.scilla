@@ -728,15 +728,15 @@ transition UpdateCommission(new_rate : Uint128, initiator : ByStr20)
 end
 
 (* @dev : To update the received address for a given SSN *)
-(* @param new_address: The new received address *)
+(* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
-transition UpdateReceivedAddress(new_address : ByStr20, initiator : ByStr20)
+transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
-  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards received_address) =>
-    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards new_address;
+  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards received_addr) =>
+    ssn =  Ssn active_status stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards new_addr;
     ssnlist[initiator] := ssn
   | None =>
     e = SSNNotExist;

@@ -169,9 +169,9 @@ end
 
 (* @dev : To update the received address for a given SSN *)
 (* @param new_address: The new received address *)
-transition UpdateReceivedAddress(new_address : ByStr20)
+transition UpdateReceivedAddr(new_address : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "UpdateReceivedAddress"; _recipient : current_impl; _amount : zero; new_address: new_address; initiator: _sender};
+    msg = {_tag : "UpdateReceivedAddr"; _recipient : current_impl; _amount : zero; new_addr: new_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
