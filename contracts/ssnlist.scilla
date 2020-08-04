@@ -205,7 +205,6 @@ let calculate_rewards_per_cycle_for_deleg =
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
-let empty_tag = ""
 let multisig_tag_addfunds = "AddFunds"
 type Error =
   | ContractFreezedFailure
