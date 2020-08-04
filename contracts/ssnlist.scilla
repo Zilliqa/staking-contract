@@ -258,7 +258,7 @@ field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr2
 (* Keeps track of buffered deposit for a deleg *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
-field buffered_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+field buff_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 (* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
 field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
@@ -436,7 +436,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
   match deleg with
   | Some (Deleg amt) =>
     (* first we need to make sure there is no deposit within buffered stake *)
-    has_buffered_value <- buffered_deposit_deleg[initiator][ssn][last_reward_cycle];
+    has_buffered_value <- buff_deposit_deleg[initiator][ssn][last_reward_cycle];
     match has_buffered_value with
     | Some value => throw
     | None =>
@@ -444,7 +444,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
       deposit_amt_option <- deposit_amt_deleg[initiator][ssn];
       match deposit_amt_option with
       | Some deposit_amt =>
-        delete buffered_deposit_deleg[initiator][ssn];
+        delete buff_deposit_deleg[initiator][ssn];
         delete direct_deposit_deleg[initiator][ssn];
         delete deposit_amt_deleg[initiator][ssn];
         delete last_withdraw_cycle_deleg[initiator][ssn];
@@ -488,8 +488,8 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   direct_deposit_deleg_m <- direct_deposit_deleg[deleg][ssn_operator];
   direct_deposits_for_deleg = deposit_value_or_empty direct_deposit_deleg_m;
   (* buffered deposit *)
-  buffered_deposit_deleg_m <- buffered_deposit_deleg[deleg][ssn_operator];
-  buffered_deposits_for_deleg = deposit_value_or_empty buffered_deposit_deleg_m;
+  buff_deposit_deleg_m <- buff_deposit_deleg[deleg][ssn_operator];
+  buffered_deposits_for_deleg = deposit_value_or_empty buff_deposit_deleg_m;
   (* combine two deposit list *)
   init_map = Emp Uint128 Uint128;
   foldl = @list_foldl Uint128 Map Uint128 Uint128;
@@ -778,13 +778,13 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
         ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
         ssnlist[ssnaddr] := ssn;
         (* record this to buffer deposit for deleg *)
-        stake_amt_for_deleg_option  <- buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
+        stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
         match stake_amt_for_deleg_option  with
         | Some stake_amt_for_deleg =>
           new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
-          buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_deleg
+          buff_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_deleg
         | None =>
-          buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := _amount
+          buff_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := _amount
         end
       | False =>
         (* The SSN is inactive so add the delegated stake to stake_amount *)
@@ -900,7 +900,7 @@ transition PopulateBufferedDeposit(initiator : ByStr20, deleg_addr : ByStr20, ss
   IsPaused;
   IsProxy;
   IsAdmin initiator;
-  buffered_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+  buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
   IsPaused;
