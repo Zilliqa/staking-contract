@@ -42,13 +42,6 @@ type Ssn =
 (*                      If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs. *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
-(* Deleg Data Type *)
-(* Each deleg has the following fields: *)
-
-(* StakeAmount       : Uint128 *)
-(*                     Represents the amount staked so far. This is the sum total of amount staked across all SSNs. *)
-type Deleg =
-| Deleg of Uint128
 (* DelegCycleInfo Data Type *)
 
 (*    Each DelegCycleInfo has the following fields: *)
@@ -247,7 +240,7 @@ contract SSNList(
 field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
 (* Keeps track of the delegs for each SSN.*)
 (* AddressOfSSN -> (AddressOfDeleg -> DelegInfo) *)
-field delegs : Map ByStr20 (Map ByStr20 Deleg) = Emp ByStr20 (Map ByStr20 Deleg)
+field delegs : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of stakes deposited at SSNs *)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
@@ -408,13 +401,11 @@ end
 procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
   d <- delegs[ssnaddr][deleg];
   match d with
-  | Some (Deleg amt) =>
+  | Some amt =>
     new_amt_deleg = builtin add _amount amt;
-    d_new = Deleg new_amt_deleg;
-    delegs[ssnaddr][deleg] := d_new
+    delegs[ssnaddr][deleg] := new_amt_deleg
   | None =>
-    d_new = Deleg _amount;
-    delegs[ssnaddr][deleg] := d_new
+    delegs[ssnaddr][deleg] := _amount
   end
 end
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
@@ -433,7 +424,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
   last_reward_cycle <- lastrewardcycle;
   ssn_option <- ssnlist[ssn];
   match deleg with
-  | Some (Deleg amt) =>
+  | Some amt =>
     (* first we need to make sure there is no deposit within buffered stake *)
     has_buffered_value <- buff_deposit_deleg[initiator][ssn][last_reward_cycle];
     match has_buffered_value with
@@ -455,8 +446,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
           ssn_option = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
           ssnlist[ssn] := ssn_option;
           new_amt_for_deleg = builtin sub amt deposit_amt;
-          deleg_option = Deleg new_amt_for_deleg;
-          delegs[ssn][initiator] := deleg_option;
+          delegs[ssn][initiator] := new_amt_for_deleg;
           TransferFunds multisig_tag_addfunds deposit_amt initiator;
           e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
           event e
@@ -650,8 +640,7 @@ transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, ini
     e = { _eventname : "Deleg exists"; ssn_addr : ssnaddr; deleg_address : deleg };
     event e
   | False =>
-    d = Deleg stake_amt;
-    delegs[ssnaddr][deleg] := d;
+    delegs[ssnaddr][deleg] := stake_amt;
     e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
     event e
   end
