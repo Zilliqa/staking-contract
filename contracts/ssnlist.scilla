@@ -78,13 +78,16 @@ let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
 (* left < element <= right *)
 (* This function is used for filting out those cycles that need to compute rewards for delegs *)
-let list_between =
+let list_filter_between =
   fun (left : Uint128) =>
-    fun (right : Uint128) =>
-      fun (element : Uint128) =>
-        let res_l = builtin lt left element in
-        let res_r = builtin lt right element in
-        andb res_l res_r
+  fun (right : Uint128) =>
+  fun (l : List Uint128) =>
+    let fil = @list_filter Uint128 in
+    let f = fun (element : Uint128) =>
+      let res_l = builtin lt left element in
+      let res_r = builtin lt right element in
+      andb res_l res_r
+    in fil f l
 (* This function is used for calculating the exact staking amount per cycle for delegs *)
 (* Example: *)
 (* Input: [1:1000,2:2000,3:3000] *)
@@ -454,10 +457,8 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle = block_or_zero last_withdraw_cycle_deleg_m;
   last_reward_cycle <- lastrewardcycle;
   reward_cycle_list <- reward_cycle_list;
-  list_between_fun = list_between last_withdraw_cycle last_reward_cycle;
-  list_between_fun_uint128 = @list_filter Uint128;
   (* those are the cycles that we want to compute for computing rewards *)
-  list_need_compute_rewards = list_between_fun_uint128 list_between_fun reward_cycle_list;
+  list_need_compute_rewards = list_filter_between last_withdraw_cycle last_reward_cycle reward_cycle_list;
   (* direct deposit *)
   direct_deposit_deleg_m <- direct_deposit_deleg[deleg][ssn_operator];
   direct_deposits_for_deleg = deposit_value_or_empty direct_deposit_deleg_m;
