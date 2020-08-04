@@ -132,9 +132,9 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128)
+transition Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "Adddeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amount: stake_amount; initiator: _sender};
+    msg = {_tag : "Adddeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -160,9 +160,9 @@ end
 
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
-transition UpdateCommission(new_rate : Uint128)
+transition UpdateComm(new_rate : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateCommission"; _recipient : current_impl; _amount : zero; new_rate: new_rate; initiator: _sender};
+    msg = {_tag : "UpdateComm"; _recipient : current_impl; _amount : zero; new_rate: new_rate; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -195,9 +195,9 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare)
     send msgs
 end
 
-transition WithdrawCommission()
+transition WithdrawComm()
     current_impl <- implementation;
-    msg = {_tag : "WithdrawCommission"; _recipient : current_impl; _amount : zero; initiator: _sender};
+    msg = {_tag : "WithdrawComm"; _recipient : current_impl; _amount : zero; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -210,9 +210,9 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20)
     send msgs
 end
 
-transition WithdrawStakeAmount(ssn: ByStr20)
+transition WithdrawStakeAmt(ssn: ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "WithdrawStakeAmount"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender};
+    msg = {_tag : "WithdrawStakeAmt"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -240,44 +240,44 @@ transition UpdateRewardCycleList(list: List Uint128)
     send msgs
 end
 
-transition PopulateCommissionForSSN(ssn_address : ByStr20, cycle : Uint128, comm : Uint128)
+transition PopulateCommForSSN(ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateCommissionForSSN"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; cycle : cycle; comm : comm; initiator: _sender};
+    msg = {_tag : "PopulateCommForSSN"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; cycle : cycle; comm : comm; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateStakeSSNPerCycle(ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo)
+transition PopulateStakeSSNPerCycle(ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
     current_impl <- implementation;
-    msg = {_tag : "PopulateStakeSSNPerCycle"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; cycle : cycle; info : info; initiator: _sender};
+    msg = {_tag : "PopulateStakeSSNPerCycle"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; cycle : cycle; info : info; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
+transition PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; initiator: _sender};
+    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateBufferedDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+transition PopulateBufferedDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateBufferedDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateBufferedDeposit"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateDirectDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+transition PopulateDirectDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDirectDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateDirectDeposit"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateDepositAmountFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
+transition PopulateDepositAmtFordeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDepositAmountFordeleg"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateDepositAmtFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

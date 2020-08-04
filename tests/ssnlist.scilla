@@ -41,15 +41,15 @@ end
 | False => False
 end
 let caculate_all_stake_per_cycle =
-fun (delegate_map : Map Uint128 Uint128) =>
+fun (deleg_map : Map Uint128 Uint128) =>
 fun (result_map : Map Uint128 Uint128) =>
 fun(k : Uint128) =>
 let m = builtin sub k uint128_one in
 let result_map_o = builtin get result_map m in
-let delegate_map_o = builtin get delegate_map k in
+let deleg_map_o = builtin get deleg_map k in
 match result_map_o with
 | Some last_amount =>
-match delegate_map_o with
+match deleg_map_o with
 | Some delegate_amount =>
 let amount = builtin add last_amount delegate_amount in
 builtin put result_map k amount
@@ -57,7 +57,7 @@ builtin put result_map k amount
 builtin put result_map k last_amount
 end
 | None =>
-match delegate_map_o with
+match deleg_map_o with
 | Some delegate_amount =>
 builtin put result_map k delegate_amount
 | None =>  result_map
