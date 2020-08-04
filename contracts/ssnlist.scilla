@@ -3,88 +3,79 @@ import ListUtils IntUtils
 library SSNList
 (* A non-custodial staking contract with admin privileges *)
 (* SSN Data Type *)
-(*
-  Each SSN has the following fields:
+(* Each SSN has the following fields: *)
 
-  ActiveStatus      : Bool
-                      Represents whether the SSN has the minnimum stake amount and therefore ready to participate in staking and receive rewards.
-  StakeAmount       : Uint128
-                      Total stake that can be used for reward calculation.
-  StakeRewards      : Uint128
-                      (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegs.
-                      It does not include SSN's own comm.
-  Name              : String
-                      A human-readable name for this SSN.
-  URLRaw            : String
-                      Represents "ip:port" of the SSN serving raw API requests.
-  URLApi            : String
-                      Representing URL exposed by SSN serving public API requests.
-  BufferedDeposit   : Uint128
-                      Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered
-                      for the next one.
-  Commission        : Uint128
-                      Percentage of incoming rewards that the SSN takes.
-  CommissionRewards : Uint128
-                      Number of ZILs earned as comm by the SSN.
-  ReceivedAddress   : ByStr20
-                      Address will be used to receive comm.
-*)
+(* ActiveStatus      : Bool *)
+(*                     Represents whether the SSN has the minnimum stake amount and therefore ready to participate in staking and receive rewards. *)
+(* StakeAmount       : Uint128 *)
+(*                     Total stake that can be used for reward calculation. *)
+(* StakeRewards      : Uint128 *)
+(*                     (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegs. *)
+(*                     It does not include SSN's own comm. *)
+(* Name              : String *)
+(*                     A human-readable name for this SSN. *)
+(* URLRaw            : String *)
+(*                     Represents "ip:port" of the SSN serving raw API requests. *)
+(* URLApi            : String *)
+(*                     Representing URL exposed by SSN serving public API requests. *)
+(* BufferedDeposit   : Uint128 *)
+(*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered *)
+(*                     for the next one. *)
+(* Commission        : Uint128 *)
+(*                     Percentage of incoming rewards that the SSN takes. *)
+(* CommissionRewards : Uint128 *)
+(*                     Number of ZILs earned as comm by the SSN. *)
+(* ReceivedAddress   : ByStr20 *)
+(*                     Address will be used to receive comm. *)
 (* Invariant 1: StakeAmount + BufferedDeposit < MaxStake < ContractMaxStake *)
 (* Invariant 2: ActiveStatus = (Minstake < StakeAmount)  *)
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 (* SSNRewardShare Data Type *)
-(*
-  SSNRewardShare has the following fields:
+(* SSNRewardShare has the following fields: *)
 
-  SSNAddress        : ByStr20
-                      Address of the SSN.
-  RewardPercentage  : Uint128
-                      This is the integer representation of the percentage of the staked amount that will be given as reward to the SSN.
-                      If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer.
-                      If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs.
-*)
+(*  SSNAddress        : ByStr20 *)
+(*                      Address of the SSN. *)
+(*  RewardPercentage  : Uint128 *)
+(*                      This is the integer representation of the percentage of the staked amount that will be given as reward to the SSN. *)
+(*                      If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer. *)
+(*                      If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs. *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 (* Deleg Data Type *)
-(*
-    Each deleg has the following fields:
+(* Each deleg has the following fields: *)
 
-    StakeAmount       : Uint128
-                        Represents the amount staked so far. This is the sum total of amount staked across all SSNs.
-*)
+(* StakeAmount       : Uint128 *)
+(*                     Represents the amount staked so far. This is the sum total of amount staked across all SSNs. *)
+
 type Deleg =
 | Deleg of Uint128
 (* DelegCycleInfo Data Type *)
-(*
-    Each DelegCycleInfo has the following fields:
-    SSNAddress          : ByStr20
-                          Address of the SSN.
-    StakeDuringTheCycle : Uint128
-                          Represents the amount staked during this cycle for the given SSN.
-    DelegAddress    : ByStr20
-                          Address of Deleg.
-*)
+
+(*    Each DelegCycleInfo has the following fields: *)
+(*    SSNAddress          : ByStr20 *)
+(*                          Address of the SSN. *)
+(*    StakeDuringTheCycle : Uint128 *)
+(*                          Represents the amount staked during this cycle for the given SSN. *)
+(*    DelegAddress    : ByStr20 *)
+(*                      Address of Deleg. *)
 type DelegCycleInfo =
 | DelegCycleInfo of ByStr20 Uint128 ByStr20
 (* SSNCycleInfo Data Type *)
-(*
-    Each SSNCycleInfo has the following fields:
-    TotalStakeDuringTheCycle            : Uint128
-                                          Represents the amount staked during this cycle for the given SSN.
-    TotalRewardEarnedDuringTheCycle    : Uint128
-                                         Represents the amount staked during this cycle for the given SSN.
-*)
+
+(*   Each SSNCycleInfo has the following fields: *)
+(*    TotalStakeDuringTheCycle            : Uint128 *)
+(*                                          Represents the amount staked during this cycle for the given SSN. *)
+(*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
+(*                                         Represents the amount staked during this cycle for the given SSN. *)
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (* DelegAndRewards Data Type *)
-(*
-    Each DelegAndRewards has the following fields:
-    DelegAddress    : ByStr20
-                          Address of Deleg.
-    RewardToBeSent      : Uint128
-                          Reward that can be sent to the deleg.
-*)
+(*   Each DelegAndRewards has the following fields: *)
+(*   DelegAddress    : ByStr20 *)
+(*                     Address of Deleg. *)
+(*   RewardToBeSent  : Uint128 *)
+(*                     Reward that can be sent to the deleg. *)
 type DelegAndRewards =
 | DelegAndRewards of ByStr20 Uint128
 let one_msg =
