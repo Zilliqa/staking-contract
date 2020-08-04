@@ -758,15 +758,15 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
   | None =>
     e = SSNNotExist;
     ThrowError e
-  | Some (Ssn active_status stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards received_address) =>
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
     minstake_tmp <- minstake;
     maxstake_tmp <- maxstake;
-    new_buff_amount  = builtin add _amount buffdeposit;
-    new_stake_amount = builtin add new_buff_amount stake_amount;
-    pass = builtin lt maxstake_tmp new_stake_amount;
+    new_buff_amt  = builtin add _amount buffdeposit;
+    new_stake_amt = builtin add new_buff_amt stake_amt;
+    pass = builtin lt maxstake_tmp new_stake_amt;
     match pass with
     | True  => (* stake deposit above maxstake limit for SSNs *)
-      e = { _exception : "Deleg stake deposit above max_stake limit"; ssn_address : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
+      e = { _exception : "Deleg stake deposit > max_stake"; ssn_address : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
       throw e
     | False =>
       last_reward_cycle <- lastrewardcycle;
@@ -776,31 +776,31 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       match active_status with
       | True  =>
         (* The SSN is active so add the delegated stake to the buffer *)
-        ssn = Ssn bool_active stake_amount rewards name urlraw urlapi new_buff_amount comm commision_rewards received_address;
+        ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
         ssnlist[ssnaddr] := ssn;
         (* record this to buffer deposit for deleg *)
-        stake_amount_for_deleg_option <- buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
-        match stake_amount_for_deleg_option with
-        | Some stake_amount_for_deleg =>
-          new_stake_amount_for_deleg = builtin add stake_amount_for_deleg _amount;
-          buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_deleg
+        stake_amt_for_deleg_option  <- buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
+        match stake_amt_for_deleg_option  with
+        | Some stake_amt_for_deleg =>
+          new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+          buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_deleg
         | None =>
           buffered_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := _amount
         end
       | False =>
         (* The SSN is inactive so add the delegated stake to stake_amount *)
-        new_stake_amount  = builtin add _amount stake_amount;
-        status = uint128_le minstake_tmp new_stake_amount;
+        new_stake_amt  = builtin add _amount stake_amt;
+        status = uint128_le minstake_tmp new_stake_amt;
         (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
-        ssn = Ssn status new_stake_amount rewards name urlraw urlapi buffdeposit comm commision_rewards received_address;
+        ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
         ssnlist[ssnaddr] := ssn;
         d <- delegs[ssnaddr][initiator];
         (* record this to direct deposit for deleg *)
-        stake_amount_for_deleg_option <- direct_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
-        match stake_amount_for_deleg_option with
-          | Some stake_amount_for_deleg =>
-            new_stake_amount_for_deleg = builtin add stake_amount_for_deleg _amount;
-            direct_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_deleg
+        stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][last_reward_cycle];
+        match stake_amt_for_deleg_option  with
+          | Some stake_amt_for_deleg =>
+            new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+            direct_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_deleg
           | None =>
             direct_deposit_deleg[initiator][ssnaddr][last_reward_cycle] := _amount
         end

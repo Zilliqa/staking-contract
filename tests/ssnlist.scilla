@@ -598,8 +598,8 @@ ssnlist[ssnaddr] := ssn;
 stake_amount_for_delegator_option <- buffered_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle];
 match stake_amount_for_delegator_option with
 | Some stake_amount_for_delegator =>
-new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-buffered_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_delegator
+new_stake_amt_for_delegator = builtin add stake_amount_for_delegator _amount;
+buffered_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_delegator
 | None =>
 buffered_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := _amount
 end
@@ -612,8 +612,8 @@ d <- delegators[ssnaddr][initiator];
 stake_amount_for_delegator_option <- direct_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle];
 match stake_amount_for_delegator_option with
 | Some stake_amount_for_delegator =>
-new_stake_amount_for_delegator = builtin add stake_amount_for_delegator _amount;
-direct_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amount_for_delegator
+new_stake_amt_for_delegator = builtin add stake_amount_for_delegator _amount;
+direct_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := new_stake_amt_for_delegator
 | None =>
 direct_deposit_for_delegator[initiator][ssnaddr][last_reward_cycle] := _amount
 end
