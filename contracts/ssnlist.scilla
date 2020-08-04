@@ -1,5 +1,5 @@
 scilla_version 0
-import ListUtils IntUtils
+import ListUtils IntUtils BoolUtils
 library SSNList
 (* A non-custodial staking contract with admin privileges *)
 (* SSN Data Type *)
@@ -82,16 +82,9 @@ let list_between =
   fun (left : Uint128) =>
     fun (right : Uint128) =>
       fun (element : Uint128) =>
-        let res = builtin lt left element in
-        match res with
-        | True =>
-          let res = builtin lt right element in
-          match res with
-          | True => False
-          | False => True
-          end
-        | False => False
-        end
+        let res_l = builtin lt left element in
+        let res_r = builtin lt right element in
+        andb res_l res_r
 (* This function is used for calculating the exact staking amount per cycle for delegs *)
 (* Example: *)
 (* Input: [1:1000,2:2000,3:3000] *)
