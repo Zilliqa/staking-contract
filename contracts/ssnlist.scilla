@@ -685,8 +685,8 @@ transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
   IsPaused;
   IsProxy;
   IsAdmin initiator;
-  already_exists <- exists delegs[ssnaddr][deleg];
-  match already_exists with
+  alr_exists <- exists delegs[ssnaddr][deleg];
+  match alr_exists with
   | False =>
     e = DelegNotExist;
     ThrowError e
