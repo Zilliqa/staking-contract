@@ -218,7 +218,7 @@ transition WithdrawStakeAmount(ssn: ByStr20)
 end
 
 (* @dev: Move token amount from _sender to recipient i.e. contract address. *)
-transition AddFunds ()
+transition AddFunds()
     current_impl <- implementation;
     accept;
     msg = {_tag : "AddFunds"; _recipient : current_impl; _amount : _amount; initiator : _sender};
