@@ -76,14 +76,6 @@ let one_msg =
     Cons {Message} m e
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
-(* This function help us to tell if current block number need to be reward *)
-let reward_filter =
-  fun (lastrewardcycle : Uint128) =>
-    fun (current_pair : Pair Uint128 DelegCycleInfo) =>
-        match current_pair with
-        | Pair currentblock (DelegCycleInfo ssn block deleg) =>
-          builtin lt lastrewardcycle currentblock
-      end
 (* left < element <= right *)
 (* This function is used for filting out those cycles that need to compute rewards for delegs *)
 let list_between =
@@ -104,7 +96,7 @@ let list_between =
 (* Example: *)
 (* Input: [1:1000,2:2000,3:3000] *)
 (* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
-let caculate_all_stake_per_cycle =
+let calculate_all_stake_per_cycle =
   fun (deleg_map : Map Uint128 Uint128) =>
     fun (result_map : Map Uint128 Uint128) =>
       fun(k : Uint128) =>
@@ -486,7 +478,7 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   iter = combine_buffered_and_direct direct_deposits_for_deleg buffered_deposits_for_deleg;
   combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
   (* to calculate final staking per cycle for delegs *)
-  iter = caculate_all_stake_per_cycle combined_direct_and_buffered_map;
+  iter = calculate_all_stake_per_cycle combined_direct_and_buffered_map;
   stake_deleg_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
   stake_ssn_per_cycle_m <- stake_ssn_per_cycle[ssn_operator];
   match stake_ssn_per_cycle_m with
