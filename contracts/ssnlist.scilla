@@ -646,10 +646,10 @@ end
 transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
-  already_exists <- exists delegs[ssnaddr][deleg];
-  match already_exists with
+  alr_exists <- exists delegs[ssnaddr][deleg];
+  match alr_exists with
   | True =>
-    e = { _eventname : "Deleg already exists"; ssn_address : ssnaddr; deleg_address : deleg };
+    e = { _eventname : "Deleg exists"; ssn_address : ssnaddr; deleg_address : deleg };
     event e
   | False =>
     d = Deleg stake_amount;
