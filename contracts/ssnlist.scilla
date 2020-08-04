@@ -47,7 +47,6 @@ type SsnRewardShare =
 
 (* StakeAmount       : Uint128 *)
 (*                     Represents the amount staked so far. This is the sum total of amount staked across all SSNs. *)
-
 type Deleg =
 | Deleg of Uint128
 (* DelegCycleInfo Data Type *)
@@ -713,7 +712,7 @@ transition UpdateComm(new_rate : Uint128, initiator : ByStr20)
     old_comm_option <- comm_for_ssn[initiator][last_reward_cycle];
     match old_comm_option with
     | Some old_comm =>
-      e = ChangeCommissionError;
+      e = ChangeCommError;
       ThrowError e
     | None =>
       comm_for_ssn[initiator][last_reward_cycle] := comm;
