@@ -127,14 +127,14 @@ transition AddSSN (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128,
     send msgs
 end
 
-(* @dev: Adds a new delegator. Used by admin only during contract upgrade. *)
+(* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
-(* @param delegator: Address of the delegator *)
+(* @param deleg: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition AddDelegator(ssnaddr : ByStr20, delegator : ByStr20, stake_amount : Uint128)
+transition Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "AddDelegator"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; delegator: delegator; stake_amount: stake_amount; initiator: _sender};
+    msg = {_tag : "Adddeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amount: stake_amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -148,12 +148,12 @@ transition RemoveSSN (ssnaddr : ByStr20)
     send msgs
 end
 
-(* @dev: Remove a specific delegator for a given SSN. Used by admin only. *)
+(* @dev: Remove a specific deleg for a given SSN. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn *)
-(* @param delegator: Address of the delegator to be removed *)
-transition RemoveDelegator(ssnaddr : ByStr20, delegator : ByStr20)
+(* @param deleg: Address of the deleg to be removed *)
+transition Removedeleg(ssnaddr : ByStr20, deleg : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "RemoveDelegator"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; delegator: delegator; initiator: _sender};
+    msg = {_tag : "Removedeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -178,7 +178,7 @@ end
 
 
 (* @dev : To delegate the stake to the contract. *)
-(* @param ssnaddr: The address of the SSN to which the delegator wants to stake *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 transition DelegateStake(ssnaddr : ByStr20)
     current_impl <- implementation;
     msg = {_tag : "DelegateStake"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; initiator: _sender};
@@ -202,7 +202,7 @@ transition WithdrawCommission()
     send msgs
 end
 
-(* @dev: Withdraw stake reward. Can be called by a delegator. *)
+(* @dev: Withdraw stake reward. Can be called by a deleg. *)
 transition WithdrawStakeRewards(ssn_operator : ByStr20)
     current_impl <- implementation;
     msg = {_tag : "WithdrawStakeRewards"; _recipient : current_impl; _amount : zero; ssn_operator : ssn_operator; initiator: _sender};
@@ -240,9 +240,9 @@ transition UpdateRewardCycleList(list: List Uint128)
     send msgs
 end
 
-transition PopulateCommissionForSSN(ssn_address : ByStr20, cycle : Uint128, commission : Uint128)
+transition PopulateCommissionForSSN(ssn_address : ByStr20, cycle : Uint128, comm : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateCommissionForSSN"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; cycle : cycle; commission : commission; initiator: _sender};
+    msg = {_tag : "PopulateCommissionForSSN"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; cycle : cycle; comm : comm; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -254,30 +254,30 @@ transition PopulateStakeSSNPerCycle(ssn_address : ByStr20, cycle : Uint128, info
     send msgs
 end
 
-transition PopulateLastWithdrawCycleForDelegator(delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
+transition PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateLastWithdrawCycleForDelegator"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; delegator_address : delegator_address; cycle : cycle; initiator: _sender};
+    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateBufferedDeposit(delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+transition PopulateBufferedDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateBufferedDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; delegator_address : delegator_address; cycle : cycle; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateBufferedDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; amount : amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateDirectDeposit(delegator_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
+transition PopulateDirectDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDirectDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; delegator_address : delegator_address; cycle : cycle; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateDirectDeposit"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; cycle : cycle; amount : amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateDepositAmountForDelegator(delegator_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
+transition PopulateDepositAmountFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDepositAmountForDelegator"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; delegator_address : delegator_address; amount : amount; initiator: _sender};
+    msg = {_tag : "PopulateDepositAmountFordeleg"; _recipient : current_impl; _amount : zero; ssn_address : ssn_address; deleg_address : deleg_address; amount : amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
