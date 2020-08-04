@@ -600,10 +600,10 @@ end
 (* @param buffered_deposit: Any buffered stake deposit *)
 (* @param comm: Percentage of incoming rewards that the SSN takes *)
 (* @param comm_rewards: Number of ZILs earned as comm *)
-(* @param minimum_delegate_amount: Minimum nb. of ZILs required for delegation *)
+(* @param min_delegate_amt: Minimum nb. of ZILs required for delegation *)
 (* @param received_address: Address that will be used to receive comm *)
 (* @param initiator: The original caller who called the proxy *)
-transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buffered_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, minimum_delegate_amount : Uint128, received_address : ByStr20, initiator : ByStr20)
+transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -614,19 +614,19 @@ transition AddSSN(ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, 
   | False =>
     minstake_tmp <- minstake;
     maxstake_tmp <- maxstake;
-    total_amount = builtin add stake_amount buffered_deposit;
-    pass = builtin lt maxstake_tmp total_amount;
+    total_amt = builtin add stake_amt buff_deposit;
+    pass = builtin lt maxstake_tmp total_amt;
     match pass with
     | True  =>
-      e = { _eventname : "SSN stake deposit above max_stake limit"; ssn_address : ssnaddr; requested_deposit : stake_amount; max_stake : maxstake_tmp };
+      e = { _eventname : "Stake deposit > max_stake"; ssn_address : ssnaddr; requested_deposit : stake_amt; max_stake : maxstake_tmp };
       event e
     | False =>
-      status = builtin lt minstake_tmp stake_amount;
+      status = builtin lt minstake_tmp stake_amt;
       (* Update the total stake deposit *)
       totalstakedeposit_tmp <- totalstakedeposit;
-      totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amount;
+      totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amt;
       totalstakedeposit := totalstakedeposit_tmp;
-      s = Ssn status stake_amount rewards name urlraw urlapi buffered_deposit comm comm_rewards received_address;
+      s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
       ssnlist[ssnaddr] := s;
       last_reward_cycle <- lastrewardcycle;
       comm_for_ssn[ssnaddr][last_reward_cycle] := comm;
