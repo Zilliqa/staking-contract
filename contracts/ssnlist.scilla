@@ -62,14 +62,11 @@ type DelegCycleInfo =
 (*                                         Represents the amount staked during this cycle for the given SSN. *)
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
-(* DelegAndRewards Data Type *)
-(*   Each DelegAndRewards has the following fields: *)
-(*   DelegAddress    : ByStr20 *)
-(*                     Address of Deleg. *)
-(*   RewardToBeSent  : Uint128 *)
-(*                     Reward that can be sent to the deleg. *)
-type DelegAndRewards =
-| DelegAndRewards of ByStr20 Uint128
+(* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
+(* deleg, ssn_operator, reward_cycle *)
+type TmpArg =
+| TmpArg of ByStr20 ByStr20 Uint128
+
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
@@ -88,100 +85,31 @@ let list_filter_between =
       let res_r = builtin lt right element in
       andb res_l res_r
     in fil f l
-(* This function is used for calculating the exact staking amount per cycle for delegs *)
-(* Example: *)
-(* Input: [1:1000,2:2000,3:3000] *)
-(* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
-let calculate_all_stake_per_cycle =
-  fun (deleg_map : Map Uint128 Uint128) =>
-    fun (result_map : Map Uint128 Uint128) =>
-      fun(k : Uint128) =>
-        let m = builtin sub k uint128_one in
-        let result_map_o = builtin get result_map m in
-        let deleg_map_o = builtin get deleg_map k in
-        match result_map_o with
-        | Some last_amt =>
-          match deleg_map_o with
-          | Some delegate_amt =>
-            let amt = builtin add last_amt delegate_amt in
-            builtin put result_map k amt
-          | None =>
-            builtin put result_map k last_amt
-          end
-        | None =>
-          match deleg_map_o with
-          | Some delegate_amt =>
-            builtin put result_map k delegate_amt
-          | None =>  result_map
-          end
-        end
-(* This function is used for combining direct deposit and buffered deposit into one with correct secquence *)
-(* Example: *)
-(* Direct deposit: [1:1000,2:2000:3:3000] *)
-(* Buffered deposit: [1:1000,2:2000:3:3000]*)
-(* Result deposit: [1:1000,2:2000+1000:3:3000+2000] *)
-let combine_buffered_and_direct =
-  fun (direct : Map Uint128 Uint128) =>
-    fun (buffered : Map Uint128 Uint128) =>
-      fun(result : Map Uint128 Uint128) =>
-        fun(k : Uint128) =>
-          let m = builtin sub k uint128_one in
-           (* if it takes effect from this cycle, then it must be deposited in last cycle *)
-          let direct_o = builtin get direct k in
-          let buffered_o = builtin get buffered m in
-          match direct_o with
-          | Some direct_amt =>
-            match buffered_o with
-            | Some buffered_amt =>
-              let amt = builtin add direct_amt buffered_amt in
-              builtin put result k amt
-            | None =>
-              builtin put result k direct_amt
-            end
-          | None =>
-            match buffered_o with
-            | Some buffered_amt =>
-              builtin put result k buffered_amt
-            | None =>
-              result
-            end
-          end
-let calculate_rewards_per_cycle_for_deleg =
-  fun (deleg : ByStr20) =>
-  fun (staking_per_cycle_for_deleg : Map Uint128 Uint128) =>
-    fun (staking_and_rewards_per_cycle_for_ssn : Map Uint128 SSNCycleInfo) =>
-      (* record rewards should be sent per cycle for deleg *)
-      fun (result_map : Map Uint128 DelegAndRewards) =>
-        fun (cycle : Uint128) =>
-          let staking_per_cycle_for_deleg_o = builtin get staking_per_cycle_for_deleg cycle in
-          let staking_and_rewards_per_cycle_for_ssn_o = builtin get staking_and_rewards_per_cycle_for_ssn cycle in
-          match staking_per_cycle_for_deleg_o with
-          | Some staking_of_deleg =>
-            match staking_and_rewards_per_cycle_for_ssn_o with
-            | Some staking_and_rewards_of_ssn_adt =>
-              match staking_and_rewards_of_ssn_adt with
-              | SSNCycleInfo total_staking total_rewards =>
-                let reward_tmp = builtin mul total_rewards staking_of_deleg in
-                let reward_tmp = builtin div reward_tmp total_staking in
-                let deleg_and_rewards = DelegAndRewards deleg reward_tmp in
-                builtin put result_map cycle deleg_and_rewards
-              end
-            | None => result_map
-            end
-          | None => result_map
-          end
-  let deposit_value_or_empty =
-    fun (optional_value : Option (Map Uint128 Uint128)) =>
-      match optional_value with
-      | Some value => value
-      | None =>  Emp Uint128 Uint128
-      end
-  let block_or_zero =
-    fun (optional_value : Option Uint128) =>
-      match optional_value with
-      | Some value => value
-      | None => uint128_zero
-      end
+let option_value =
+  tfun 'A =>
+  fun (default : 'A) =>
+  fun (opt_val : Option 'A) =>
+    match opt_val with
+    | Some v => v
+    | None => default
+    end
+let option_map_uint128_uint128_value =
+  let f = @option_value (Map Uint128 Uint128) in
+  let emt = Emp Uint128 Uint128 in
+  f emt
+let option_uint128_value =
+  let f = @option_value Uint128 in
+  f uint128_zero
+let option_add =
+  fun (x_opt : Option Uint128) =>
+  fun (y_opt : Option Uint128) =>
+    match x_opt with
+    | Some x =>
+      let y = option_uint128_value y_opt in
+      let res = builtin add x y in
+      Some {Uint128} res
+    | None => y_opt
+    end
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
@@ -242,6 +170,9 @@ field buff_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp
 (* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
 field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+(* Temporary storage map *)
+(* Used during CalcStakeDelegPerCycle *)
+field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 (* Record deposit amount for every deleg for every ssn *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
 field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
@@ -355,16 +286,10 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
   end
 end
 (* this procedure is to send rewards to deleg for every reward cycle *)
-procedure SendDelegRewards(entry : Pair Uint128 DelegAndRewards)
-  match entry with
-  | Pair cycle deleg_and_rewards  =>
-    match deleg_and_rewards with
-    | DelegAndRewards addr amt =>
-      TransferFunds multisig_tag_addfunds amt addr;
-      e = { _eventname : "Send deleg rewards event"; addr : addr; amt :  amt};
-      event e
-    end
-  end
+procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
+  TransferFunds multisig_tag_addfunds amt addr;
+  e = { _eventname : "Send deleg rewards event"; addr : addr; amt :  amt};
+  event e
 end
 (* Check if a delegs exists for a given SSN *)
 procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
@@ -398,7 +323,7 @@ procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
 end
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
   last_reward_cycle_deleg_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
-  last_reward_cycle_deleg = block_or_zero last_reward_cycle_deleg_tmp;
+  last_reward_cycle_deleg = option_uint128_value last_reward_cycle_deleg_tmp;
   last_reward_cycle <- lastrewardcycle;
   has_reward = builtin lt last_reward_cycle_deleg last_reward_cycle;
   match has_reward with
@@ -452,45 +377,64 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
     ThrowError e
   end
 end
-procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
-  last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
-  last_withdraw_cycle = block_or_zero last_withdraw_cycle_deleg_m;
-  last_reward_cycle <- lastrewardcycle;
-  reward_cycle_list <- reward_cycle_list;
-  (* those are the cycles that we want to compute for computing rewards *)
-  list_need_compute_rewards = list_filter_between last_withdraw_cycle last_reward_cycle reward_cycle_list;
-  (* direct deposit *)
-  direct_deposit_deleg_m <- direct_deposit_deleg[deleg][ssn_operator];
-  direct_deposits_for_deleg = deposit_value_or_empty direct_deposit_deleg_m;
-  (* buffered deposit *)
-  buff_deposit_deleg_m <- buff_deposit_deleg[deleg][ssn_operator];
-  buffered_deposits_for_deleg = deposit_value_or_empty buff_deposit_deleg_m;
-  (* combine two deposit list *)
-  init_map = Emp Uint128 Uint128;
-  foldl = @list_foldl Uint128 Map Uint128 Uint128;
-  staking_init_map = Emp Uint128 Uint128;
-  iter = combine_buffered_and_direct direct_deposits_for_deleg buffered_deposits_for_deleg;
-  combined_direct_and_buffered_map = foldl iter init_map list_need_compute_rewards;
-  (* to calculate final staking per cycle for delegs *)
-  iter = calculate_all_stake_per_cycle combined_direct_and_buffered_map;
-  stake_deleg_per_cycle = foldl iter staking_init_map list_need_compute_rewards;
-  stake_ssn_per_cycle_m <- stake_ssn_per_cycle[ssn_operator];
-  match stake_ssn_per_cycle_m with
-  | Some stake_ssn_per_cycle =>
-    (* to calculate staking rewards per cycle for deleg *)
-    reward_per_cycle_for_deleg_init = Emp Uint128 DelegAndRewards;
-    foldl_a = @list_foldl Uint128 Map Uint128 DelegAndRewards;
-    calculate_rewards_per_cycle_for_deleg_iter = calculate_rewards_per_cycle_for_deleg deleg stake_deleg_per_cycle stake_ssn_per_cycle;
-    rewards_deleg_per_cycle = foldl_a calculate_rewards_per_cycle_for_deleg_iter reward_per_cycle_for_deleg_init list_need_compute_rewards;
-    (* to send those rewards and update last withdraw cycle of deleg *)
-    rewards_deleg_per_cycle_list = builtin to_list rewards_deleg_per_cycle;
-    forall rewards_deleg_per_cycle_list SendDelegRewards;
-    last_withdraw_cycle_deleg[deleg][ssn_operator] := last_reward_cycle;
-    e = { _eventname : "Deleg update cycle"; ssn_addr : ssn_operator; deleg_address : deleg };
-    event e
-  | None => (* ssn has no rewards *)
+procedure CalcStakeDelegPerCycle (tmp_arg : TmpArg)
+  match tmp_arg with
+  | TmpArg deleg ssn_operator reward_cycle =>
+    (* Combine buffered and direct - this replaces combine_buffered_and_direct *)
+    last_reward_cycle = builtin sub reward_cycle uint128_one;
+    cur_opt <- direct_deposit_deleg[deleg][ssn_operator][reward_cycle];
+    buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+    comb_opt = option_add cur_opt buf_opt;
+    (* Calculate final staking per cycle for delegs - this replaces calculate_all_stake_pr_cycle *)
+    result_map_opt <- stake_deleg_per_cycle[last_reward_cycle];
+    stake_opt = option_add comb_opt result_map_opt;
+    match stake_opt with
+    | Some stake =>
+      (* TODO: See if stake_deleg_per_cycle can be removed *)
+      stake_deleg_per_cycle[reward_cycle] := stake
+    | None =>
+    end
   end
 end
+procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
+  match tmp_arg with
+  | TmpArg deleg ssn_operator reward_cycle =>
+    (* Calculate staking rewards per cycle for deleg - this replaces calculate_rewards_per_cycle_for_deleg *)
+    staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
+    staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+    match staking_per_cycle_for_deleg_opt with
+    | Some staking_of_deleg =>
+      match staking_and_rewards_per_cycle_for_ssn_opt with
+      | Some (SSNCycleInfo total_staking total_rewards) =>
+        reward_tmp = builtin mul total_rewards staking_of_deleg;
+        reward = builtin div reward_tmp total_staking;
+        SendDelegRewards reward_cycle deleg reward_tmp
+      | None =>
+      end
+    | None =>
+    end
+  end
+end
+
+procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
+  last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
+  last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
+  last_reward_cycle <- lastrewardcycle;
+  reward_cycle_list_local <- reward_cycle_list;
+  (* those are the cycles that we want to compute for computing rewards *)
+  list_need_compute_rewards = list_filter_between last_withdraw_cycle last_reward_cycle reward_cycle_list_local;
+  (* Combine deleg and ssn_operator with list_need_compute_rewards *)
+  mapper = @list_map Uint128 TmpArg;
+  f = fun (cycle : Uint128) => TmpArg deleg ssn_operator cycle;
+  combined_args_list = mapper f list_need_compute_rewards;
+  (* Recalculate stake_deleg_per_cycle *)
+  emp_map = Emp Uint128 Uint128;
+  stake_deleg_per_cycle := emp_map;
+  forall combined_args_list CalcStakeDelegPerCycle;
+  (* Calculate and send rewards *)
+  forall combined_args_list CalcRewardsDelegPerCycleAndSend
+end
+
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -792,8 +736,8 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator : B
   forall ssnreward_list UpdateStakeReward;
   newLastRewardCycleNum = builtin add uint128_one last_reward_cycle;
   lastrewardcycle := newLastRewardCycleNum;
-  reward_cycle_list <- reward_cycle_list;
-  new_reward_cycle_list = Cons {Uint128} newLastRewardCycleNum reward_cycle_list;
+  reward_cycle_list_local <- reward_cycle_list;
+  new_reward_cycle_list = Cons {Uint128} newLastRewardCycleNum reward_cycle_list_local;
   reward_cycle_list := new_reward_cycle_list
 end
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
