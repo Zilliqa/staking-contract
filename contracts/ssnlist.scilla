@@ -582,7 +582,7 @@ transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, co
       e = { _eventname : "Update staking parameter event"; sender : initiator};
       event e
     | False =>
-      e = UpdateStakingParamError ;
+      e = UpdateStakingParamError;
       ThrowError e
     end
   | False =>
