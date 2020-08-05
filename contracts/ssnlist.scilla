@@ -814,7 +814,7 @@ transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : B
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
-transition PopulateBufferedDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
   IsPaused;
   IsProxy;
   IsAdmin initiator;
