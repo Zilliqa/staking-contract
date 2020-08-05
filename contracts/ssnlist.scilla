@@ -508,6 +508,29 @@ transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, co
      ThrowError e
   end
 end
+transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  already_exists <- exists ssnlist[ssnaddr];
+  match already_exists with
+  | True  =>
+    e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
+    event e
+  | False =>
+    status = bool_inactive;
+    stake_amt = Uint128 0;
+    rewards = Uint128 0;
+    buff_deposit = Uint128 0;
+    comm = Uint128 0;
+    comm_rewards = Uint128 0;
+    s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards ssnaddr;
+    ssnlist[ssnaddr] := s;
+    lrc <- lastrewardcycle;
+    comm_for_ssn[ssnaddr][lrc] := comm;
+    e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
+    event e
+  end
+end
 (* @dev   Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param stake_amt: Stake amount of ssn *)
@@ -521,7 +544,7 @@ end
 (* @param min_delegate_amt: Minimum nb. of ZILs required for delegation *)
 (* @param received_address: Address that will be used to receive comm *)
 (* @param initiator: The original caller who called the proxy *)
-transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20, initiator : ByStr20)
+transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
   already_exists <- exists ssnlist[ssnaddr];

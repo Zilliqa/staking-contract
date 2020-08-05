@@ -387,7 +387,7 @@ e = UpdateStakingParamError;
 ThrowError e
 end
 end
-transition AddSSN(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20, initiator : ByStr20)
+transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
 already_exists <- exists ssnlist[ssnaddr];
@@ -396,26 +396,18 @@ match already_exists with
 e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
 event e
 | False =>
-minstake_tmp <- minstake;
-maxstake_tmp <- maxstake;
-total_amt = builtin add stake_amt buff_deposit;
-pass = builtin lt maxstake_tmp total_amt;
-match pass with
-| True  =>
-e = { _eventname : "Stake deposit > max_stake"; ssn_addr : ssnaddr; requested_deposit : stake_amt; max_stake : maxstake_tmp };
-event e
-| False =>
-status = builtin lt minstake_tmp stake_amt;
-totalstakedeposit_tmp <- totalstakedeposit;
-totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amt;
-totalstakedeposit := totalstakedeposit_tmp;
-s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
+status = bool_inactive;
+stake_amt = Uint128 0;
+rewards = Uint128 0;
+buff_deposit = Uint128 0;
+comm = Uint128 0;
+comm_rewards = Uint128 0;
+s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards ssnaddr;
 ssnlist[ssnaddr] := s;
 lrc <- lastrewardcycle;
 comm_for_ssn[ssnaddr][lrc] := comm;
 e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
 event e
-end
 end
 end
 transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
@@ -630,7 +622,7 @@ IsProxy;
 IsAdmin initiator;
 last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
-transition PopulateBufferedDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
 IsPaused;
 IsProxy;
 IsAdmin initiator;
