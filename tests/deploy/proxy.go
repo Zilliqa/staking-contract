@@ -23,19 +23,46 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error){
+func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			addr,
+		},
+		{
+			"name",
+			"String",
+			name,
+		},
+		{
+			"urlraw",
+			"String",
+			"fakeurl",
+		},
+		{
+			"urlapi",
+			"String",
+			"fakeapi",
+		},
+	}
+
+	return p.Call("AddSSN", args, "0")
+}
+
+func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		"verif",
 		"ByStr20",
 		addr,
 	}}
-	return p.Call("UpdateVerifier",args,"0")
+	return p.Call("UpdateVerifier", args, "0")
 
 }
 
 func (p *Proxy) AddFunds(amount string) {
 	args := []core.ContractValue{}
-	_, err := p.Call("AddFunds", args,amount)
+	_, err := p.Call("AddFunds", args, amount)
 	if err != nil {
 		log.Fatal("AddFunds failed")
 	}
@@ -43,12 +70,12 @@ func (p *Proxy) AddFunds(amount string) {
 
 func (p *Proxy) Unpause() (*transaction.Transaction, error) {
 	args := []core.ContractValue{}
-	return p.Call("UnPause", args,"0")
+	return p.Call("UnPause", args, "0")
 }
 
 func (p *Proxy) GetBalance() string {
 	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
-	balAndNonce,_ := provider.GetBalance(p.Addr)
+	balAndNonce, _ := provider.GetBalance(p.Addr)
 	return balAndNonce.Balance
 }
 
@@ -87,7 +114,7 @@ func (p *Proxy) Call(transition string, params []core.ContractValue, amount stri
 
 func NewProxy(key string) (*Proxy, error) {
 	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))
-	code, _ := ioutil.ReadFile("./proxy.scilla")
+	code, _ := ioutil.ReadFile("../contracts/proxy.scilla")
 	init := []core.ContractValue{
 		{
 			VName: "_scilla_version",
