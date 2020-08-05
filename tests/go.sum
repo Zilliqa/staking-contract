@@ -4,6 +4,8 @@ github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200803073003-08aa9a16bddf h1:yZr5BuR
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200803073003-08aa9a16bddf/go.mod h1:eSYp2T6f0apnuW8TzhV3f6Aff2SE8Dwio++U4ha4yEM=
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200803081728-963182e0d3ac h1:NNd739soJXDUeO2BbU41yL+PD2lsq4Org++U3lBT0V4=
 github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200803081728-963182e0d3ac/go.mod h1:eSYp2T6f0apnuW8TzhV3f6Aff2SE8Dwio++U4ha4yEM=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200805084754-18d53b2a37dd h1:tkqxJwon1p7Z6aiwzcC+vin+RBy7f6FRJvg0G4bT2Ho=
+github.com/Zilliqa/gozilliqa-sdk v1.2.1-0.20200805084754-18d53b2a37dd/go.mod h1:eSYp2T6f0apnuW8TzhV3f6Aff2SE8Dwio++U4ha4yEM=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/btcsuite/btcd v0.0.0-20190315201642-aa6e0f35703c h1:5N/b57wo2KfeHCGGdcXtOPsHqkPD+veLZhK/bMg2anQ=
 github.com/btcsuite/btcd v0.0.0-20190315201642-aa6e0f35703c/go.mod h1:DrZx5ec/dmnfpw9KyYoQyYo7d0KEvTkk/5M/vbZjAr8=

@@ -171,7 +171,7 @@ end
 (* @param new_address: The new received address *)
 transition UpdateReceivedAddr(new_address : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "UpdateReceivedAddr"; _recipient : current_impl; _amount : zero; new_addr: new_addr; initiator: _sender};
+    msg = {_tag : "UpdateReceivedAddr"; _recipient : current_impl; _amount : zero; new_addr: new_address; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -256,7 +256,7 @@ end
 
 transition PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; initiator: _sender};
+    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_address; cycle : cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
