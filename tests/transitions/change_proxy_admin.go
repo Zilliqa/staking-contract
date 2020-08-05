@@ -31,7 +31,7 @@ func (t *Testing) ChangeProxyAdmin() {
 		},
 	}
 
-	txn, err1 := proxy.Call("ChangeProxyAdmin", args)
+	txn, err1 := proxy.Call("ChangeProxyAdmin", args,"0")
 	if err1 != nil {
 		t.LogError("ChangeProxyAdmin failed", err1)
 	}
@@ -43,7 +43,7 @@ func (t *Testing) ChangeProxyAdmin() {
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, change proxy admin
-	tnx, _ := proxy.Call("ChangeProxyAdmin", args)
+	tnx, _ := proxy.Call("ChangeProxyAdmin", args,"0")
 	receipt, _ = json.Marshal(tnx.Receipt)
 	recp = string(receipt)
 	log.Println(recp)

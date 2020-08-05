@@ -32,7 +32,7 @@ func (t *Testing) UpgradeTo() {
 		},
 	}
 
-	_, err1 := proxy.Call("UpgradeTo", args)
+	_, err1 := proxy.Call("UpgradeTo", args,"0")
 	if err1 != nil {
 		t.LogError("UpgradeTo failed", err1)
 	}
@@ -40,7 +40,7 @@ func (t *Testing) UpgradeTo() {
 
 	// 2. as non-admin, upgrade it
 	proxy.UpdateWallet(key2)
-	tnx, _ := proxy.Call("UpgradeTo", args)
+	tnx, _ := proxy.Call("UpgradeTo", args,"0")
 	receipt, _ := json.Marshal(tnx.Receipt)
 	recp := string(receipt)
 	log.Println(recp)

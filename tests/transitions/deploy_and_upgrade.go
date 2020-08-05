@@ -30,7 +30,7 @@ func (t *Testing) DeployAndUpgrade() (*deploy.Proxy, *deploy.SSNList) {
 			"0x" + ssnlist.Addr,
 		},
 	}
-	_, err2 := proxy.Call("UpgradeTo", args)
+	_, err2 := proxy.Call("UpgradeTo", args,"0")
 	if err2 != nil {
 		t.LogError("UpgradeTo failed", err2)
 	}

@@ -6,5 +6,9 @@ func main() {
 	t := transitions.NewTesting()
 	//t.UpgradeTo()
 	//t.ChangeProxyAdmin()
-	t.Pause()
+	//t.Pause()
+	//t.Unpause()
+	//t.UpdateAdmin()
+	//t.UpdateVerifier()
+	t.AddFunds()
 }

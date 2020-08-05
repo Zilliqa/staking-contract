@@ -16,7 +16,7 @@ func (t *Testing) UpdateAdmin() {
 		"ByStr20",
 		"0x" + addr2,
 	}}
-	tnx, err := proxy.Call("UpdateAdmin", args)
+	tnx, err := proxy.Call("UpdateAdmin", args,"0")
 	if err != nil {
 		t.LogError("UpdateAdmin", err)
 	}
@@ -31,7 +31,7 @@ func (t *Testing) UpdateAdmin() {
 		"ByStr20",
 		"0x" + addr1,
 	}}
-	tnx, err2 := proxy.Call("UpdateAdmin", args)
+	tnx, err2 := proxy.Call("UpdateAdmin", args,"0")
 	t.AssertError(err2)
 
 	receipt = t.GetReceiptString(tnx)

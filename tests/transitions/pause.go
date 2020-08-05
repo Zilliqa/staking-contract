@@ -14,7 +14,7 @@ func (t *Testing) Pause() {
 	ssnlist.LogContractStateJson()
 	proxy.UpdateWallet(key2)
 	args := []core.ContractValue{}
-	tnx,err := proxy.Call("Pause",args)
+	tnx,err := proxy.Call("Pause",args,"0")
 	t.AssertError(err)
 	receipt :=  t.GetReceiptString(tnx)
 	log.Println(receipt)
@@ -23,7 +23,7 @@ func (t *Testing) Pause() {
 
 	// as admin, pause
 	proxy.UpdateWallet(key1)
-	tnx,err2 := proxy.Call("Pause",args)
+	tnx,err2 := proxy.Call("Pause",args,"0")
 	if err2 != nil {
 		t.LogError("Pause",err2)
 	}

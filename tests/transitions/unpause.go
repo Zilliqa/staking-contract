@@ -1,7 +1,6 @@
 package transitions
 
 import (
-	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"log"
 )
 
@@ -13,8 +12,7 @@ func (t *Testing) Unpause() {
 	// as non admin, unpasue
 	ssnlist.LogContractStateJson()
 	proxy.UpdateWallet(key2)
-	args := []core.ContractValue{}
-	tnx,err := proxy.Call("UnPause",args)
+	tnx,err := proxy.Unpause()
 	t.AssertError(err)
 	receipt :=  t.GetReceiptString(tnx)
 	log.Println(receipt)
@@ -23,7 +21,7 @@ func (t *Testing) Unpause() {
 
 	// as admin, unpause
 	proxy.UpdateWallet(key1)
-	tnx,err2 := proxy.Call("UnPause",args)
+	tnx,err2 := proxy.Unpause()
 	if err2 != nil {
 		t.LogError("Unpause",err2)
 	}

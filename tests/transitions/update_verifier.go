@@ -18,7 +18,7 @@ func (t *Testing) UpdateVerifier() {
 		"ByStr20",
 		fakeVerifier,
 	}}
-	tnx, err := proxy.Call("UpdateVerifier", args)
+	tnx, err := proxy.Call("UpdateVerifier", args,"0")
 	if err != nil {
 		t.LogError("UpdateVerifier",err)
 	}
@@ -36,7 +36,7 @@ func (t *Testing) UpdateVerifier() {
 		fakeVerifier,
 	}}
 	proxy.UpdateWallet(key2)
-	tnx, err1 := proxy.Call("UpdateVerifier", args)
+	tnx, err1 := proxy.Call("UpdateVerifier", args,"0")
 	t.AssertError(err1)
 	receipt = t.GetReceiptString(tnx)
 	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -3))])")

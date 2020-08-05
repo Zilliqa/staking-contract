@@ -27,6 +27,12 @@ func (s *SSNList) LogContractStateJson() {
 	log.Println(string(j))
 }
 
+func (s *SSNList) GetBalance() string {
+	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	balAndNonce,_ := provider.GetBalance(s.Addr)
+	return balAndNonce.Balance
+}
+
 func NewSSNList(key string, proxy string) (*SSNList, error) {
 	code, _ := ioutil.ReadFile("./ssnlist.scilla")
 	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))

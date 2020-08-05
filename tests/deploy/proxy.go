@@ -23,6 +23,25 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
+func (p *Proxy) AddFunds(amount string) {
+	args := []core.ContractValue{}
+	_, err := p.Call("AddFunds", args,amount)
+	if err != nil {
+		log.Fatal("AddFunds failed")
+	}
+}
+
+func (p *Proxy) Unpause() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("UnPause", args,"0")
+}
+
+func (p *Proxy) GetBalance() string {
+	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	balAndNonce,_ := provider.GetBalance(p.Addr)
+	return balAndNonce.Balance
+}
+
 func (p *Proxy) UpdateWallet(newKey string) {
 	wallet := account.NewWallet()
 	wallet.AddByPrivateKey(newKey)
@@ -36,13 +55,13 @@ func (p *Proxy) LogContractStateJson() {
 	log.Println(string(j))
 }
 
-func (p *Proxy) Call(transition string, params []core.ContractValue) (*transaction.Transaction, error) {
+func (p *Proxy) Call(transition string, params []core.ContractValue, amount string) (*transaction.Transaction, error) {
 	contract := contract2.Contract{
 		Address: p.Bech32,
 		Signer:  p.Wallet,
 	}
 
-	tx, err := contract.CallFor(transition, params, false, "0", "isolated")
+	tx, err := contract.CallFor(transition, params, false, amount, "isolated")
 	if err != nil {
 		return tx, err
 	}
