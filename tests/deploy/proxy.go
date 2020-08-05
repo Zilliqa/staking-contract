@@ -1,19 +1,59 @@
 package deploy
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/Zilliqa/gozilliqa-sdk/account"
+	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
 	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	provider2 "github.com/Zilliqa/gozilliqa-sdk/provider"
+	"github.com/Zilliqa/gozilliqa-sdk/transaction"
 	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"io/ioutil"
+	"log"
 )
 
 type Proxy struct {
 	Code string
 	Init []core.ContractValue
 	Addr string
+	Bech32 string
+	Wallet *account.Wallet
+}
+
+func (p *Proxy) UpdateWallet(newKey string) {
+	wallet := account.NewWallet()
+	wallet.AddByPrivateKey(newKey)
+	p.Wallet = wallet
+}
+
+func (p *Proxy) LogContractStateJson() {
+	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	rsp,_ := provider.GetSmartContractState(p.Addr)
+	j,_ := json.Marshal(rsp)
+	log.Println(string(j))
+}
+
+func (p *Proxy) Call(transition string,params []core.ContractValue) (*transaction.Transaction,error) {
+	contract := contract2.Contract{
+		Address: p.Bech32,
+		Signer:  p.Wallet,
+	}
+
+	tx, err := contract.CallFor(transition,params,false,"0","isolated")
+	if err != nil {
+		return nil,err
+	}
+	tx.Confirm(tx.ID, 1000, 3, contract.Provider)
+	if tx.Status != core.Confirmed {
+		return nil,errors.New("transaction didn't get confirmed")
+	}
+	if !tx.Receipt.Success {
+		return nil,errors.New("transaction failed")
+	}
+	return tx,nil
 }
 
 func NewProxy(key string) (*Proxy,error) {
@@ -49,11 +89,15 @@ func NewProxy(key string) (*Proxy,error) {
 		return nil,err
 	}
 	tx.Confirm(tx.ID, 1000, 10, contract.Provider)
+
+	b32,_ := bech32.ToBech32Address(tx.ContractAddress)
 	if tx.Status == core.Confirmed {
 		return &Proxy{
 			Code: string(code),
 			Init: init,
 			Addr: tx.ContractAddress,
+			Wallet: wallet,
+			Bech32: b32,
 		},nil
 	} else {
 		return nil,errors.New("deploy failed")
