@@ -467,7 +467,7 @@ transition UpdateVerifier(verif : ByStr20, initiator : ByStr20)
   newverifier = Some {ByStr20} verif;
   verifier := newverifier
 end
-(* @dev: Drain the entire contract's balance. Used by current admin only in case of emergency. *)
+(* @dev: Drain the contract's balance. Used by current admin only in case of emergency. *)
 (* @param initiator: The original caller who called the proxy *)
 transition DrainContractBalance(initiator : ByStr20, amt : Uint128)
   IsProxy;
