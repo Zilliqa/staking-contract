@@ -14,11 +14,11 @@ const adminNotChanged = "changeAdmin FailedNotAdmin"
 func (t *Testing) ChangeProxyAdmin() {
 	t.LogStart("ChangeProxyAdmin")
 	log.Println("start to deploy proxy contract")
-	proxy,err := deploy.NewProxy(key1)
+	proxy, err := deploy.NewProxy(key1)
 	if err != nil {
-		t.LogError("deploy proxy error = ",err)
+		t.LogError("deploy proxy error = ", err)
 	}
-	log.Println("deploy proxy succeed, address = ",proxy.Addr)
+	log.Println("deploy proxy succeed, address = ", proxy.Addr)
 
 	proxy.LogContractStateJson()
 	// 1. as admin, change proxy admin
@@ -31,23 +31,23 @@ func (t *Testing) ChangeProxyAdmin() {
 		},
 	}
 
-	txn,err1 := proxy.Call("ChangeProxyAdmin",args)
+	txn, err1 := proxy.Call("ChangeProxyAdmin", args)
 	if err1 != nil {
-		t.LogError("ChangeProxyAdmin failed",err1)
+		t.LogError("ChangeProxyAdmin failed", err1)
 	}
 
-	receipt,_ := json.Marshal(txn.Receipt)
+	receipt, _ := json.Marshal(txn.Receipt)
 	recp := string(receipt)
-	t.AssertContain(recp,adminChanged)
+	t.AssertContain(recp, adminChanged)
 	fmt.Println(recp)
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, change proxy admin
-	tnx,_ := proxy.Call("ChangeProxyAdmin",args)
-	receipt,_ = json.Marshal(tnx.Receipt)
+	tnx, _ := proxy.Call("ChangeProxyAdmin", args)
+	receipt, _ = json.Marshal(tnx.Receipt)
 	recp = string(receipt)
 	log.Println(recp)
-	t.AssertContain(recp,adminNotChanged)
+	t.AssertContain(recp, adminNotChanged)
 	proxy.LogContractStateJson()
 
 	t.LogEnd("ChangeProxyAdmin")

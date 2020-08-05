@@ -11,15 +11,15 @@ import (
 
 const failedLog = "upgradeTo FailedNotAdmin"
 
-func (t *Testing) UpgradeTo()  {
+func (t *Testing) UpgradeTo() {
 	t.LogStart("UpgradeTo")
 
 	log.Println("start to deploy proxy contract")
-	proxy,err := deploy.NewProxy(key1)
+	proxy, err := deploy.NewProxy(key1)
 	if err != nil {
-		t.LogError("deploy proxy error = ",err)
+		t.LogError("deploy proxy error = ", err)
 	}
-	log.Println("deploy proxy succeed, address = ",proxy.Addr)
+	log.Println("deploy proxy succeed, address = ", proxy.Addr)
 
 	proxy.LogContractStateJson()
 	// 1. as admin, upgrade it
@@ -32,20 +32,20 @@ func (t *Testing) UpgradeTo()  {
 		},
 	}
 
-	_,err1 := proxy.Call("UpgradeTo",args)
+	_, err1 := proxy.Call("UpgradeTo", args)
 	if err1 != nil {
-		t.LogError("UpgradeTo failed",err1)
+		t.LogError("UpgradeTo failed", err1)
 	}
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, upgrade it
 	proxy.UpdateWallet(key2)
-	tnx,_ := proxy.Call("UpgradeTo",args)
-	receipt,_ := json.Marshal(tnx.Receipt)
+	tnx, _ := proxy.Call("UpgradeTo", args)
+	receipt, _ := json.Marshal(tnx.Receipt)
 	recp := string(receipt)
 	log.Println(recp)
-	if !strings.Contains(recp,failedLog) {
-		t.LogError("UpgradeTo",errors.New("event log failed"))
+	if !strings.Contains(recp, failedLog) {
+		t.LogError("UpgradeTo", errors.New("event log failed"))
 	}
 	proxy.LogContractStateJson()
 	t.LogEnd("UpgradeTo")

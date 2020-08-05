@@ -16,9 +16,9 @@ import (
 )
 
 type Proxy struct {
-	Code string
-	Init []core.ContractValue
-	Addr string
+	Code   string
+	Init   []core.ContractValue
+	Addr   string
 	Bech32 string
 	Wallet *account.Wallet
 }
@@ -31,35 +31,35 @@ func (p *Proxy) UpdateWallet(newKey string) {
 
 func (p *Proxy) LogContractStateJson() {
 	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
-	rsp,_ := provider.GetSmartContractState(p.Addr)
-	j,_ := json.Marshal(rsp)
+	rsp, _ := provider.GetSmartContractState(p.Addr)
+	j, _ := json.Marshal(rsp)
 	log.Println(string(j))
 }
 
-func (p *Proxy) Call(transition string,params []core.ContractValue) (*transaction.Transaction,error) {
+func (p *Proxy) Call(transition string, params []core.ContractValue) (*transaction.Transaction, error) {
 	contract := contract2.Contract{
 		Address: p.Bech32,
 		Signer:  p.Wallet,
 	}
 
-	tx, err := contract.CallFor(transition,params,false,"0","isolated")
+	tx, err := contract.CallFor(transition, params, false, "0", "isolated")
 	if err != nil {
-		return nil,err
+		return tx, err
 	}
 	tx.Confirm(tx.ID, 1000, 3, contract.Provider)
 	if tx.Status != core.Confirmed {
-		return nil,errors.New("transaction didn't get confirmed")
+		return tx, errors.New("transaction didn't get confirmed")
 	}
 	if !tx.Receipt.Success {
-		return nil,errors.New("transaction failed")
+		return tx, errors.New("transaction failed")
 	}
-	return tx,nil
+	return tx, nil
 }
 
-func NewProxy(key string) (*Proxy,error) {
+func NewProxy(key string) (*Proxy, error) {
 	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))
-	code,_ := ioutil.ReadFile("./proxy.scilla")
-	init := []core.ContractValue {
+	code, _ := ioutil.ReadFile("./proxy.scilla")
+	init := []core.ContractValue{
 		{
 			VName: "_scilla_version",
 			Type:  "Uint32",
@@ -79,27 +79,27 @@ func NewProxy(key string) (*Proxy,error) {
 	wallet.AddByPrivateKey(key)
 
 	contract := contract2.Contract{
-		Code:     string(code),
-		Init:     init,
-		Signer:   wallet,
+		Code:   string(code),
+		Init:   init,
+		Signer: wallet,
 	}
 
-	tx,err := contract.DeployTo("isolated")
+	tx, err := contract.DeployTo("isolated")
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	tx.Confirm(tx.ID, 1000, 10, contract.Provider)
 
-	b32,_ := bech32.ToBech32Address(tx.ContractAddress)
+	b32, _ := bech32.ToBech32Address(tx.ContractAddress)
 	if tx.Status == core.Confirmed {
 		return &Proxy{
-			Code: string(code),
-			Init: init,
-			Addr: tx.ContractAddress,
+			Code:   string(code),
+			Init:   init,
+			Addr:   tx.ContractAddress,
 			Wallet: wallet,
 			Bech32: b32,
-		},nil
+		}, nil
 	} else {
-		return nil,errors.New("deploy failed")
+		return nil, errors.New("deploy failed")
 	}
 }
