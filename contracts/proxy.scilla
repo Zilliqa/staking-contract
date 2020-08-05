@@ -132,9 +132,9 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
+transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "Adddeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
+    msg = {_tag : "AddDeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
