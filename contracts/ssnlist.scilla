@@ -126,6 +126,7 @@ type Error =
   | ChangeCommError
   | SSNNotExist
   | DelegNotExist
+  | SSNAlreadyExist
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -141,6 +142,7 @@ let make_error =
       | ChangeCommError => Int32 -9
       | SSNNotExist => Int32 -10
       | DelegNotExist => Int32 -11
+      | SSNAlreadyExist => Int32 -12
       end
     in
     { _exception : "Error"; code : result_code }
@@ -514,8 +516,8 @@ transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : St
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True  =>
-    e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
-    event e
+    e = SSNAlreadyExist;
+    ThrowError e
   | False =>
     status = bool_inactive;
     stake_amt = Uint128 0;
