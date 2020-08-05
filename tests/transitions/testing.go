@@ -2,6 +2,7 @@ package transitions
 
 import (
 	"log"
+	"strings"
 )
 
 const key1 = "e40afdc148c8f169613ba1bb2f9b15186cff6e1f5ad50ddc42aae7e5d51042bb"
@@ -23,4 +24,10 @@ func (t *Testing) LogEnd(tag string) {
 
 func (t *Testing) LogError(tag string,err error) {
 	log.Fatalf("failed at %s, err = %s\n",tag,err.Error())
+}
+
+func (t *Testing) AssertContain(s1,s2 string) {
+	if !strings.Contains(s1,s2) {
+		log.Fatal("assert failed")
+	}
 }
