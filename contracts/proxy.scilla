@@ -275,9 +275,9 @@ transition PopulateDirectDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle
     send msgs
 end
 
-transition PopulateDepositAmtFordeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
+transition PopulateDepositAmtForDeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDepositAmtFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; amt : amt; initiator: _sender};
+    msg = {_tag : "PopulateDepositAmtForDeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
