@@ -23,6 +23,16 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
+func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error){
+	args := []core.ContractValue{{
+		"verif",
+		"ByStr20",
+		addr,
+	}}
+	return p.Call("UpdateVerifier",args,"0")
+
+}
+
 func (p *Proxy) AddFunds(amount string) {
 	args := []core.ContractValue{}
 	_, err := p.Call("AddFunds", args,amount)

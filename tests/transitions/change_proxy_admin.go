@@ -3,7 +3,6 @@ package transitions
 import (
 	"Zilliqa/stake-test/deploy"
 	"encoding/json"
-	"fmt"
 	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"log"
 )
@@ -39,7 +38,7 @@ func (t *Testing) ChangeProxyAdmin() {
 	receipt, _ := json.Marshal(txn.Receipt)
 	recp := string(receipt)
 	t.AssertContain(recp, adminChanged)
-	fmt.Println(recp)
+	log.Println(recp)
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, change proxy admin
