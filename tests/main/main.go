@@ -10,5 +10,6 @@ func main() {
 	//t.Unpause()
 	//t.UpdateAdmin()
 	//t.UpdateVerifier()
-	t.AddFunds()
+	//t.AddFunds()
+	t.DrainContractBalance()
 }

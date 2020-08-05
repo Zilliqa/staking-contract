@@ -120,9 +120,9 @@ end
 (* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
 (* @param buff_deposit: Any buffered stake deposit *)
-transition AddSSN (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buff_deposit : Uint128)
+transition AddSSN (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128, comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "AddSSN"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; initiator : _sender};
+    msg = {_tag : "AddSSN"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; min_delegate_amt: min_delegate_amt; received_addr: received_addr; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -132,9 +132,9 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
+transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "Adddeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
+    msg = {_tag : "AddDeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -169,9 +169,9 @@ end
 
 (* @dev : To update the received address for a given SSN *)
 (* @param new_address: The new received address *)
-transition UpdateReceivedAddr(new_address : ByStr20)
+transition UpdateReceivedAddr(new_addr : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "UpdateReceivedAddr"; _recipient : current_impl; _amount : zero; new_addr: new_address; initiator: _sender};
+    msg = {_tag : "UpdateReceivedAddr"; _recipient : current_impl; _amount : zero; new_addr: new_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -254,16 +254,16 @@ transition PopulateStakeSSNPerCycle(ssn_addr : ByStr20, cycle : Uint128, info : 
     send msgs
 end
 
-transition PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
+transition PopulateLastWithdrawCycleForDeleg(deleg_address : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateLastWithdrawCycleFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_address; cycle : cycle; initiator: _sender};
+    msg = {_tag : "PopulateLastWithdrawCycleForDeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_address; cycle : cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateBufferedDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+transition PopulateBuffDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateBufferedDeposit"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; amt : amt; initiator: _sender};
+    msg = {_tag : "PopulateBuffDeposit"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; cycle : cycle; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -275,9 +275,9 @@ transition PopulateDirectDeposit(deleg_addr : ByStr20, ssn_addr : ByStr20, cycle
     send msgs
 end
 
-transition PopulateDepositAmtFordeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
+transition PopulateDepositAmtForDeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "PopulateDepositAmtFordeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; amt : amt; initiator: _sender};
+    msg = {_tag : "PopulateDepositAmtForDeleg"; _recipient : current_impl; _amount : zero; ssn_addr : ssn_addr; deleg_addr : deleg_addr; amt : amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
