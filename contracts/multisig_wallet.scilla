@@ -210,14 +210,15 @@ let custom_transaction_msg_as_list =
           min_stake : min_stake;
           max_stake : max_stake;
           contract_max_stake : contract_max_stake}
-      | AddSSN ssnaddr stake_amount rewards urlraw urlapi buffered_deposit =>
-        (* AddSSN (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
+      | AddSSN ssnaddr stake_amt rewards name urlraw urlapi buffered_deposit =>
+        (* AddSSN (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
         {_recipient : proxyContract;
          _tag : "AddSSN";
          _amount : Uint128 0;
          ssnaddr : ssnaddr;
-         stake_amount : stake_amount;
+         stake_amt : stake_amt;
          rewards : rewards;
+         name : name;
          urlraw : urlraw;
          urlapi : urlapi;
          buffered_deposit : buffered_deposit}

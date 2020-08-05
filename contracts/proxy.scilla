@@ -89,9 +89,9 @@ transition UpdateVerifier (verif : ByStr20)
 end
 
 (* @dev: Set the admin of contract. Used by current admin only. *)
-transition DrainContractBalance ()
+transition DrainContractBalance (amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "DrainContractBalance"; _recipient : current_impl; _amount : zero; initiator : _sender};
+    msg = {_tag : "DrainContractBalance"; _recipient : current_impl; _amount : zero; initiator : _sender; amt : amt};
     msgs = one_msg msg;
     send msgs
 end
