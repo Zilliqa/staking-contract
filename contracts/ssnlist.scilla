@@ -240,8 +240,6 @@ procedure IsPaused()
     ThrowError e
   end
 end
-(* Can be called by the contract admin only *)
-(* It is expected that transfer only happens to an exterally owned account*)
 procedure TransferFunds(tag: String, amt : Uint128, recipient : ByStr20)
     msg = {_tag : tag; _recipient : recipient; _amount : amt};
     msgs = one_msg msg;
