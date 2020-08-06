@@ -13,5 +13,6 @@ func main() {
 	//t.AddFunds()
 	//t.DrainContractBalance()
 	//t.UpdateStakingParameters()
-	t.AddSSN()
+	//t.AddSSN()
+	t.AddDelegator()
 }

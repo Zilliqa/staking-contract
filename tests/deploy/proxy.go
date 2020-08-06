@@ -23,6 +23,27 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
+func (p *Proxy) AddDelegator(ssnaddr,deleg string,stakeAmount string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			ssnaddr,
+		},
+		{
+			"deleg",
+			"ByStr20",
+			deleg,
+		},
+		{
+			"stake_amt",
+			"Uint128",
+			stakeAmount,
+		},
+	}
+	return p.Call("AddDeleg", args, "0")
+}
+
 func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
