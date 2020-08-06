@@ -16,5 +16,6 @@ func main() {
 	//t.AddSSN()
 	//t.AddDelegator()
 	//t.RemoveSSN()
-	t.DelegateStake()
+	//t.DelegateStake()
+	t.UpdateReceiveAddr()
 }

@@ -132,6 +132,15 @@ func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, erro
 	return p.Call("AddSSN", args, "0")
 }
 
+func (p *Proxy) UpdateReceiveAddr(newAddr string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{{
+		"new_addr",
+		"ByStr20",
+		newAddr,
+	}}
+	return p.Call("UpdateReceivedAddr", args, "0")
+}
+
 func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		"verif",
