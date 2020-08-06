@@ -31,8 +31,16 @@ func (t *Testing) AssignStakeReward() {
 	receipt :=  t.GetReceiptString(txn)
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"lastrewardcycle\": \"1\"")
+	t.AssertContain(state,"\"lastrewardcycle\":\"1\"")
 	t.AssertContain(state,"5200000000000")
-	t.AssertContain(state,"\"reward_cycle_list\": [\"1\"]")
+	t.AssertContain(state,"\"reward_cycle_list\":[\"1\"]")
+
+	// use addr1 (which is not verifier) to assign rewards
+	proxy.UpdateWallet(key1)
+	txn,err1 := proxy.AssignStakeReward("0x"+addr1, "52000000")
+	t.AssertError(err1)
+	receipt =  t.GetReceiptString(txn)
+	log.Println(receipt)
+
 	t.LogEnd("AssignStakeReward")
 }
