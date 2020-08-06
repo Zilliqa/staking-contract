@@ -8,7 +8,7 @@ func (t *Testing) AddDelegator() {
 
 	proxy, ssnlist := t.DeployAndUpgrade()
 
-	// add ssn1
+	// add ssn1,ssn2
 	ssnlist.LogContractStateJson()
 	proxy.AddSSN("0x"+addr1, "ssn1")
 	proxy.AddSSN("0x"+addr2, "ssn2")

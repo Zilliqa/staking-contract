@@ -44,6 +44,18 @@ func (p *Proxy) AddDelegator(ssnaddr,deleg string,stakeAmount string) (*transact
 	return p.Call("AddDeleg", args, "0")
 }
 
+func (p *Proxy) RemoveSSN(addr string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			addr,
+		},
+	}
+
+	return p.Call("RemoveSSN", args, "0")
+}
+
 func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
