@@ -16,6 +16,7 @@ func (t *Testing) AddSSN() {
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
 	t.AssertContain(state,"{\"argtypes\":[],\"arguments\":[],\"constructor\":\"False\"}")
+	t.AssertContain(state,"{\"argtypes\":[],\"arguments\":[{\"argtypes\":[],\"arguments\":[],\"constructor\":\"False\"},\"0\",\"0\",\"xiaohuo\",\"fakeurl\",\"fakeapi\",\"0\",\"0\",\"0\",\"0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82\"")
 	t.LogEnd("AddSSN")
 
 	// as admin, add again, should fail

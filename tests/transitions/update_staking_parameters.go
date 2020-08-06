@@ -20,8 +20,6 @@ func (t *Testing) UpdateStakingParameters() {
 	recp := string(receipt)
 	log.Println(recp)
 	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"contractmaxstake\":\"1000000\"")
-	t.AssertContain(state,"\"maxstake\":\"500000\"")
 	t.AssertContain(state,"\"minstake\":\"100000\"")
 
 
