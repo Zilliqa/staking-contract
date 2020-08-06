@@ -23,7 +23,7 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) AddDelegator(ssnaddr,deleg string,stakeAmount string) (*transaction.Transaction,error) {
+func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssnaddr",
@@ -44,7 +44,44 @@ func (p *Proxy) AddDelegator(ssnaddr,deleg string,stakeAmount string) (*transact
 	return p.Call("AddDeleg", args, "0")
 }
 
-func (p *Proxy) RemoveSSN(addr string) (*transaction.Transaction,error) {
+func (p *Proxy) UpdateStakingParameters(min,max,contractMax string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"min_stake",
+			"Uint128",
+			min,
+		},
+		{
+			"max_stake",
+			"Uint128",
+			max,
+		},
+		{
+			"contract_max_stake",
+			"Uint128",
+			contractMax,
+		},
+	}
+	return p.Call("UpdateStakingParameters", args, "0")
+}
+
+func (p *Proxy) RemoveDelegator(ssnaddr, deleg string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			ssnaddr,
+		},
+		{
+			"deleg",
+			"ByStr20",
+			deleg,
+		},
+	}
+	return p.Call("Removedeleg", args, "0")
+}
+
+func (p *Proxy) RemoveSSN(addr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssnaddr",
