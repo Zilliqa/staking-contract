@@ -664,14 +664,14 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
     minstake_tmp <- minstake;
-    new_buff_amt  = builtin add _amount buffdeposit;
-    new_stake_amt = builtin add new_buff_amt stake_amt;
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
     FillInDelegAmt ssnaddr initiator;
     FillInDelegs ssnaddr initiator;
     match active_status with
     | True  =>
+      new_buff_amt  = builtin add _amount buffdeposit;
+      new_stake_amt = builtin add new_buff_amt stake_amt;
       (* The SSN is active so add the delegated stake to the buffer *)
       ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
       ssnlist[ssnaddr] := ssn;
