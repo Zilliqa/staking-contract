@@ -180,7 +180,8 @@ end
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 transition DelegateStake(ssnaddr : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "DelegateStake"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; initiator: _sender};
+    accept;
+    msg = {_tag : "DelegateStake"; _recipient : current_impl; _amount : _amount; ssnaddr: ssnaddr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
