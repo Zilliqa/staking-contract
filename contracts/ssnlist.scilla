@@ -184,8 +184,6 @@ field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint12
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
-field maxstake : Uint128 = Uint128 0
-field contractmaxstake : Uint128 = Uint128 0
 (* In case of contract upgrade, this field is indirectly updated when SSNs are added *)
 field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
@@ -484,31 +482,11 @@ transition DrainContractBalance(initiator : ByStr20, amt : Uint128)
 end
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
-(* @param max_stake: New maxstake value *)
-(* @param contract_max_stake: New contract maxstake value *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
-  min_less_than_max = builtin lt min_stake max_stake;
-  match min_less_than_max with
-  | True =>
-    max_less_than_contract_max = builtin lt max_stake contract_max_stake;
-    match max_less_than_contract_max with
-    | True =>
-      minstake := min_stake;
-      maxstake := max_stake;
-      contractmaxstake := contract_max_stake;
-      e = { _eventname : "Update staking parameter"; sender : initiator};
-      event e
-    | False =>
-      e = UpdateStakingParamError;
-      ThrowError e
-    end
-  | False =>
-     e = UpdateStakingParamError;
-     ThrowError e
-  end
+  minstake := min_stake
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
   IsProxy;
@@ -556,26 +534,18 @@ transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : 
     event e
   | False =>
     minstake_tmp <- minstake;
-    maxstake_tmp <- maxstake;
     total_amt = builtin add stake_amt buff_deposit;
-    pass = builtin lt maxstake_tmp total_amt;
-    match pass with
-    | True  =>
-      e = { _eventname : "Stake deposit > max_stake"; ssn_addr : ssnaddr; requested_deposit : stake_amt; max_stake : maxstake_tmp };
-      event e
-    | False =>
-      status = builtin lt minstake_tmp stake_amt;
-      (* Update the total stake deposit *)
-      totalstakedeposit_tmp <- totalstakedeposit;
-      totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amt;
-      totalstakedeposit := totalstakedeposit_tmp;
-      s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
-      ssnlist[ssnaddr] := s;
-      lrc <- lastrewardcycle;
-      comm_for_ssn[ssnaddr][lrc] := comm;
-      e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
-      event e
-    end
+    status = builtin lt minstake_tmp stake_amt;
+    (* Update the total stake deposit *)
+    totalstakedeposit_tmp <- totalstakedeposit;
+    totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amt;
+    totalstakedeposit := totalstakedeposit_tmp;
+    s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
+    ssnlist[ssnaddr] := s;
+    lrc <- lastrewardcycle;
+    comm_for_ssn[ssnaddr][lrc] := comm;
+    e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
+    event e
   end
 end
 (* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
@@ -702,50 +672,42 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
     minstake_tmp <- minstake;
-    maxstake_tmp <- maxstake;
     new_buff_amt  = builtin add _amount buffdeposit;
     new_stake_amt = builtin add new_buff_amt stake_amt;
-    pass = builtin lt maxstake_tmp new_stake_amt;
-    match pass with
-    | True  => (* stake deposit above maxstake limit for SSNs *)
-      e = { _exception : "Deleg stake deposit > max_stake"; ssn_addr : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
-      throw e
+    lrc <- lastrewardcycle;
+    (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
+    FillInDelegAmt ssnaddr initiator;
+    FillInDelegs ssnaddr initiator;
+    match active_status with
+    | True  =>
+      (* The SSN is active so add the delegated stake to the buffer *)
+      ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
+      ssnlist[ssnaddr] := ssn;
+      (* record this to buffer deposit for deleg *)
+      stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][lrc];
+       match stake_amt_for_deleg_option  with
+       | Some stake_amt_for_deleg =>
+         new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+         buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
+       | None =>
+         buff_deposit_deleg[initiator][ssnaddr][lrc] := _amount
+       end
     | False =>
-      lrc <- lastrewardcycle;
-      (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
-      FillInDelegAmt ssnaddr initiator;
-      FillInDelegs ssnaddr initiator;
-      match active_status with
-      | True  =>
-        (* The SSN is active so add the delegated stake to the buffer *)
-        ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
-        ssnlist[ssnaddr] := ssn;
-        (* record this to buffer deposit for deleg *)
-        stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][lrc];
-        match stake_amt_for_deleg_option  with
-        | Some stake_amt_for_deleg =>
-          new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
-          buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
-        | None =>
-          buff_deposit_deleg[initiator][ssnaddr][lrc] := _amount
-        end
-      | False =>
-        (* The SSN is inactive so add the delegated stake to stake_amount *)
-        new_stake_amt  = builtin add _amount stake_amt;
-        status = uint128_le minstake_tmp new_stake_amt;
-        (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
-        ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
-        ssnlist[ssnaddr] := ssn;
-        d <- delegs[ssnaddr][initiator];
-        (* record this to direct deposit for deleg *)
-        stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
-        match stake_amt_for_deleg_option  with
-          | Some stake_amt_for_deleg =>
-            new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
-            direct_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
-          | None =>
-            direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
-        end
+      (* The SSN is inactive so add the delegated stake to stake_amount *)
+      new_stake_amt  = builtin add _amount stake_amt;
+      status = uint128_le minstake_tmp new_stake_amt;
+      (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
+      ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+      ssnlist[ssnaddr] := ssn;
+      d <- delegs[ssnaddr][initiator];
+      (* record this to direct deposit for deleg *)
+      stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
+      match stake_amt_for_deleg_option  with
+      | Some stake_amt_for_deleg =>
+        new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+        direct_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
+      | None =>
+        direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
       end
     end
   end

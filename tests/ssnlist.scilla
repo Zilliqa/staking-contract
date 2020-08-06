@@ -104,8 +104,6 @@ field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint12
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
-field maxstake : Uint128 = Uint128 0
-field contractmaxstake : Uint128 = Uint128 0
 field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = Uint128 0
@@ -366,28 +364,10 @@ match less_than with
 TransferFunds addfunds_tag amt initiator
 end
 end
-transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
-min_less_than_max = builtin lt min_stake max_stake;
-match min_less_than_max with
-| True =>
-max_less_than_contract_max = builtin lt max_stake contract_max_stake;
-match max_less_than_contract_max with
-| True =>
-minstake := min_stake;
-maxstake := max_stake;
-contractmaxstake := contract_max_stake;
-e = { _eventname : "Update staking parameter"; sender : initiator};
-event e
-| False =>
-e = UpdateStakingParamError;
-ThrowError e
-end
-| False =>
-e = UpdateStakingParamError;
-ThrowError e
-end
+minstake := min_stake
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
 IsProxy;
@@ -506,15 +486,8 @@ e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
 minstake_tmp <- minstake;
-maxstake_tmp <- maxstake;
 new_buff_amt  = builtin add _amount buffdeposit;
 new_stake_amt = builtin add new_buff_amt stake_amt;
-pass = builtin lt maxstake_tmp new_stake_amt;
-match pass with
-| True  =>
-e = { _exception : "Deleg stake deposit > max_stake"; ssn_addr : ssnaddr; deleg_address : initiator; requested_deposit : _amount; max_stake : maxstake_tmp };
-throw e
-| False =>
 lrc <- lastrewardcycle;
 FillInDelegAmt ssnaddr initiator;
 FillInDelegs ssnaddr initiator;
@@ -543,7 +516,6 @@ new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
 direct_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
 | None =>
 direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
-end
 end
 end
 end
