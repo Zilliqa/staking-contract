@@ -12,9 +12,7 @@ func (t *Testing) UpdateStakingParameters() {
 	// as admin, should succeed
 	ssnlist.LogContractStateJson()
 	min := "100000"
-	max := "500000"
-	contractMax := "1000000"
-	txn,err1 := proxy.UpdateStakingParameters(min,max,contractMax)
+	txn,err1 := proxy.UpdateStakingParameters(min)
 	if err1 != nil {
 		t.LogError("UpdateStakingParameters failed", err1)
 	}
@@ -29,7 +27,7 @@ func (t *Testing) UpdateStakingParameters() {
 
 	// as non admin
 	proxy.UpdateWallet(key2)
-	txn, err2 := proxy.UpdateStakingParameters(min,max,contractMax)
+	txn, err2 := proxy.UpdateStakingParameters(min)
 	t.AssertError(err2)
 	receipt, _ = json.Marshal(txn.Receipt)
 	recp = string(receipt)

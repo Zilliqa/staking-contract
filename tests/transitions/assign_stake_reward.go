@@ -9,9 +9,7 @@ func (t *Testing) AssignStakeReward() {
 	proxy.Unpause()
 	// set staking parameters
 	min := "100000000000000"
-	max := "500000000000000"
-	cmax := "1000000000000000"
-	proxy.UpdateStakingParameters(min, max, cmax)
+	proxy.UpdateStakingParameters(min,)
 	// update verifier to addr2
 	proxy.UpdateVerifier("0x" + addr2)
 	// add ssn1
