@@ -44,7 +44,7 @@ func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transa
 	return p.Call("AddDeleg", args, "0")
 }
 
-func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction,error) {
+func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssnaddr",
@@ -55,8 +55,7 @@ func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Trans
 	return p.Call("DelegateStake", args, amount)
 }
 
-
-func (p *Proxy) UpdateStakingParameters(min,max,contractMax string) (*transaction.Transaction, error) {
+func (p *Proxy) UpdateStakingParameters(min, max, contractMax string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"min_stake",
@@ -132,13 +131,35 @@ func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, erro
 	return p.Call("AddSSN", args, "0")
 }
 
-func (p *Proxy) UpdateReceiveAddr(newAddr string) (*transaction.Transaction,error) {
+func (p *Proxy) UpdateReceiveAddr(newAddr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		"new_addr",
 		"ByStr20",
 		newAddr,
 	}}
 	return p.Call("UpdateReceivedAddr", args, "0")
+}
+
+type SSNRewardShare struct {
+	SSNAddress       string
+	RewardPercentage string
+}
+
+func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		VName: "ssnreward_list",
+		Type:  "List SsnRewardShare",
+		Value: []core.ParamConstructor{
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn, percent},
+			},
+		},
+	},
+	}
+
+	return p.Call("AssignStakeReward", args, "0")
 }
 
 func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
