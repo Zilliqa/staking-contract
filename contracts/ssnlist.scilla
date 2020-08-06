@@ -113,7 +113,7 @@ let option_add =
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
-let multisig_tag_addfunds = "AddFunds"
+let addfunds_tag = "AddFunds"
 type Error =
   | ContractFreezedFailure
   | VerifierValidationFailed
@@ -289,7 +289,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
 end
 (* this procedure is to send rewards to deleg for every reward cycle *)
 procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
-  TransferFunds multisig_tag_addfunds amt addr;
+  TransferFunds addfunds_tag amt addr;
   e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt};
   event e
 end
@@ -362,7 +362,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
           ssnlist[ssn] := ssn_option;
           new_amt_for_deleg = builtin sub amt deposit_amt;
           delegs[ssn][initiator] := new_amt_for_deleg;
-          TransferFunds multisig_tag_addfunds deposit_amt initiator;
+          TransferFunds addfunds_tag deposit_amt initiator;
           e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
           event e
         | None =>
@@ -479,7 +479,7 @@ transition DrainContractBalance(initiator : ByStr20, amt : Uint128)
   match less_than with
   | True => throw
   | False =>
-    TransferFunds multisig_tag_addfunds amt initiator
+    TransferFunds addfunds_tag amt initiator
   end
 end
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
@@ -776,7 +776,7 @@ transition WithdrawComm(initiator : ByStr20)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-    TransferFunds multisig_tag_addfunds comm_rewards received_addr;
+    TransferFunds addfunds_tag comm_rewards received_addr;
     e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_total_reward : rewards };
     event e;
     ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero received_addr;
