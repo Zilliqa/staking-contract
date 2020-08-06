@@ -27,8 +27,7 @@ library SSNList
 (*                     Number of ZILs earned as comm by the SSN. *)
 (* ReceivedAddress   : ByStr20 *)
 (*                     Address will be used to receive comm. *)
-(* Invariant 1: StakeAmount + BufferedDeposit < MaxStake < ContractMaxStake *)
-(* Invariant 2: ActiveStatus = (Minstake < StakeAmount)  *)
+(* Invariant : ActiveStatus = (Minstake < StakeAmount)  *)
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 (* SSNRewardShare Data Type *)
@@ -184,8 +183,6 @@ field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint12
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
-(* In case of contract upgrade, this field is indirectly updated when SSNs are added *)
-field totalstakedeposit : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = Uint128 0
 field paused : Bool = True
@@ -536,10 +533,6 @@ transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : 
     minstake_tmp <- minstake;
     total_amt = builtin add stake_amt buff_deposit;
     status = builtin lt minstake_tmp stake_amt;
-    (* Update the total stake deposit *)
-    totalstakedeposit_tmp <- totalstakedeposit;
-    totalstakedeposit_tmp = builtin add totalstakedeposit_tmp stake_amt;
-    totalstakedeposit := totalstakedeposit_tmp;
     s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
     ssnlist[ssnaddr] := s;
     lrc <- lastrewardcycle;
