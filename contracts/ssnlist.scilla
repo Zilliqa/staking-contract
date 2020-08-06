@@ -531,7 +531,6 @@ transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : 
     event e
   | False =>
     minstake_tmp <- minstake;
-    total_amt = builtin add stake_amt buff_deposit;
     status = builtin lt minstake_tmp stake_amt;
     s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
     ssnlist[ssnaddr] := s;
