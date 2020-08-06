@@ -44,6 +44,18 @@ func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transa
 	return p.Call("AddDeleg", args, "0")
 }
 
+func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			ssnaddr,
+		},
+	}
+	return p.Call("DelegateStake", args, amount)
+}
+
+
 func (p *Proxy) UpdateStakingParameters(min,max,contractMax string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
