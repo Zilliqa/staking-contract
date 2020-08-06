@@ -245,10 +245,13 @@ lrc <- lastrewardcycle;
 ssn_option <- ssnlist[ssn];
 match deleg with
 | Some amt =>
-has_buffered_value <- buff_deposit_deleg[initiator][ssn][lrc];
-match has_buffered_value with
-| Some value => throw
-| None =>
+last_withdraw_cycle <- last_withdraw_cycle_deleg[initiator][ssn];
+lwc = option_uint128_value last_withdraw_cycle;
+last_reward_cycle <- lastrewardcycle;
+has_rewards = builtin lt lwc last_reward_cycle;
+match has_rewards with
+| True => throw
+| False =>
 HasRewardToWithdraw ssn initiator;
 deposit_amt_option <- deposit_amt_deleg[initiator][ssn];
 match deposit_amt_option with
