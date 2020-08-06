@@ -55,7 +55,7 @@ end
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
-let multisig_tag_addfunds = "AddFunds"
+let addfunds_tag = "AddFunds"
 type Error =
 | ContractFreezedFailure
 | VerifierValidationFailed
@@ -198,7 +198,7 @@ end
 end
 end
 procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
-TransferFunds multisig_tag_addfunds amt addr;
+TransferFunds addfunds_tag amt addr;
 e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt};
 event e
 end
@@ -265,11 +265,11 @@ match ssn_option with
 new_amt = builtin sub stake_amt deposit_amt;
 minstake_tmp <- minstake;
 status = builtin lt minstake_tmp new_amt;
-ssn_option = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
-ssnlist[ssn] := ssn_option;
+ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+ssnlist[ssn] := ssn_option_tmp;
 new_amt_for_deleg = builtin sub amt deposit_amt;
 delegs[ssn][initiator] := new_amt_for_deleg;
-TransferFunds multisig_tag_addfunds deposit_amt initiator;
+TransferFunds addfunds_tag deposit_amt initiator;
 e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
 event e
 | None =>
@@ -363,7 +363,7 @@ less_than = builtin lt bal amt;
 match less_than with
 | True => throw
 | False =>
-TransferFunds multisig_tag_addfunds amt initiator
+TransferFunds addfunds_tag amt initiator
 end
 end
 transition UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128, initiator : ByStr20)
@@ -569,7 +569,7 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-TransferFunds multisig_tag_addfunds comm_rewards received_addr;
+TransferFunds addfunds_tag comm_rewards received_addr;
 e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_total_reward : rewards };
 event e;
 ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero received_addr;
