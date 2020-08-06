@@ -358,8 +358,8 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
           new_amt = builtin sub stake_amt deposit_amt;
           minstake_tmp <- minstake;
           status = builtin lt minstake_tmp new_amt;
-          ssn_option = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
-          ssnlist[ssn] := ssn_option;
+          ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+          ssnlist[ssn] := ssn_option_tmp;
           new_amt_for_deleg = builtin sub amt deposit_amt;
           delegs[ssn][initiator] := new_amt_for_deleg;
           TransferFunds addfunds_tag deposit_amt initiator;
