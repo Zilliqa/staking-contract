@@ -65,7 +65,6 @@ type SSNCycleInfo =
 (* deleg, ssn_operator, reward_cycle *)
 type TmpArg =
 | TmpArg of ByStr20 ByStr20 Uint128
-
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
@@ -306,16 +305,21 @@ procedure FillInDelegAmt(ssnaddr: ByStr20, deleg : ByStr20)
     deposit_amt_deleg[deleg][ssnaddr] := _amount
   end
 end
-procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
+procedure FillInDelegsWithAmt(ssnaddr : ByStr20, deleg : ByStr20, deleg_amt : Uint128)
   d <- delegs[ssnaddr][deleg];
   match d with
   | Some amt =>
-    new_amt_deleg = builtin add _amount amt;
+    new_amt_deleg = builtin add deleg_amt amt;
     delegs[ssnaddr][deleg] := new_amt_deleg
   | None =>
-    delegs[ssnaddr][deleg] := _amount
+    delegs[ssnaddr][deleg] := deleg_amt
   end
 end
+procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
+  amt = _amount;
+  FillInDelegsWithAmt ssnaddr deleg _amount
+end
+
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   lrcd = option_uint128_value lrcd_tmp;
@@ -413,7 +417,6 @@ procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
     end
   end
 end
-
 procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
@@ -432,7 +435,6 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   (* Calculate and send rewards *)
   forall combined_args_list CalcRewardsDelegPerCycleAndSend
 end
-
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -545,23 +547,63 @@ end
 (* @param ssnaddr: Address of the ssn *)
 (* @param deleg: Address of the deleg *)
 (* @param stake_amt: Stake amount *)
-(* @param rewards: Rewards of the ssn to be added *)
 (* @param initiator: The original caller who called the proxy *)
-(* TODO This could be expensive *)
-(* TODO Missing check on the minimum stake amount *)
-transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
+(* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
+(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg *)
+transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
-  alr_exists <- exists delegs[ssnaddr][deleg];
-  match alr_exists with
-  | True =>
-    e = { _eventname : "Deleg exists"; ssn_addr : ssnaddr; deleg_address : deleg };
-    event e
-  | False =>
-    delegs[ssnaddr][deleg] := stake_amt;
+  ssn_o <- ssnlist[ssnaddr];
+  match ssn_o with
+  | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
+    FillInDelegsWithAmt ssnaddr deleg stake_amt;
+    minstake_tmp <- minstake;
+    new_stake_amt = builtin add stake_amt staking_amt;
+    status = uint128_le minstake_tmp new_stake_amt;
+    ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+    ssnlist[ssnaddr] := ssn;
     e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
     event e
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
   end
+end
+transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  stake_ssn_per_cycle[ssn_addr][cycle] := info
+end
+transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
+end
+transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  lastrewardcycle := cycle
+end
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  reward_cycle_list := list
 end
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
@@ -605,7 +647,6 @@ transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
     event e
   end
 end
-
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
@@ -631,7 +672,6 @@ transition UpdateComm(new_rate : Uint128, initiator : ByStr20)
     ThrowError e
   end
 end
-
 (* @dev : To update the received address for a given SSN *)
 (* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
@@ -648,7 +688,6 @@ transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
     ThrowError e
   end
 end
-
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the deleg. *)
@@ -764,51 +803,9 @@ transition AddFunds(initiator : ByStr20)
   e = { _eventname : "Verifier deposit funds"; verifier : initiator };
   event e
 end
-transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  lastrewardcycle := cycle
-end
-transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  reward_cycle_list := list
-end
 transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
   IsPaused;
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
-end
-transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  stake_ssn_per_cycle[ssn_addr][cycle] := info
-end
-transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
-end
-transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateDepositAmtForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  deposit_amt_deleg[deleg_addr][ssn_addr] := amt
 end

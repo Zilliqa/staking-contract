@@ -218,15 +218,19 @@ deposit_amt_deleg[deleg][ssnaddr] := new_amt
 deposit_amt_deleg[deleg][ssnaddr] := _amount
 end
 end
-procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
+procedure FillInDelegsWithAmt(ssnaddr : ByStr20, deleg : ByStr20, deleg_amt : Uint128)
 d <- delegs[ssnaddr][deleg];
 match d with
 | Some amt =>
-new_amt_deleg = builtin add _amount amt;
+new_amt_deleg = builtin add deleg_amt amt;
 delegs[ssnaddr][deleg] := new_amt_deleg
 | None =>
-delegs[ssnaddr][deleg] := _amount
+delegs[ssnaddr][deleg] := deleg_amt
 end
+end
+procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
+amt = _amount;
+FillInDelegsWithAmt ssnaddr deleg _amount
 end
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
 lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
@@ -413,19 +417,60 @@ e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
 event e
 end
 end
-transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
+transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
-alr_exists <- exists delegs[ssnaddr][deleg];
-match alr_exists with
-| True =>
-e = { _eventname : "Deleg exists"; ssn_addr : ssnaddr; deleg_address : deleg };
-event e
-| False =>
-delegs[ssnaddr][deleg] := stake_amt;
+ssn_o <- ssnlist[ssnaddr];
+match ssn_o with
+| Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
+FillInDelegsWithAmt ssnaddr deleg stake_amt;
+minstake_tmp <- minstake;
+new_stake_amt = builtin add stake_amt staking_amt;
+status = uint128_le minstake_tmp new_stake_amt;
+ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+ssnlist[ssnaddr] := ssn;
 e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
 event e
+| None =>
+e = SSNNotExist;
+ThrowError e
 end
+end
+transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+stake_ssn_per_cycle[ssn_addr][cycle] := info
+end
+transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
+end
+transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+lastrewardcycle := cycle
+end
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+reward_cycle_list := list
 end
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;
@@ -587,51 +632,9 @@ accept;
 e = { _eventname : "Verifier deposit funds"; verifier : initiator };
 event e
 end
-transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-lastrewardcycle := cycle
-end
-transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-reward_cycle_list := list
-end
 transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
 IsPaused;
 IsProxy;
 IsAdmin initiator;
 comm_for_ssn[ssn_addr][cycle] := comm
-end
-transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-stake_ssn_per_cycle[ssn_addr][cycle] := info
-end
-transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
-end
-transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateDepositAmtForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, amt : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-deposit_amt_deleg[deleg_addr][ssn_addr] := amt
 end

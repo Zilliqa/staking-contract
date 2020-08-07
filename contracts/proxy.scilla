@@ -105,12 +105,6 @@ transition UpdateStakingParameters (min_stake : Uint128)
     send msgs
 end
 
-(* @dev: Adds new ssn to ssnlist. Used by verifier only. *)
-(* @param ssnaddr: Address of the ssn to be added *)
-(* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
-(* @param urlapi: string representing url exposed by ssn serving public api request *)
-(* @param buffered_deposit: Any buffered stake deposit *)
-
 (* @dev: Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param name: Name of the ssn to be added *)
@@ -129,9 +123,9 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition AddDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
+transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "AddDeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
+    msg = {_tag : "UpdateDeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
