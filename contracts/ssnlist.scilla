@@ -295,15 +295,18 @@ procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
     ThrowError e
     end
 end
-procedure FillInDelegAmt(ssnaddr: ByStr20, deleg : ByStr20)
+procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg : ByStr20, amount : Uint128)
   deposit_amt <- deposit_amt_deleg[deleg][ssnaddr];
   match deposit_amt with
   | Some amt =>
-    new_amt = builtin add amt _amount;
+    new_amt = builtin add amt amount;
     deposit_amt_deleg[deleg][ssnaddr] := new_amt
   | None =>
-    deposit_amt_deleg[deleg][ssnaddr] := _amount
+    deposit_amt_deleg[deleg][ssnaddr] := amount
   end
+end
+procedure FillInDepositDeleg(ssnaddr: ByStr20, deleg : ByStr20)
+  FillInDepositDelegAmt ssnaddr deleg _amount
 end
 procedure FillInDelegsWithAmt(ssnaddr : ByStr20, deleg : ByStr20, deleg_amt : Uint128)
   d <- delegs[ssnaddr][deleg];
@@ -557,6 +560,7 @@ transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, 
   match ssn_o with
   | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
     FillInDelegsWithAmt ssnaddr deleg stake_amt;
+    FillInDepositDelegAmt ssnaddr deleg stake_amt;
     minstake_tmp <- minstake;
     new_stake_amt = builtin add stake_amt staking_amt;
     status = uint128_le minstake_tmp new_stake_amt;
@@ -706,7 +710,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
-    FillInDelegAmt ssnaddr initiator;
+    FillInDepositDeleg ssnaddr initiator;
     FillInDelegs ssnaddr initiator;
     match active_status with
     | True  =>

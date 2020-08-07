@@ -10,5 +10,17 @@
         "public_key": "02c59f16bc98d7dff5b205ac2c2385f028d1fa005018ae1a5f30ec15e59e535fd4",
         "address": "e2cd74983c7a3487af3a133a3bf4e7dd76f5d928",
         "bech_32_address": "zil1utxhfxpu0g6g0te6zvarha88m4m0tkfg47pnuf"
+    },
+    {
+        "private_key": "70c57a0a1f9a0e2c9192f28279a491bcb30a7d0ada87eab9aa0b6afad3f31c91",
+        "public_key": "028c68a82a3163adae44dea6eaa871b3adad766112b6db69239073c42e39566934",
+        "address": "8bdc7e9064f3963654967fa28976aac98f002a58",
+        "bech_32_address": "zil130w8ayry7wtrv4yk073gja42ex8sq2jcp65jp6"
+    },
+    {
+        "private_key": "243d302e971f7469cb20cc4d37c4629f0c22860667370b4d1130ae4ab1a5f4f9",
+        "public_key": "026fa3a6c6b47d249a2e3a79211aaace5b4aaa9a6dce47a9893bccea0a290fe5bf",
+        "address": "6e081b8cca40c585d6d69f9643faf1a545d13d63",
+        "bech_32_address": "zil1dcyphrx2grzct4kkn7ty87h354zaz0trvnkuuj"
     }
 ]
