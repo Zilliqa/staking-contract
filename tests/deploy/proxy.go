@@ -23,6 +23,17 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
+func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{
+		{
+			"ssn",
+			"ByStr20",
+			ssn,
+		},
+	}
+	return p.Call("WithdrawStakeAmt", args, "0")
+}
+
 func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
@@ -41,7 +52,7 @@ func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transa
 			stakeAmount,
 		},
 	}
-	return p.Call("AddDeleg", args, "0")
+	return p.Call("UpdateDeleg", args, "0")
 }
 
 func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction, error) {

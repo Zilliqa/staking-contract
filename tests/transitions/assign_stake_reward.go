@@ -9,7 +9,7 @@ func (t *Testing) AssignStakeReward() {
 	proxy.Unpause()
 	// set staking parameters
 	min := "100000000000000"
-	proxy.UpdateStakingParameters(min,)
+	proxy.UpdateStakingParameters(min)
 	// update verifier to addr2
 	proxy.UpdateVerifier("0x" + addr2)
 	// add ssn1
