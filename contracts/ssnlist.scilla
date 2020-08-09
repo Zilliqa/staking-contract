@@ -187,6 +187,13 @@ field lastrewardcycle : Uint128 = Uint128 0
 field paused : Bool = True
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
+procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
+  delete delegs[ssnaddr][deleg];
+  delete deposit_amt_deleg[deleg][ssnaddr];
+  delete buff_deposit_deleg[deleg][ssnaddr];
+  delete direct_deposit_deleg[deleg][ssnaddr];
+  delete last_withdraw_cycle_deleg[deleg][ssnaddr]
+end
 procedure ThrowError(err : Error)
   e = make_error err;
   throw e
@@ -322,7 +329,6 @@ procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
   amt = _amount;
   FillInDelegsWithAmt ssnaddr deleg _amount
 end
-
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   lrcd = option_uint128_value lrcd_tmp;
@@ -352,10 +358,7 @@ procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
       deposit_amt_option <- deposit_amt_deleg[initiator][ssn];
       match deposit_amt_option with
       | Some deposit_amt =>
-        delete buff_deposit_deleg[initiator][ssn];
-        delete direct_deposit_deleg[initiator][ssn];
-        delete deposit_amt_deleg[initiator][ssn];
-        delete last_withdraw_cycle_deleg[initiator][ssn];
+        TruncateDeleg initiator ssn;
         match ssn_option with
         | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
           new_amt = builtin sub stake_amt deposit_amt;
@@ -426,6 +429,7 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   lrc <- lastrewardcycle;
   rcl_local <- reward_cycle_list;
   (* those are the cycles that we want to compute for computing rewards *)
+  (* TODO IMPORTANT need to introduce another variable: when this delegator start to deposit *)
   list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl_local;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint128 TmpArg;
@@ -557,17 +561,34 @@ transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, 
   IsProxy;
   IsAdmin initiator;
   ssn_o <- ssnlist[ssnaddr];
+  minstake_tmp <- minstake;
   match ssn_o with
   | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-    FillInDelegsWithAmt ssnaddr deleg stake_amt;
-    FillInDepositDelegAmt ssnaddr deleg stake_amt;
-    minstake_tmp <- minstake;
-    new_stake_amt = builtin add stake_amt staking_amt;
-    status = uint128_le minstake_tmp new_stake_amt;
-    ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr;
-    ssnlist[ssnaddr] := ssn;
-    e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
-    event e
+    is_delete = builtin eq stake_amt uint128_zero;
+    match is_delete with
+    | True =>
+      alr_deleg_amt_o <- delegs[ssnaddr][deleg];
+      match alr_deleg_amt_o with
+      | Some alr_deleg =>
+        TruncateDeleg deleg ssnaddr;
+        new_stake_amt = builtin sub staking_amt alr_deleg;
+        status = uint128_le minstake_tmp new_stake_amt;
+        ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+        ssnlist[ssnaddr] := ssn;
+        e = { _eventname : "Deleg deleted"; ssn_addr : ssnaddr; deleg_address : deleg };
+        event e
+      | None =>
+      end
+    | False =>
+      FillInDelegsWithAmt ssnaddr deleg stake_amt;
+      FillInDepositDelegAmt ssnaddr deleg stake_amt;
+      new_stake_amt = builtin add stake_amt staking_amt;
+      status = uint128_le minstake_tmp new_stake_amt;
+      ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+      ssnlist[ssnaddr] := ssn;
+      e = { _eventname : "Deleg added"; ssn_addr : ssnaddr; deleg_address : deleg };
+      event e
+    end
   | None =>
     e = SSNNotExist;
     ThrowError e
@@ -645,8 +666,7 @@ transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
     (* Refund SSN delegs *)
     DistributeStakeRewards deleg ssnaddr;
     DistributeStakeAmt deleg ssnaddr;
-    delete delegs[ssnaddr][deleg];
-    delete deposit_amt_deleg[deleg][ssnaddr];
+    TruncateDeleg deleg ssnaddr;
     e = { _eventname : "Deleg removed"; ssn_addr : ssnaddr; deleg_address : deleg};
     event e
   end
