@@ -212,7 +212,7 @@ procedure CallerIsVerifier (initiator : ByStr20)
       ThrowError e
     end
   | None =>
-    e = AdminValidationFailed;
+    e = VerifierValidationFailed;
     ThrowError e
   end
 end

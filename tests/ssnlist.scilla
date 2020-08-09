@@ -130,7 +130,7 @@ e = VerifierValidationFailed;
 ThrowError e
 end
 | None =>
-e = AdminValidationFailed;
+e = VerifierValidationFailed;
 ThrowError e
 end
 end
@@ -505,23 +505,6 @@ ThrowError e
 delete ssnlist[ssnaddr];
 delete comm_for_ssn[ssnaddr];
 e = { _eventname : "SSN removed"; ssn_addr : ssnaddr };
-event e
-end
-end
-transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-alr_exists <- exists delegs[ssnaddr][deleg];
-match alr_exists with
-| False =>
-e = DelegNotExist;
-ThrowError e
-| True =>
-DistributeStakeRewards deleg ssnaddr;
-DistributeStakeAmt deleg ssnaddr;
-TruncateDeleg deleg ssnaddr;
-e = { _eventname : "Deleg removed"; ssn_addr : ssnaddr; deleg_address : deleg};
 event e
 end
 end
