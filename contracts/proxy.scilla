@@ -225,16 +225,9 @@ transition AddFunds()
     send msgs
 end
 
-transition UpdateLastRewardCycle(cycle : Uint128)
+transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateLastRewardCycle"; _recipient : current_impl; _amount : zero; cycle : cycle; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition UpdateRewardCycleList(list: List Uint128)
-    current_impl <- implementation;
-    msg = {_tag : "UpdateRewardCycleList"; _recipient : current_impl; _amount : zero; list : list; initiator: _sender};
+    msg = {_tag : "UpdateRewardCycleList"; _recipient : current_impl; _amount : zero; list : list; last_cycle: last_cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

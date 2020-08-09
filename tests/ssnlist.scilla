@@ -93,14 +93,14 @@ init_admin : ByStr20,
 proxy_address : ByStr20
 )
 field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
+field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 field delegs : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
-field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
-field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field buff_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
-field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
-field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -405,6 +405,25 @@ e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
 event e
 end
 end
+transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20, initiator : ByStr20)
+IsProxy;
+IsAdmin initiator;
+already_exists <- exists ssnlist[ssnaddr];
+match already_exists with
+| True  =>
+e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
+event e
+| False =>
+minstake_tmp <- minstake;
+status = builtin lt minstake_tmp stake_amt;
+s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
+ssnlist[ssnaddr] := s;
+lrc <- lastrewardcycle;
+comm_for_ssn[ssnaddr][lrc] := comm;
+e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
+event e
+end
+end
 transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
@@ -466,17 +485,12 @@ IsProxy;
 IsAdmin initiator;
 direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
-transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128, last_cycle: Uint128)
 IsPaused;
 IsProxy;
 IsAdmin initiator;
-lastrewardcycle := cycle
-end
-transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-reward_cycle_list := list
+reward_cycle_list := list;
+lastrewardcycle := last_cycle
 end
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;

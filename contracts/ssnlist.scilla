@@ -154,15 +154,17 @@ contract SSNList(
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
+(* Record comm for ssn of every cycle*)
+(* AddressofSSN -> (Cycle -> comm ) *)
+field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
+(* Following data structs help to calculate rewards for delegators *)
 (* Keeps track of the delegs for each SSN.*)
 (* AddressOfSSN -> (AddressOfDeleg -> DelegInfo) *)
 field delegs : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of stakes deposited at SSNs *)
-(* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
-field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
-(* Keeps track of the cycle number when a deleg last withdrew its rewards *)
-(* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastWithdrawn) *)
-field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+(* Record deposit amount for every deleg for every ssn *)
+(* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
+field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of buffered deposit for a deleg *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
@@ -170,15 +172,14 @@ field buff_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp
 (* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
 field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+(* Keeps track of the cycle number when a deleg last withdrew its rewards *)
+(* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastWithdrawn) *)
+field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+(* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
+field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
-(* Record deposit amount for every deleg for every ssn *)
-(* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
-field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
-(* Record comm for ssn of every cycle*)
-(* AddressofSSN -> (Cycle -> comm ) *)
-field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -618,17 +619,16 @@ transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
-transition UpdateLastRewardCycle(initiator : ByStr20, cycle : Uint128)
+(* @dev: Update reward cycle list and last reward cycle *)
+(* @param list: reward cycle list *)
+(* @param last_cycle: last reward cycle *)
+(* @param initiator: The original caller who called the proxy *)
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128, last_cycle: Uint128)
   IsPaused;
   IsProxy;
   IsAdmin initiator;
-  lastrewardcycle := cycle
-end
-transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  reward_cycle_list := list
+  reward_cycle_list := list;
+  lastrewardcycle := last_cycle
 end
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
