@@ -34,6 +34,17 @@ func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction,error)
 	return p.Call("WithdrawStakeAmt", args, "0")
 }
 
+func (p *Proxy) UpdateComm(rate string)  (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"new_rate",
+			"Uint128",
+			rate,
+		},
+	}
+	return p.Call("UpdateComm", args, "0")
+}
+
 func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{

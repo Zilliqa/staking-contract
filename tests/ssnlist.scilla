@@ -521,7 +521,7 @@ match old_comm_option with
 e = ChangeCommError;
 ThrowError e
 | None =>
-comm_for_ssn[initiator][lrc] := comm;
+comm_for_ssn[initiator][lrc] := new_rate;
 ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards received_addr;
 ssnlist[initiator] := ssn
 end

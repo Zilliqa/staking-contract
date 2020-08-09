@@ -14,11 +14,12 @@ func main() {
 	//t.DrainContractBalance()
 	//t.UpdateStakingParameters()
 	//t.AddSSN()
-	t.AddDelegator()
+	//t.AddDelegator()
 	//t.RemoveSSN()
 	//t.DelegateStake()
 	//t.UpdateReceiveAddr()
 	//t.AssignStakeReward()
 	//t.WithDrawStakeAmount()
 	//t.AddSSNAfterUpgrade()
+	t.UpdateComm()
 }
