@@ -105,6 +105,69 @@ func (p *Proxy) RemoveSSN(addr string) (*transaction.Transaction, error) {
 	return p.Call("RemoveSSN", args, "0")
 }
 
+func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.Transaction,error) {
+	args := []core.ContractValue{
+		{
+			"ssnaddr",
+			"ByStr20",
+			addr,
+		},
+		{
+			"stake_amt",
+			"Uint128",
+			stakeAmt,
+		},
+		{
+			"rewards",
+			"Uint128",
+			"0",
+		},
+		{
+			"name",
+			"String",
+			"fakename",
+		},
+		{
+			"urlraw",
+			"String",
+			"fakeurl",
+		},
+		{
+			"urlapi",
+			"String",
+			"fakeapi",
+		},
+		{
+			"buff_deposit",
+			"Uint128",
+			"0",
+		},
+		{
+			"comm",
+			"Uint128",
+			"0",
+		},
+		{
+			"comm_rewards",
+			"Uint128",
+			"0",
+		},
+		{
+			"min_delegate_amt",
+			"Uint128",
+			"0",
+		},
+		{
+			"received_addr",
+			"ByStr20",
+			addr,
+		},
+	}
+
+	return p.Call("AddSSNAfterUpgrade", args, "0")
+
+}
+
 func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{

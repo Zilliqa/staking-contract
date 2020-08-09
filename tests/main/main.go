@@ -19,5 +19,6 @@ func main() {
 	//t.DelegateStake()
 	//t.UpdateReceiveAddr()
 	//t.AssignStakeReward()
-	t.WithDrawStakeAmount()
+	//t.WithDrawStakeAmount()
+	t.AddSSNAfterUpgrade()
 }
