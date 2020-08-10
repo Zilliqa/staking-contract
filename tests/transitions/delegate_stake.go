@@ -47,4 +47,11 @@ func (t *Testing) DelegateStake() {
 	t.AssertContain(state,"buff_deposit_deleg\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"0\":\"100000000000000\"}}")
 	t.LogEnd("DelegateStake")
 
+	// delegate to a non-existent ssn, should raise exception
+	txn,err3 := proxy.DelegateStake("0x"+addr1,"100000000000000")
+	t.AssertError(err3)
+	receipt =  t.GetReceiptString(txn)
+	log.Println(receipt)
+	state = ssnlist.LogContractStateJson()
+	t.LogEnd("DelegateStake")
 }
