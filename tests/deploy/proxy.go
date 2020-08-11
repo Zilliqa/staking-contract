@@ -277,6 +277,11 @@ func (p *Proxy) AddFunds(amount string) {
 	}
 }
 
+func (p *Proxy) WithdrawComm() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("WithdrawComm", args, "0")
+}
+
 func (p *Proxy) Unpause() (*transaction.Transaction, error) {
 	args := []core.ContractValue{}
 	return p.Call("UnPause", args, "0")
