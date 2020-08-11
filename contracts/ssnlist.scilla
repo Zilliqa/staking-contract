@@ -455,7 +455,8 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   stake_deleg_per_cycle := emp_map;
   forall combined_args_list CalcStakeDelegPerCycle;
   (* Calculate and send rewards *)
-  forall combined_args_list CalcRewardsDelegPerCycleAndSend
+  forall combined_args_list CalcRewardsDelegPerCycleAndSend;
+  last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
   (* sdpc <- stake_deleg_per_cycle; *)
   (* sdpc_list = builtin to_list sdpc; *)
   (* e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list }; *)

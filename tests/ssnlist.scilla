@@ -355,7 +355,8 @@ combined_args_list = mapper f list_need_compute_rewards;
 emp_map = Emp Uint128 Uint128;
 stake_deleg_per_cycle := emp_map;
 forall combined_args_list CalcStakeDelegPerCycle;
-forall combined_args_list CalcRewardsDelegPerCycleAndSend
+forall combined_args_list CalcRewardsDelegPerCycleAndSend;
+last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
 transition Pause(initiator : ByStr20)
 IsProxy;
