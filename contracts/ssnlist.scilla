@@ -83,6 +83,33 @@ let list_filter_between =
       let res_r = uint128_le element right in
       andb res_l res_r
     in fil f l
+(* This function is used for calculating the exact staking amount per cycle for delegs *)
+(* Example: *)
+(* Input: [1:1000,2:2000,3:3000] *)
+(* [1:1000] => [1:1000,2:2000+1000] => [1:1000,2:3000,3:3000+3000] *)
+let caculate_all_stake_per_cycle =
+  fun (deleg_map : Map Uint128 Uint128) =>
+    fun (result_map : Map Uint128 Uint128) =>
+      fun(k : Uint128) =>
+        let m = builtin sub k uint128_one in
+        let result_map_o = builtin get result_map m in
+        let deleg_map_o = builtin get deleg_map k in
+        match result_map_o with
+        | Some last_amt =>
+          match deleg_map_o with
+          | Some delegate_amt =>
+            let amt = builtin add last_amt delegate_amt in
+            builtin put result_map k amt
+          | None =>
+            builtin put result_map k last_amt
+          end
+        | None =>
+          match deleg_map_o with
+          | Some delegate_amt =>
+            builtin put result_map k delegate_amt
+          | None =>  result_map
+          end
+        end
 let option_value =
   tfun 'A =>
   fun (default : 'A) =>
@@ -190,6 +217,7 @@ field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
+field accumulate_stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -420,7 +448,7 @@ procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
     (* Calculate staking rewards per cycle for deleg - this replaces calculate_rewards_per_cycle_for_deleg *)
-    staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
+    staking_per_cycle_for_deleg_opt <- accumulate_stake_deleg_per_cycle[reward_cycle];
     lrc = builtin sub reward_cycle uint128_one;
     staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][lrc];
     match staking_per_cycle_for_deleg_opt with
@@ -443,6 +471,8 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
   rcl_local <- reward_cycle_list;
+  list_reverse_uint128 = @list_reverse Uint128;
+  rcl_local_reverse = list_reverse_uint128 rcl_local;
   (* those are the cycles that we want to compute for computing rewards *)
   (* TODO IMPORTANT need to introduce another variable: when this delegator start to deposit *)
   list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl_local;
@@ -450,17 +480,32 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   mapper = @list_map Uint128 TmpArg;
   f = fun (cycle : Uint128) => TmpArg deleg ssn_operator cycle;
   combined_args_list = mapper f list_need_compute_rewards;
-  (* Recalculate stake_deleg_per_cycle *)
+
+
+  (* calculate stake_deleg_per_cycle *)
   emp_map = Emp Uint128 Uint128;
   stake_deleg_per_cycle := emp_map;
-  forall combined_args_list CalcStakeDelegPerCycle;
+  rcl_local_reverse_t = mapper f rcl_local_reverse;
+  forall rcl_local_reverse_t CalcStakeDelegPerCycle;
+
+  (* to calculate accumulating staking per cycle for delegs *)
+  foldl = @list_foldl Uint128 Map Uint128 Uint128;
+  accumulate_stake_deleg_per_cycle := emp_map;
+  sdpc <- stake_deleg_per_cycle;
+  staking_init_map = emp_map;
+  iter = caculate_all_stake_per_cycle sdpc;
+  accu_stake_deleg_pcycle = foldl iter staking_init_map rcl_local_reverse;
+  accumulate_stake_deleg_per_cycle := accu_stake_deleg_pcycle;
+
   (* Calculate and send rewards *)
   forall combined_args_list CalcRewardsDelegPerCycleAndSend;
+  sdpc <- stake_deleg_per_cycle;
+  sdpc_list = builtin to_list sdpc;
+  accu_stake_deleg_pcycle_l = builtin to_list accu_stake_deleg_pcycle;
+  e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list; accu_stake_deleg_pcycle: accu_stake_deleg_pcycle_l };
+  event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
-  (* sdpc <- stake_deleg_per_cycle; *)
-  (* sdpc_list = builtin to_list sdpc; *)
-  (* e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list }; *)
-  (* event e *)
+
 end
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
