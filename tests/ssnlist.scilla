@@ -24,7 +24,7 @@ fun (l : List Uint128) =>
 let fil = @list_filter Uint128 in
 let f = fun (element : Uint128) =>
 let res_l = builtin lt left element in
-let res_r = builtin lt right element in
+let res_r = uint128_le element right in
 andb res_l res_r
 in fil f l
 let option_value =
@@ -42,6 +42,16 @@ f emt
 let option_uint128_value =
 let f = @option_value Uint128 in
 f uint128_zero
+let sub_one_to_zero =
+fun (x : Uint128) =>
+let less_than_one = builtin lt x uint128_one in
+match less_than_one with
+| True =>
+uint128_zero
+| False =>
+let res = builtin sub x uint128_one in
+res
+end
 let option_add =
 fun (x_opt : Option Uint128) =>
 fun (y_opt : Option Uint128) =>
@@ -300,11 +310,12 @@ end
 procedure CalcStakeDelegPerCycle (tmp_arg : TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
-lrc = builtin sub reward_cycle uint128_one;
-cur_opt <- direct_deposit_deleg[deleg][ssn_operator][reward_cycle];
-buf_opt <- buff_deposit_deleg[deleg][ssn_operator][lrc];
+last_reward_cycle = builtin sub reward_cycle uint128_one;
+last2_reward_cycle = sub_one_to_zero last_reward_cycle;
+cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 comb_opt = option_add cur_opt buf_opt;
-result_map_opt <- stake_deleg_per_cycle[lrc];
+result_map_opt <- stake_deleg_per_cycle[last_reward_cycle];
 stake_opt = option_add comb_opt result_map_opt;
 match stake_opt with
 | Some stake =>
@@ -317,14 +328,15 @@ procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
 staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
-staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+lrc = builtin sub reward_cycle uint128_one;
+staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][lrc];
 match staking_per_cycle_for_deleg_opt with
 | Some staking_of_deleg =>
 match staking_and_rewards_per_cycle_for_ssn_opt with
 | Some (SSNCycleInfo total_staking total_rewards) =>
 reward_tmp = builtin mul total_rewards staking_of_deleg;
 reward = builtin div reward_tmp total_staking;
-SendDelegRewards reward_cycle deleg reward_tmp
+SendDelegRewards reward_cycle deleg reward
 | None =>
 end
 | None =>
@@ -525,19 +537,6 @@ comm_for_ssn[initiator][lrc] := new_rate;
 ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards received_addr;
 ssnlist[initiator] := ssn
 end
-| None =>
-e = SSNNotExist;
-ThrowError e
-end
-end
-transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
-IsPaused;
-IsProxy;
-curval <- ssnlist[initiator];
-match curval with
-| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-ssnlist[initiator] := ssn
 | None =>
 e = SSNNotExist;
 ThrowError e
