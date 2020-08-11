@@ -13,6 +13,7 @@ import (
 	"github.com/Zilliqa/gozilliqa-sdk/util"
 	"io/ioutil"
 	"log"
+	"strconv"
 )
 
 type Proxy struct {
@@ -237,6 +238,21 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 	return p.Call("AssignStakeReward", args, "0")
 }
 
+func (p *Proxy) AssignStakeRewardBatch(ssn, percent string) []account.BatchSendingResult {
+	args := []core.ContractValue{{
+		VName: "ssnreward_list",
+		Type:  "List SsnRewardShare",
+		Value: []core.ParamConstructor{
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn, percent},
+			},
+		},
+	}}
+	return p.CallBatch("AssignStakeReward", args, "0")
+}
+
 func (p *Proxy) AssignStakeReward2(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
@@ -266,6 +282,16 @@ func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
 		addr,
 	}}
 	return p.Call("UpdateVerifier", args, "0")
+
+}
+
+func (p *Proxy) WithdrawStakeRewards(addr string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		"ssn_operator",
+		"ByStr20",
+		addr,
+	}}
+	return p.Call("WithdrawStakeRewards", args, "0")
 
 }
 
@@ -324,6 +350,34 @@ func (p *Proxy) Call(transition string, params []core.ContractValue, amount stri
 		return tx, errors.New("transaction failed")
 	}
 	return tx, nil
+}
+
+func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount string) []account.BatchSendingResult {
+	var transactions []*transaction.Transaction
+
+	for i := 0; i < 3; i++ {
+		data := contract2.Data{
+			Tag:    transition,
+			Params: params,
+		}
+		txn := &transaction.Transaction{
+			Version:      strconv.FormatInt(int64(util.Pack(1, 1)), 10),
+			SenderPubKey: util.EncodeHex(p.Wallet.DefaultAccount.PublicKey),
+			ToAddr:       p.Bech32,
+			Amount:       "0",
+			GasPrice:     "1000000000",
+			GasLimit:     "40000",
+			Code:         "",
+			Data:         data,
+			Priority:     false,
+		}
+		transactions = append(transactions, txn)
+	}
+
+	rpc := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	p.Wallet.SignBatch(transactions, *rpc)
+	return p.Wallet.SendBatch(transactions, *rpc)
+
 }
 
 func NewProxy(key string) (*Proxy, error) {

@@ -23,5 +23,7 @@ func main() {
 	//t.WithDrawStakeAmount()
 	//t.AddSSNAfterUpgrade()
 	//t.UpdateComm()
-	t.WithdrawComm()
+	//t.WithdrawComm()
+	//t.WithdrawComm()
+	t.WithdrawStakeReward()
 }

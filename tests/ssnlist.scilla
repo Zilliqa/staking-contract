@@ -27,29 +27,6 @@ let res_l = builtin lt left element in
 let res_r = uint128_le element right in
 andb res_l res_r
 in fil f l
-let caculate_all_stake_per_cycle =
-fun (deleg_map : Map Uint128 Uint128) =>
-fun (result_map : Map Uint128 Uint128) =>
-fun(k : Uint128) =>
-let m = builtin sub k uint128_one in
-let result_map_o = builtin get result_map m in
-let deleg_map_o = builtin get deleg_map k in
-match result_map_o with
-| Some last_amt =>
-match deleg_map_o with
-| Some delegate_amt =>
-let amt = builtin add last_amt delegate_amt in
-builtin put result_map k amt
-| None =>
-builtin put result_map k last_amt
-end
-| None =>
-match deleg_map_o with
-| Some delegate_amt =>
-builtin put result_map k delegate_amt
-| None =>  result_map
-end
-end
 let option_value =
 tfun 'A =>
 fun (default : 'A) =>
@@ -134,7 +111,6 @@ field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = E
 field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
-field accumulate_stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
@@ -345,13 +321,14 @@ match stake_opt with
 | Some stake =>
 stake_deleg_per_cycle[reward_cycle] := stake
 | None =>
+stake_deleg_per_cycle[reward_cycle] := uint128_zero
 end
 end
 end
 procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
-staking_per_cycle_for_deleg_opt <- accumulate_stake_deleg_per_cycle[reward_cycle];
+staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
 lrc = builtin sub reward_cycle uint128_one;
 staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][lrc];
 match staking_per_cycle_for_deleg_opt with
@@ -382,18 +359,10 @@ emp_map = Emp Uint128 Uint128;
 stake_deleg_per_cycle := emp_map;
 rcl_local_reverse_t = mapper f rcl_local_reverse;
 forall rcl_local_reverse_t CalcStakeDelegPerCycle;
-foldl = @list_foldl Uint128 Map Uint128 Uint128;
-accumulate_stake_deleg_per_cycle := emp_map;
-sdpc <- stake_deleg_per_cycle;
-staking_init_map = emp_map;
-iter = caculate_all_stake_per_cycle sdpc;
-accu_stake_deleg_pcycle = foldl iter staking_init_map rcl_local_reverse;
-accumulate_stake_deleg_per_cycle := accu_stake_deleg_pcycle;
 forall combined_args_list CalcRewardsDelegPerCycleAndSend;
 sdpc <- stake_deleg_per_cycle;
 sdpc_list = builtin to_list sdpc;
-accu_stake_deleg_pcycle_l = builtin to_list accu_stake_deleg_pcycle;
-e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list; accu_stake_deleg_pcycle: accu_stake_deleg_pcycle_l };
+e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
 event e;
 last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
@@ -551,6 +520,19 @@ e = SSNNotExist;
 ThrowError e
 end
 end
+transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
+IsPaused;
+IsProxy;
+curval <- ssnlist[initiator];
+match curval with
+| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
+ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
+ssnlist[initiator] := ssn
+| None =>
+e = SSNNotExist;
+ThrowError e
+end
+end
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;
 IsProxy;
@@ -641,4 +623,10 @@ IsProxy;
 accept;
 e = { _eventname : "Verifier deposit funds"; verifier : initiator };
 event e
+end
+transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+comm_for_ssn[ssn_addr][cycle] := comm
 end
