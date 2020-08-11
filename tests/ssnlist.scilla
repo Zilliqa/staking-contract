@@ -609,11 +609,11 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-TransferFunds addfunds_tag comm_rewards received_addr;
-e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_total_reward : rewards };
+e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_comm : comm_rewards };
 event e;
 ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero received_addr;
-ssnlist[initiator] := ssn
+ssnlist[initiator] := ssn;
+TransferFunds addfunds_tag comm_rewards received_addr
 end
 end
 transition WithdrawStakeRewards(ssn_operator : ByStr20, deleg : ByStr20)

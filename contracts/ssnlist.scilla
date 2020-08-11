@@ -649,28 +649,6 @@ transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
     event e
   end
 end
-(* @dev: Remove a specific deleg for a given SSN. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn *)
-(* @param deleg: Address of the deleg to be removed *)
-(* @param initiator: The original caller who called the proxy *)
-transition RemoveDeleg(ssnaddr : ByStr20, deleg : ByStr20, initiator : ByStr20)
-  IsPaused;
-  IsProxy;
-  IsAdmin initiator;
-  alr_exists <- exists delegs[ssnaddr][deleg];
-  match alr_exists with
-  | False =>
-    e = DelegNotExist;
-    ThrowError e
-  | True =>
-    (* Refund SSN delegs *)
-    DistributeStakeRewards deleg ssnaddr;
-    DistributeStakeAmt deleg ssnaddr;
-    TruncateDeleg deleg ssnaddr;
-    e = { _eventname : "Deleg removed"; ssn_addr : ssnaddr; deleg_address : deleg};
-    event e
-  end
-end
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
@@ -794,11 +772,11 @@ transition WithdrawComm(initiator : ByStr20)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-    TransferFunds addfunds_tag comm_rewards received_addr;
-    e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_total_reward : rewards };
+    e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_comm : comm_rewards };
     event e;
     ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero received_addr;
-    ssnlist[initiator] := ssn
+    ssnlist[initiator] := ssn;
+    TransferFunds addfunds_tag comm_rewards received_addr
   end
 end
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)

@@ -146,16 +146,6 @@ transition RemoveSSN (ssnaddr : ByStr20)
     send msgs
 end
 
-(* @dev: Remove a specific deleg for a given SSN. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn *)
-(* @param deleg: Address of the deleg to be removed *)
-transition Removedeleg(ssnaddr : ByStr20, deleg : ByStr20)
-    current_impl <- implementation;
-    msg = {_tag : "Removedeleg"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; deleg: deleg; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 transition UpdateComm(new_rate : Uint128)
