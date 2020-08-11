@@ -23,7 +23,7 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction,error) {
+func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssn",
@@ -34,7 +34,7 @@ func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction,error)
 	return p.Call("WithdrawStakeAmt", args, "0")
 }
 
-func (p *Proxy) UpdateComm(rate string)  (*transaction.Transaction, error) {
+func (p *Proxy) UpdateComm(rate string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"new_rate",
@@ -116,7 +116,7 @@ func (p *Proxy) RemoveSSN(addr string) (*transaction.Transaction, error) {
 	return p.Call("RemoveSSN", args, "0")
 }
 
-func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.Transaction,error) {
+func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssnaddr",
@@ -229,6 +229,28 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 				"SsnRewardShare",
 				make([]interface{}, 0),
 				[]string{ssn, percent},
+			},
+		},
+	},
+	}
+
+	return p.Call("AssignStakeReward", args, "0")
+}
+
+func (p *Proxy) AssignStakeReward2(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		VName: "ssnreward_list",
+		Type:  "List SsnRewardShare",
+		Value: []core.ParamConstructor{
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn1, percent1},
+			},
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn2, percent2},
 			},
 		},
 	},
