@@ -213,7 +213,7 @@ end
 end
 procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
 TransferFunds addfunds_tag amt addr;
-e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt};
+e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt; cycle: cycle};
 event e
 end
 procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)

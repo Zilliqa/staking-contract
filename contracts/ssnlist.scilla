@@ -300,7 +300,7 @@ end
 (* this procedure is to send rewards to deleg for every reward cycle *)
 procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
   TransferFunds addfunds_tag amt addr;
-  e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt};
+  e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt; cycle: cycle};
   event e
 end
 (* Check if a delegs exists for a given SSN *)
@@ -446,7 +446,6 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   list_reverse_uint128 = @list_reverse Uint128;
   rcl_local_reverse = list_reverse_uint128 rcl_local;
   (* those are the cycles that we want to compute for computing rewards *)
-  (* TODO IMPORTANT need to introduce another variable: when this delegator start to deposit *)
   list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl_local;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint128 TmpArg;
