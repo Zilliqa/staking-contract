@@ -115,7 +115,7 @@ field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
 field contractadmin : ByStr20  = init_admin
-field lastrewardcycle : Uint128 = Uint128 0
+field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
 delete delegs[ssnaddr][deleg];
@@ -212,9 +212,14 @@ end
 end
 end
 procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
+to_send = builtin eq amt uint128_zero;
+match to_send with
+| True =>
+| False =>
 TransferFunds addfunds_tag amt addr;
 e = { _eventname : "Send deleg rewards"; addr : addr; amt :  amt; cycle: cycle};
 event e
+end
 end
 procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
 if_exists <- exists delegs[ssnaddr][deleg];
@@ -436,7 +441,7 @@ e = { _eventname : "SSN already exists"; ssn_addr : ssnaddr };
 event e
 | False =>
 minstake_tmp <- minstake;
-status = builtin lt minstake_tmp stake_amt;
+status = uint128_le minstake_tmp stake_amt;
 s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards received_addr;
 ssnlist[ssnaddr] := s;
 lrc <- lastrewardcycle;
