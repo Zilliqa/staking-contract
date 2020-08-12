@@ -44,7 +44,7 @@ func (t *Testing) AssignStakeReward2() {
 	state = ssnlist.LogContractStateJson()
 	t.AssertContain(state,"\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"argtypes\":[],\"arguments\":[{\"argtypes\":[],\"arguments\":[],\"constructor\":\"True\"},\"100000000000000\",\"2000000000000\",\"ssn1\"")
 	t.AssertContain(state,"\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"argtypes\":[],\"arguments\":[{\"argtypes\":[],\"arguments\":[],\"constructor\":\"True\"},\"100000000000000\",\"1000000000000\",\"ssn2\"")
-	t.AssertContain(state,"\"lastrewardcycle\":\"2\"")
+	t.AssertContain(state,"\"lastrewardcycle\":\"3\"")
 
 	// as non-verifier
 	proxy.UpdateWallet(key1)

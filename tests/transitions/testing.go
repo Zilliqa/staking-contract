@@ -37,6 +37,8 @@ func (t *Testing) LogError(tag string, err error) {
 
 func (t *Testing) AssertContain(s1, s2 string) {
 	if !strings.Contains(s1, s2) {
+		log.Println(s1)
+		log.Println(s2)
 		log.Fatal("assert failed")
 	}
 }

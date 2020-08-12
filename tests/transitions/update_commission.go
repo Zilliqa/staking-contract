@@ -56,7 +56,7 @@ func (t *Testing) UpdateComm() {
 	recp = string(receipt)
 	log.Println(recp)
 	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"{\"0\":\"0\",\"1\":\"10\"}")
+	t.AssertContain(state,"{\"1\":\"0\",\"2\":\"10\"}")
 
 	// as non ssn, update commission
 	proxy.UpdateWallet(key2)

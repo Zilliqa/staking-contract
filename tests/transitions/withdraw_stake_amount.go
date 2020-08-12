@@ -54,24 +54,24 @@ func (t *Testing) WithDrawStakeAmount() {
 	t.AssertContain(receipt,"Deleg withdraw deposit")
 	ssnlist.LogContractStateJson()
 
-	// delegator (addr2) withdraw from ssn2 (addr2), should fail
-	proxy.UpdateWallet(key2)
-	txn, err2 := proxy.WithdrawStakeAmount("0x" + addr2)
-	t.AssertError(err2)
-	receipt =  t.GetReceiptString(txn)
-	log.Println(receipt)
-	ssnlist.LogContractStateJson()
-
-	// delegator (addr3) withdraw from ssn1 (addr1), should success, and ssn become inactive
-	proxy.UpdateWallet(key3)
-	txn, err3 := proxy.WithdrawStakeAmount("0x" + addr1)
-	if err3 != nil {
-		t.LogError("WithDrawStakeAmount",err3)
-	}
-	receipt =  t.GetReceiptString(txn)
-	log.Println(receipt)
-	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"ssnlist\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"argtypes\":[],\"arguments\":[{\"argtypes\":[],\"arguments\":[],\"constructor\":\"False\"},\"10000000000000\",\"0\",\"ssn1\",\"fakeurl\",\"fakeapi\",\"10000000000000\",\"0\",\"0\",\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\"],\"constructor\":\"Ssn\"}")
+	//// delegator (addr2) withdraw from ssn2 (addr2), should fail
+	//proxy.UpdateWallet(key2)
+	//txn, err2 := proxy.WithdrawStakeAmount("0x" + addr2)
+	//t.AssertError(err2)
+	//receipt =  t.GetReceiptString(txn)
+	//log.Println(receipt)
+	//ssnlist.LogContractStateJson()
+	//
+	//// delegator (addr3) withdraw from ssn1 (addr1), should success, and ssn become inactive
+	//proxy.UpdateWallet(key3)
+	//txn, err3 := proxy.WithdrawStakeAmount("0x" + addr1)
+	//if err3 != nil {
+	//	t.LogError("WithDrawStakeAmount",err3)
+	//}
+	//receipt =  t.GetReceiptString(txn)
+	//log.Println(receipt)
+	//state := ssnlist.LogContractStateJson()
+	//t.AssertContain(state,"\"ssnlist\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"argtypes\":[],\"arguments\":[{\"argtypes\":[],\"arguments\":[],\"constructor\":\"False\"},\"10000000000000\",\"0\",\"ssn1\",\"fakeurl\",\"fakeapi\",\"10000000000000\",\"0\",\"0\",\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\"],\"constructor\":\"Ssn\"}")
 
 	t.LogEnd("WithDrawStakeAmount")
 }

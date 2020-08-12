@@ -79,6 +79,7 @@ type Error =
 | SSNNotExist
 | DelegNotExist
 | SSNAlreadyExist
+| DelegHasUnwithdrawRewards
 let make_error =
 fun (result : Error) =>
 let result_code =
@@ -95,6 +96,7 @@ match result with
 | SSNNotExist => Int32 -10
 | DelegNotExist => Int32 -11
 | SSNAlreadyExist => Int32 -12
+| DelegHasUnwithdrawRewards => Int32 -13
 end
 in
 { _exception : "Error"; code : result_code }
@@ -109,6 +111,7 @@ field deposit_amt_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map B
 field buff_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field direct_deposit_deleg : Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field last_withdraw_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field last_buf_deposit_cycle_deleg : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field stake_ssn_per_cycle : Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
@@ -122,7 +125,8 @@ delete delegs[ssnaddr][deleg];
 delete deposit_amt_deleg[deleg][ssnaddr];
 delete buff_deposit_deleg[deleg][ssnaddr];
 delete direct_deposit_deleg[deleg][ssnaddr];
-delete last_withdraw_cycle_deleg[deleg][ssnaddr]
+delete last_withdraw_cycle_deleg[deleg][ssnaddr];
+delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
 procedure ThrowError(err : Error)
 e = make_error err;
@@ -230,6 +234,15 @@ e = DelegDoesNotExistAtSSN;
 ThrowError e
 end
 end
+procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
+lwcd_o <- last_withdraw_cycle_deleg[deleg][ssnaddr];
+match lwcd_o with
+| Some lwcd =>
+| None =>
+lrc <- lastrewardcycle;
+last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
+end
+end
 procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg : ByStr20, amount : Uint128)
 deposit_amt <- deposit_amt_deleg[deleg][ssnaddr];
 match deposit_amt with
@@ -264,7 +277,20 @@ lrc <- lastrewardcycle;
 has_reward = builtin lt lrcd lrc;
 match has_reward with
 | True =>
-throw
+e = DelegHasUnwithdrawRewards;
+ThrowError e
+| False =>
+end
+end
+procedure HasBufferedDeposit(ssnaddr : ByStr20, deleg : ByStr20)
+ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
+ldcd = option_uint128_value ldcd_o;
+lrc <- lastrewardcycle;
+has_buffered = uint128_le lrc ldcd;
+match has_buffered with
+| True =>
+e = DelegHasBufferedDeposit;
+ThrowError e
 | False =>
 end
 end
@@ -274,14 +300,8 @@ lrc <- lastrewardcycle;
 ssn_option <- ssnlist[ssn];
 match deleg with
 | Some amt =>
-last_withdraw_cycle <- last_withdraw_cycle_deleg[initiator][ssn];
-lwc = option_uint128_value last_withdraw_cycle;
-last_reward_cycle <- lastrewardcycle;
-has_rewards = builtin lt lwc last_reward_cycle;
-match has_rewards with
-| True => throw
-| False =>
 HasRewardToWithdraw ssn initiator;
+HasBufferedDeposit ssn initiator;
 deposit_amt_option <- deposit_amt_deleg[initiator][ssn];
 match deposit_amt_option with
 | Some deposit_amt =>
@@ -290,11 +310,9 @@ match ssn_option with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
 new_amt = builtin sub stake_amt deposit_amt;
 minstake_tmp <- minstake;
-status = builtin lt minstake_tmp new_amt;
+status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
 ssnlist[ssn] := ssn_option_tmp;
-new_amt_for_deleg = builtin sub amt deposit_amt;
-delegs[ssn][initiator] := new_amt_for_deleg;
 TransferFunds addfunds_tag deposit_amt initiator;
 e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
 event e
@@ -305,7 +323,6 @@ end
 | None =>
 e = SSNNotExist;
 ThrowError e
-end
 end
 | None =>
 e = DelegDoesNotExistAtSSN;
@@ -525,19 +542,6 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
-IsPaused;
-IsProxy;
-curval <- ssnlist[initiator];
-match curval with
-| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-ssnlist[initiator] := ssn
-| None =>
-e = SSNNotExist;
-ThrowError e
-end
-end
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;
 IsProxy;
@@ -552,8 +556,10 @@ minstake_tmp <- minstake;
 lrc <- lastrewardcycle;
 FillInDepositDeleg ssnaddr initiator;
 FillInDelegs ssnaddr initiator;
+FillLastRewardCycle ssnaddr initiator;
 match active_status with
 | True  =>
+last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
 new_buff_amt  = builtin add _amount buffdeposit;
 new_stake_amt = builtin add new_buff_amt stake_amt;
 ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards received_addr;
@@ -628,10 +634,4 @@ IsProxy;
 accept;
 e = { _eventname : "Verifier deposit funds"; verifier : initiator };
 event e
-end
-transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
-IsPaused;
-IsProxy;
-IsAdmin initiator;
-comm_for_ssn[ssn_addr][cycle] := comm
 end

@@ -24,6 +24,7 @@ func main() {
 	t.AddSSNAfterUpgrade()
 	t.UpdateComm()
 	t.WithdrawComm()
+	t.UpdateComm()
 	t.WithdrawComm()
 	t.WithdrawStakeReward()
 	t.WithdrawStakeReward2()
