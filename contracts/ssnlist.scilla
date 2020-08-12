@@ -170,9 +170,6 @@ field ssnlist : Map ByStr20 Ssn = Emp ByStr20 Ssn
 (* AddressofSSN -> (Cycle -> comm ) *)
 field comm_for_ssn : Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 (* Following data structs help to calculate rewards for delegators *)
-(* Keeps track of the delegs for each SSN.*)
-(* AddressOfSSN -> (AddressOfDeleg -> DelegInfo) *)
-field delegs : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of stakes deposited at SSNs *)
 (* Record deposit amount for every deleg for every ssn *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
@@ -206,7 +203,6 @@ field paused : Bool = True
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
-  delete delegs[ssnaddr][deleg];
   delete deposit_amt_deleg[deleg][ssnaddr];
   delete buff_deposit_deleg[deleg][ssnaddr];
   delete direct_deposit_deleg[deleg][ssnaddr];
@@ -318,7 +314,7 @@ procedure SendDelegRewards(cycle: Uint128, addr: ByStr20, amt : Uint128)
 end
 (* Check if a delegs exists for a given SSN *)
 procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
-  if_exists <- exists delegs[ssnaddr][deleg];
+  if_exists <- exists deposit_amt_deleg[deleg][ssnaddr];
   match if_exists with
   | True  =>
   | False =>
@@ -348,20 +344,6 @@ end
 procedure FillInDepositDeleg(ssnaddr: ByStr20, deleg : ByStr20)
   FillInDepositDelegAmt ssnaddr deleg _amount
 end
-procedure FillInDelegsWithAmt(ssnaddr : ByStr20, deleg : ByStr20, deleg_amt : Uint128)
-  d <- delegs[ssnaddr][deleg];
-  match d with
-  | Some amt =>
-    new_amt_deleg = builtin add deleg_amt amt;
-    delegs[ssnaddr][deleg] := new_amt_deleg
-  | None =>
-    delegs[ssnaddr][deleg] := deleg_amt
-  end
-end
-procedure FillInDelegs(ssnaddr : ByStr20, deleg : ByStr20)
-  amt = _amount;
-  FillInDelegsWithAmt ssnaddr deleg _amount
-end
 procedure HasRewardToWithdraw(ssnaddr : ByStr20, deleg : ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   lrcd = option_uint128_value lrcd_tmp;
@@ -388,37 +370,30 @@ procedure HasBufferedDeposit(ssnaddr : ByStr20, deleg : ByStr20)
   end
 end
 procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
-  deleg <- delegs[ssn][initiator];
+  ssn_o <- ssnlist[ssn];
+  deleg <- deposit_amt_deleg[initiator][ssn];
   lrc <- lastrewardcycle;
-  ssn_option <- ssnlist[ssn];
-  match deleg with
-  | Some amt =>
-    HasRewardToWithdraw ssn initiator;
-    HasBufferedDeposit ssn initiator;
-    deposit_amt_option <- deposit_amt_deleg[initiator][ssn];
-    match deposit_amt_option with
-    | Some deposit_amt =>
+  match ssn_o with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
+    match deleg with
+    | Some amt =>
+      HasRewardToWithdraw ssn initiator;
+      HasBufferedDeposit ssn initiator;
       TruncateDeleg initiator ssn;
-      match ssn_option with
-      | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-        new_amt = builtin sub stake_amt deposit_amt;
-        minstake_tmp <- minstake;
-        status = uint128_le minstake_tmp new_amt;
-        ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
-        ssnlist[ssn] := ssn_option_tmp;
-        TransferFunds addfunds_tag deposit_amt initiator;
-        e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; deposit_amt : deposit_amt };
-        event e
-      | None =>
-        e = DelegHasBufferedDeposit;
-        ThrowError e
-      end
+      new_amt = builtin sub stake_amt amt;
+      minstake_tmp <- minstake;
+      status = uint128_le minstake_tmp new_amt;
+      ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
+      ssnlist[ssn] := ssn_option_tmp;
+      TransferFunds addfunds_tag amt initiator;
+      e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; amt : amt };
+      event e
     | None =>
-      e = SSNNotExist;
+      e = DelegDoesNotExistAtSSN;
       ThrowError e
     end
   | None =>
-    e = DelegDoesNotExistAtSSN;
+    e = SSNNotExist;
     ThrowError e
   end
 end
@@ -619,7 +594,7 @@ transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, 
     is_delete = builtin eq stake_amt uint128_zero;
     match is_delete with
     | True =>
-      alr_deleg_amt_o <- delegs[ssnaddr][deleg];
+      alr_deleg_amt_o <- deposit_amt_deleg[deleg][ssnaddr];
       match alr_deleg_amt_o with
       | Some alr_deleg =>
         TruncateDeleg deleg ssnaddr;
@@ -632,7 +607,6 @@ transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, 
       | None =>
       end
     | False =>
-      FillInDelegsWithAmt ssnaddr deleg stake_amt;
       FillInDepositDelegAmt ssnaddr deleg stake_amt;
       new_stake_amt = builtin add stake_amt staking_amt;
       status = uint128_le minstake_tmp new_stake_amt;
@@ -760,7 +734,6 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
     FillInDepositDeleg ssnaddr initiator;
-    FillInDelegs ssnaddr initiator;
     FillLastRewardCycle ssnaddr initiator;
     match active_status with
     | True  =>
@@ -786,7 +759,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
       ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
       ssnlist[ssnaddr] := ssn;
-      d <- delegs[ssnaddr][initiator];
+      d <- deposit_amt_deleg[initiator][ssnaddr];
       (* record this to direct deposit for deleg *)
       stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
       match stake_amt_for_deleg_option  with
