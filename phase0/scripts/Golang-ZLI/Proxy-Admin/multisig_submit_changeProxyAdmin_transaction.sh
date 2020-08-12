@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zli contract call -a ${MULTISIG_WALLET_ADDRESS} -t SubmitCustomChangeProxyAdminTransaction -s ${KEY_STORE_PATH} -r "[{\"vname\":\"proxyContract\",\"type\":\"ByStr20\",\"value\":\"${PROXY_CONTRACT}\"},{\"vname\":\"newAdmin\",\"type\":\"ByStr20\",\"value\":\"${NEW_ADMIN}\"}]" -f true
