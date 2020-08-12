@@ -29,7 +29,6 @@ func (t *Testing) DelegateStake() {
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
 	t.AssertContain(state,"_balance\":\"100000000000000")
-	t.AssertContain(state,"delegs\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":\"100000000000000\"}")
 	t.AssertContain(state,"deposit_amt_deleg\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":\"100000000000000\"}")
 	t.AssertContain(state,"direct_deposit_deleg\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"1\":\"100000000000000\"}}")
 
@@ -42,7 +41,6 @@ func (t *Testing) DelegateStake() {
 	log.Println(receipt)
 	state = ssnlist.LogContractStateJson()
 	t.AssertContain(state,"_balance\":\"200000000000000")
-	t.AssertContain(state,"delegs\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":\"200000000000000\"}")
 	t.AssertContain(state,"direct_deposit_deleg\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"1\":\"100000000000000\"}}")
 	t.AssertContain(state,"buff_deposit_deleg\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xe2cd74983c7a3487af3a133a3bf4e7dd76f5d928\":{\"1\":\"100000000000000\"}}")
 	t.LogEnd("DelegateStake")
