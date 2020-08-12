@@ -28,6 +28,11 @@ func (s *SSNList) LogContractStateJson() string {
 	return res
 }
 
+func (s *SSNList) LogPrettyStateJson(data []byte) {
+	j, _ := json.MarshalIndent(data, "", "   ")
+	log.Println(string(j))
+}
+
 func (s *SSNList) GetBalance() string {
 	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
 	balAndNonce, _ := provider.GetBalance(s.Addr)

@@ -53,3 +53,8 @@ func (t *Testing) GetReceiptString(tnx *transaction.Transaction) string {
 	receipt, _ := json.Marshal(tnx.Receipt)
 	return string(receipt)
 }
+
+func (t *Testing) LogPrettyReceipt(tnx *transaction.Transaction) {
+	data,_ := json.MarshalIndent(tnx.Receipt,"","     ")
+	log.Println(string(data))
+}
