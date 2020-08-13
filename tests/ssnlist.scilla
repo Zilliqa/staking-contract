@@ -80,6 +80,7 @@ type Error =
 | DelegNotExist
 | SSNAlreadyExist
 | DelegHasUnwithdrawRewards
+| DelegHasNoSufficientAmt
 let make_error =
 fun (result : Error) =>
 let result_code =
@@ -97,6 +98,7 @@ match result with
 | DelegNotExist => Int32 -11
 | SSNAlreadyExist => Int32 -12
 | DelegHasUnwithdrawRewards => Int32 -13
+| DelegHasNoSufficientAmt => Int32 -14
 end
 in
 { _exception : "Error"; code : result_code }
@@ -278,7 +280,29 @@ ThrowError e
 | False =>
 end
 end
-procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20)
+procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
+suffient = uint128_le withdraw_amount total_amount;
+match suffient with
+| True =>
+need_truncate =  builtin eq withdraw_amount total_amount;
+match need_truncate with
+| True =>
+TruncateDeleg deleg ssnaddr
+| False =>
+lrc <- lastrewardcycle;
+rest_deleg = builtin sub total_amount withdraw_amount;
+TruncateDeleg deleg ssnaddr;
+deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
+direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
+last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
+end
+| False =>
+e = DelegHasNoSufficientAmt;
+ThrowError e
+end
+end
+procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
 lrc <- lastrewardcycle;
@@ -288,13 +312,13 @@ match deleg with
 | Some amt =>
 HasRewardToWithdraw ssn initiator;
 HasBufferedDeposit ssn initiator;
-TruncateDeleg initiator ssn;
-new_amt = builtin sub stake_amt amt;
+AdjustDeleg ssn initiator amt withdraw_amount;
+new_amt = builtin sub stake_amt withdraw_amount;
 minstake_tmp <- minstake;
 status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
 ssnlist[ssn] := ssn_option_tmp;
-TransferFunds addfunds_tag amt initiator;
+TransferFunds addfunds_tag withdraw_amount initiator;
 e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; amt : amt };
 event e
 | None =>
@@ -518,19 +542,6 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
-IsPaused;
-IsProxy;
-curval <- ssnlist[initiator];
-match curval with
-| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr) =>
-ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-ssnlist[initiator] := ssn
-| None =>
-e = SSNNotExist;
-ThrowError e
-end
-end
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;
 IsProxy;
@@ -611,10 +622,10 @@ IsProxy;
 DelegExists ssn_operator deleg;
 WithdrawalStakeRewards deleg ssn_operator
 end
-transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20)
+transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20, amt: Uint128)
 IsPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssn
+WithdrawalStakeAmt initiator ssn amt
 end
 transition AddFunds(initiator : ByStr20)
 IsPaused;

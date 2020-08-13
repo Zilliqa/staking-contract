@@ -24,12 +24,17 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction, error) {
+func (p *Proxy) WithdrawStakeAmount(ssn, amt string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssn",
 			"ByStr20",
 			ssn,
+		},
+		{
+			"amt",
+			"Uint128",
+			amt,
 		},
 	}
 	return p.Call("WithdrawStakeAmt", args, "0")

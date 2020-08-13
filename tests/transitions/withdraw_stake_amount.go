@@ -39,7 +39,7 @@ func (t *Testing) WithDrawStakeAmount() {
 
 	// non delegator(addr4) try to withdraw stake, should fail
 	proxy.UpdateWallet(key4)
-	txn, err := proxy.WithdrawStakeAmount("0x" + addr1)
+	txn, err := proxy.WithdrawStakeAmount("0x" + addr1,tenzil)
 	t.AssertError(err)
 	receipt :=  t.GetReceiptString(txn)
 	t.LogPrettyReceipt(txn)
@@ -48,7 +48,7 @@ func (t *Testing) WithDrawStakeAmount() {
 
 	// delegator (addr1) withdraw from ssn1 (addr1), remain active
 	proxy.UpdateWallet(key1)
-	txn, err1 := proxy.WithdrawStakeAmount("0x" + addr1)
+	txn, err1 := proxy.WithdrawStakeAmount("0x" + addr1,tenzil)
 	if err1 != nil {
 		t.LogError("WithDrawStakeAmount",err1)
 	}
@@ -59,7 +59,7 @@ func (t *Testing) WithDrawStakeAmount() {
 
 	// delegator (addr2) withdraw from ssn2 (addr2), should fail
 	proxy.UpdateWallet(key2)
-	txn, err2 := proxy.WithdrawStakeAmount("0x" + addr2)
+	txn, err2 := proxy.WithdrawStakeAmount("0x" + addr2,tenzil)
 	t.AssertError(err2)
 	receipt =  t.GetReceiptString(txn)
 	t.LogPrettyReceipt(txn)
@@ -68,7 +68,7 @@ func (t *Testing) WithDrawStakeAmount() {
 
 	// delegator (addr3) withdraw from ssn1 (addr1), should success, and ssn become inactive
 	proxy.UpdateWallet(key3)
-	txn, err3 := proxy.WithdrawStakeAmount("0x" + addr1)
+	txn, err3 := proxy.WithdrawStakeAmount("0x" + addr1,min)
 	if err3 != nil {
 		t.LogError("WithDrawStakeAmount",err3)
 	}

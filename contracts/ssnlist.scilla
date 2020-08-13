@@ -136,6 +136,7 @@ type Error =
   | DelegNotExist
   | SSNAlreadyExist
   | DelegHasUnwithdrawRewards
+  | DelegHasNoSufficientAmt
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -153,6 +154,7 @@ let make_error =
       | DelegNotExist => Int32 -11
       | SSNAlreadyExist => Int32 -12
       | DelegHasUnwithdrawRewards => Int32 -13
+      | DelegHasNoSufficientAmt => Int32 -14
       end
     in
     { _exception : "Error"; code : result_code }
@@ -369,7 +371,33 @@ procedure HasBufferedDeposit(ssnaddr : ByStr20, deleg : ByStr20)
   | False =>
   end
 end
-procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20)
+procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
+  suffient = uint128_le withdraw_amount total_amount;
+  match suffient with
+  | True =>
+    need_truncate =  builtin eq withdraw_amount total_amount;
+    match need_truncate with
+    | True =>
+      (* Remove all info map recorded for this deleg *)
+      TruncateDeleg deleg ssnaddr
+    | False =>
+      (* Readjust all rest deleg to this cycle *)
+      lrc <- lastrewardcycle;
+      rest_deleg = builtin sub total_amount withdraw_amount;
+      TruncateDeleg deleg ssnaddr;
+      (* Refer to transition TruncateDeleg, here we don't use Fillin transition because we *)
+      (* know they are all empty, and this can reduce some gasfee *)
+      deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
+      direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
+      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+      last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
+    end
+  | False =>
+    e = DelegHasNoSufficientAmt;
+    ThrowError e
+  end
+end
+procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
   lrc <- lastrewardcycle;
@@ -379,13 +407,14 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20)
     | Some amt =>
       HasRewardToWithdraw ssn initiator;
       HasBufferedDeposit ssn initiator;
-      TruncateDeleg initiator ssn;
-      new_amt = builtin sub stake_amt amt;
+      AdjustDeleg ssn initiator amt withdraw_amount;
+      (* Inleagal withdraw amount could be handled in procedure AdjustDeleg *)
+      new_amt = builtin sub stake_amt withdraw_amount;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards received_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      TransferFunds addfunds_tag amt initiator;
+      TransferFunds addfunds_tag withdraw_amount initiator;
       e = { _eventname : "Deleg withdraw deposit"; ssn_addr : ssn; deleg_address : initiator; amt : amt };
       event e
     | None =>
@@ -816,11 +845,11 @@ end
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
 (* @param initiator: The original caller who called the proxy. *)
-(* @note: Withdraws stake + buffer + reward in one go. *)
-transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20)
+(* @param amt: The amount caller who wanted to withdraw from *)
+transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20, amt: Uint128)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssn
+  WithdrawalStakeAmt initiator ssn amt
 end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)

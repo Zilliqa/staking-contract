@@ -9,6 +9,7 @@ func (t *Testing) WithDrawStakeAmount2() {
 	proxy.Unpause()
 	// set staking parameters
 	min := "100000000000000"
+	min2 := "200000000000000"
 	//tenzil := "10000000000000"
 	ssn1 := "0x"+addr1
 	proxy.UpdateStakingParameters(min)
@@ -26,7 +27,7 @@ func (t *Testing) WithDrawStakeAmount2() {
 	ssnlist.LogContractStateJson()
 
 	// try withdraw, should fail
-	txn, err := proxy.WithdrawStakeAmount("0x" + addr1)
+	txn, err := proxy.WithdrawStakeAmount("0x" + addr1,min2)
 	t.AssertError(err)
 	t.LogPrettyReceipt(txn)
 
@@ -34,7 +35,7 @@ func (t *Testing) WithDrawStakeAmount2() {
 	proxy.AssignStakeReward(ssn1, "52000000")
 
 	// try withdraw, should fail (because of rewards)
-	txn, err1 := proxy.WithdrawStakeAmount(ssn1)
+	txn, err1 := proxy.WithdrawStakeAmount(ssn1,min2)
 	t.AssertError(err1)
 	t.LogPrettyReceipt(txn)
 
@@ -42,7 +43,7 @@ func (t *Testing) WithDrawStakeAmount2() {
 	proxy.WithdrawStakeRewards(ssn1)
 
 	// withdraw amount
-	txn, err2 := proxy.WithdrawStakeAmount(ssn1)
+	txn, err2 := proxy.WithdrawStakeAmount(ssn1,min2)
 	if err2 != nil {
 		t.LogError("WithDrawStakeAmount2",err2)
 	}

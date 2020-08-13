@@ -199,9 +199,9 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20)
     send msgs
 end
 
-transition WithdrawStakeAmt(ssn: ByStr20)
+transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag : "WithdrawStakeAmt"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender};
+    msg = {_tag : "WithdrawStakeAmt"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender; amt: amt};
     msgs = one_msg msg;
     send msgs
 end
