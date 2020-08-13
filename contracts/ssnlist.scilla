@@ -369,7 +369,7 @@ procedure HasBufferedDeposit(ssnaddr : ByStr20, deleg : ByStr20)
   | False =>
   end
 end
-procedure DistributeStakeAmt(initiator: ByStr20, ssn: ByStr20)
+procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
   lrc <- lastrewardcycle;
@@ -439,7 +439,7 @@ procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
     end
   end
 end
-procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
+procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
@@ -464,7 +464,7 @@ procedure DistributeStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   forall combined_args_list CalcRewardsDelegPerCycleAndSend;
   sdpc <- stake_deleg_per_cycle;
   sdpc_list = builtin to_list sdpc;
-  e = { _eventname : "DistributeStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
+  e = { _eventname : "WithdrawalStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 
@@ -811,7 +811,7 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20, deleg : ByStr20)
   IsPaused;
   IsProxy;
   DelegExists ssn_operator deleg;
-  DistributeStakeRewards deleg ssn_operator
+  WithdrawalStakeRewards deleg ssn_operator
 end
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
@@ -820,7 +820,7 @@ end
 transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20)
   IsPaused;
   IsProxy;
-  DistributeStakeAmt initiator ssn
+  WithdrawalStakeAmt initiator ssn
 end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
