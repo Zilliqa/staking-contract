@@ -845,7 +845,7 @@ end
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
 (* @param initiator: The original caller who called the proxy. *)
-(* @param amt: The amount caller who wanted to withdraw from *)
+(* @param amt: The amount which the delegators wanr to withdraw*)
 transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20, amt: Uint128)
   IsPaused;
   IsProxy;
