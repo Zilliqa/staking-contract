@@ -118,9 +118,9 @@ transition AddSSN (ssnaddr : ByStr20, name : String, urlraw : String, urlapi : S
     send msgs
 end
 
-transition AddSSNAfterUpgrade (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20)
+transition AddSSNAfterUpgrade (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, rec_addr : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "AddSSNAfterUpgrade"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; min_delegate_amt: min_delegate_amt; received_addr: received_addr; initiator : _sender};
+    msg = {_tag : "AddSSNAfterUpgrade"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; min_delegate_amt: min_delegate_amt; rec_addr: rec_addr; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
