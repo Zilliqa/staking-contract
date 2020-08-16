@@ -650,31 +650,26 @@ transition UpdateDeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amt : Uint128, 
   end
 end
 transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
@@ -684,7 +679,6 @@ end
 (* @param last_cycle: last reward cycle *)
 (* @param initiator: The original caller who called the proxy *)
 transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128, last_cycle: Uint128)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   reward_cycle_list := list;
@@ -694,7 +688,6 @@ end
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
-  IsPaused;
   IsProxy;
   IsAdmin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -860,7 +853,6 @@ end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition AddFunds(initiator : ByStr20)
-  IsPaused;
   IsProxy;
   accept;
   e = { _eventname : "Verifier deposit funds"; verifier : initiator };
