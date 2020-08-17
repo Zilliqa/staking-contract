@@ -175,7 +175,7 @@ func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.T
 			"0",
 		},
 		{
-			"received_addr",
+			"rec_addr",
 			"ByStr20",
 			addr,
 		},
