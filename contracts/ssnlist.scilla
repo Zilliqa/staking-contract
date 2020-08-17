@@ -606,7 +606,7 @@ transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : 
     event e
   end
 end
-(* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
+(* @dev: Adds or deletes a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
 (* @param deleg: Address of the deleg *)
 (* @param stake_amt: Stake amount *)
