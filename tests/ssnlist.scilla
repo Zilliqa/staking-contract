@@ -81,6 +81,7 @@ type Error =
 | SSNAlreadyExist
 | DelegHasUnwithdrawRewards
 | DelegHasNoSufficientAmt
+| SSNNoComm
 let make_error =
 fun (result : Error) =>
 let result_code =
@@ -99,6 +100,7 @@ match result with
 | SSNAlreadyExist => Int32 -12
 | DelegHasUnwithdrawRewards => Int32 -13
 | DelegHasNoSufficientAmt => Int32 -14
+| SSNNoComm => Int32 -15
 end
 in
 { _exception : "Error"; code : result_code }
@@ -504,6 +506,37 @@ e = SSNNotExist;
 ThrowError e
 end
 end
+transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
+IsProxy;
+IsAdmin initiator;
+stake_ssn_per_cycle[ssn_addr][cycle] := info
+end
+transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
+IsProxy;
+IsAdmin initiator;
+last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
+end
+transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+IsProxy;
+IsAdmin initiator;
+buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
+IsProxy;
+IsAdmin initiator;
+direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
+IsProxy;
+IsAdmin initiator;
+comm_for_ssn[ssn_addr][cycle] := comm
+end
+transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128, last_cycle: Uint128)
+IsProxy;
+IsAdmin initiator;
+reward_cycle_list := list;
+lastrewardcycle := last_cycle
+end
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
@@ -588,7 +621,6 @@ new_stake_amt  = builtin add _amount stake_amt;
 status = uint128_le minstake_tmp new_stake_amt;
 ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssnaddr] := ssn;
-d <- deposit_amt_deleg[initiator][ssnaddr];
 stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
 match stake_amt_for_deleg_option  with
 | Some stake_amt_for_deleg =>
@@ -621,11 +653,18 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+has_comm = uint128_gt comm_rewards uint128_zero;
+match has_comm with
+| True =>
 e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_comm : comm_rewards };
 event e;
 ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
 ssnlist[initiator] := ssn;
 TransferFunds addfunds_tag comm_rewards rec_addr
+| False =>
+e = SSNNoComm;
+ThrowError e
+end
 end
 end
 transition WithdrawStakeRewards(ssn_operator : ByStr20, deleg : ByStr20)

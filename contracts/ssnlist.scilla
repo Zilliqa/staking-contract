@@ -137,6 +137,7 @@ type Error =
   | SSNAlreadyExist
   | DelegHasUnwithdrawRewards
   | DelegHasNoSufficientAmt
+  | SSNNoComm
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -155,6 +156,7 @@ let make_error =
       | SSNAlreadyExist => Int32 -12
       | DelegHasUnwithdrawRewards => Int32 -13
       | DelegHasNoSufficientAmt => Int32 -14
+      | SSNNoComm => Int32 -15
       end
     in
     { _exception : "Error"; code : result_code }
@@ -292,7 +294,7 @@ procedure UpdateStakeReward(entry : SsnRewardShare)
         expected_reward = builtin sub new_reward total_reward_comm;
         deleg_reward = builtin add expected_reward rewards;
         new_stake_amt = builtin add stake_amt buffdeposit;
-        (* During this cylce, the SSN only earned t as rewards that could be given to delegs *)
+        (* During this cylce, the SSN only earned expected_reward as rewards that could be given to delegs *)
         p = SSNCycleInfo stake_amt expected_reward;
         stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
@@ -787,7 +789,6 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
       ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
-      d <- deposit_amt_deleg[initiator][ssnaddr];
       (* record this to direct deposit for deleg *)
       stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
       match stake_amt_for_deleg_option  with
@@ -826,11 +827,19 @@ transition WithdrawComm(initiator : ByStr20)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_comm : comm_rewards };
-    event e;
-    ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
-    ssnlist[initiator] := ssn;
-    TransferFunds addfunds_tag comm_rewards rec_addr
+    has_comm = uint128_gt comm_rewards uint128_zero;
+    match has_comm with
+    | True =>
+      e = { _eventname : "SSN withdraw reward"; ssn_addr : initiator; withdraw_comm : comm_rewards };
+      event e;
+      ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
+      ssnlist[initiator] := ssn;
+      TransferFunds addfunds_tag comm_rewards rec_addr
+    | False =>
+      e = SSNNoComm;
+      ThrowError e
+    end
+    
   end
 end
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
