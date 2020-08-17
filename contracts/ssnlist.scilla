@@ -138,6 +138,7 @@ type Error =
   | DelegHasUnwithdrawRewards
   | DelegHasNoSufficientAmt
   | SSNNoComm
+  | DelegStakeNotEnough
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -157,6 +158,7 @@ let make_error =
       | DelegHasUnwithdrawRewards => Int32 -13
       | DelegHasNoSufficientAmt => Int32 -14
       | SSNNoComm => Int32 -15
+      | DelegStakeNotEnough => Int32 -16
       end
     in
     { _exception : "Error"; code : result_code }
@@ -201,6 +203,8 @@ field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
+(* 1 zil *)
+field mindelegstake : Uint128 = Uint128 1000000000000
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
@@ -371,6 +375,16 @@ procedure HasBufferedDeposit(ssnaddr : ByStr20, deleg : ByStr20)
     e = DelegHasBufferedDeposit;
     ThrowError e
   | False =>
+  end
+end
+procedure IsDelegstakeSufficient()
+  mindelegstake_l <- mindelegstake;
+  suffi =  uint128_le mindelegstake_l _amount;
+  match suffi with
+  | True =>
+  | False =>
+    e = DelegStakeNotEnough;
+    ThrowError e
   end
 end
 procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
@@ -547,11 +561,13 @@ transition DrainContractBalance(initiator : ByStr20, amt : Uint128)
 end
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
+(* @param min_deleg_stake: New mindelegstake value *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateStakingParameters (min_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
-  minstake := min_stake
+  minstake := min_stake;
+  mindelegstake := min_deleg_stake
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
   IsProxy;
@@ -760,6 +776,7 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    IsDelegstakeSufficient;
     minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)

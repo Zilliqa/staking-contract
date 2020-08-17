@@ -82,6 +82,7 @@ type Error =
 | DelegHasUnwithdrawRewards
 | DelegHasNoSufficientAmt
 | SSNNoComm
+| DelegStakeNotEnough
 let make_error =
 fun (result : Error) =>
 let result_code =
@@ -101,6 +102,7 @@ match result with
 | DelegHasUnwithdrawRewards => Int32 -13
 | DelegHasNoSufficientAmt => Int32 -14
 | SSNNoComm => Int32 -15
+| DelegStakeNotEnough => Int32 -16
 end
 in
 { _exception : "Error"; code : result_code }
@@ -120,6 +122,7 @@ field stake_deleg_per_cycle : Map Uint128 Uint128 = Emp Uint128 Uint128
 field reward_cycle_list : List Uint128   =  Nil {Uint128}
 field verifier : Option ByStr20 = None {ByStr20}
 field minstake : Uint128 = Uint128 0
+field mindelegstake : Uint128 = Uint128 1000000000000
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
@@ -282,6 +285,16 @@ ThrowError e
 | False =>
 end
 end
+procedure IsDelegstakeSufficient()
+mindelegstake_l <- mindelegstake;
+suffi =  uint128_le mindelegstake_l _amount;
+match suffi with
+| True =>
+| False =>
+e = DelegStakeNotEnough;
+ThrowError e
+end
+end
 procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
 suffient = uint128_le withdraw_amount total_amount;
 match suffient with
@@ -401,11 +414,6 @@ IsProxy;
 IsAdmin initiator;
 paused := bool_inactive
 end
-transition UpdateAdmin(admin : ByStr20, initiator : ByStr20)
-IsProxy;
-IsAdmin initiator;
-contractadmin := admin
-end
 transition UpdateVerifier(verif : ByStr20, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
@@ -423,10 +431,11 @@ match less_than with
 TransferFunds addfunds_tag amt initiator
 end
 end
-transition UpdateStakingParameters (min_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
-minstake := min_stake
+minstake := min_stake;
+mindelegstake := min_deleg_stake
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
 IsProxy;
@@ -506,37 +515,6 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition PopulateStakeSSNPerCycle(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, info : SSNCycleInfo)
-IsProxy;
-IsAdmin initiator;
-stake_ssn_per_cycle[ssn_addr][cycle] := info
-end
-transition PopulateLastWithdrawCycleForDeleg(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128)
-IsProxy;
-IsAdmin initiator;
-last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
-end
-transition PopulateBuffDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-IsProxy;
-IsAdmin initiator;
-buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateDirectDeposit(initiator : ByStr20, deleg_addr : ByStr20, ssn_addr : ByStr20, cycle : Uint128, amt : Uint128)
-IsProxy;
-IsAdmin initiator;
-direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
-end
-transition PopulateCommForSSN(initiator : ByStr20, ssn_addr : ByStr20, cycle : Uint128, comm : Uint128)
-IsProxy;
-IsAdmin initiator;
-comm_for_ssn[ssn_addr][cycle] := comm
-end
-transition UpdateRewardCycleList(initiator : ByStr20, list: List Uint128, last_cycle: Uint128)
-IsProxy;
-IsAdmin initiator;
-reward_cycle_list := list;
-lastrewardcycle := last_cycle
-end
 transition RemoveSSN(ssnaddr : ByStr20, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
@@ -574,19 +552,6 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition UpdateReceivedAddr(new_addr : ByStr20, initiator : ByStr20)
-IsPaused;
-IsProxy;
-curval <- ssnlist[initiator];
-match curval with
-| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-ssnlist[initiator] := ssn
-| None =>
-e = SSNNotExist;
-ThrowError e
-end
-end
 transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
 IsPaused;
 IsProxy;
@@ -597,6 +562,7 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+IsDelegstakeSufficient;
 minstake_tmp <- minstake;
 lrc <- lastrewardcycle;
 FillInDepositDeleg ssnaddr initiator;
