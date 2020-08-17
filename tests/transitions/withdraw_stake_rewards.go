@@ -12,7 +12,8 @@ func (t *Testing) WithdrawStakeReward() {
 	proxy.Unpause()
 	// set staking parameters
 	min := "100000000000000"
-	proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	proxy.UpdateStakingParameters(min,delegMin)
 	// update verifier to addr1
 	proxy.UpdateVerifier("0x" + addr1)
 	// add ssn1

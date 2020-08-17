@@ -13,7 +13,8 @@ func (t *Testing) DelegateStake() {
 
 	// set staking parameters
 	min := "100000000000000"
-	proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	proxy.UpdateStakingParameters(min,delegMin)
 
 	// add ssn
 	proxy.AddSSN("0x"+addr2,"xiaohuo")

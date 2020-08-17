@@ -83,12 +83,17 @@ func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Trans
 	return p.Call("DelegateStake", args, amount)
 }
 
-func (p *Proxy) UpdateStakingParameters(min string) (*transaction.Transaction, error) {
+func (p *Proxy) UpdateStakingParameters(min,delegmin string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"min_stake",
 			"Uint128",
 			min,
+		},
+		{
+			"min_deleg_stake",
+			"Uint128",
+			delegmin,
 		},
 	}
 	return p.Call("UpdateStakingParameters", args, "0")

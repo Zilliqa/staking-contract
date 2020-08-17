@@ -12,7 +12,8 @@ func (t *Testing) WithDrawStakeAmount2() {
 	min2 := "200000000000000"
 	//tenzil := "10000000000000"
 	ssn1 := "0x"+addr1
-	proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	proxy.UpdateStakingParameters(min,delegMin)
 	// update verifier to addr1
 	proxy.UpdateVerifier(ssn1)
 	// add ssn1

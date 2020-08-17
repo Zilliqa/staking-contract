@@ -13,7 +13,8 @@ func (t *Testing) UpdateComm() {
 	proxy.Unpause()
 
 	min := "100000"
-	txn, err1 := proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	txn, err1 := proxy.UpdateStakingParameters(min,delegMin)
 	if err1 != nil {
 		t.LogError("UpdateComm failed", err1)
 	}
@@ -26,7 +27,7 @@ func (t *Testing) UpdateComm() {
 
 	// add ssn1
 	proxy.AddSSNAfterUpgrade("0x"+addr1, "200000")
-	txn, err2 := proxy.UpdateStakingParameters(min)
+	txn, err2 := proxy.UpdateStakingParameters(min,delegMin)
 	if err2 != nil {
 		t.LogError("UpdateComm failed", err2)
 	}
