@@ -20,13 +20,21 @@ func (t *Testing) DelegateStake() {
 	proxy.AddSSN("0x"+addr2,"xiaohuo")
 	ssnlist.LogContractStateJson()
 
+	// use add1 to deposit less than delegMin
+	txn,err0 := proxy.DelegateStake("0x"+addr2,"10")
+	t.AssertError(err0)
+	t.LogPrettyReceipt(txn)
+	receipt :=  t.GetReceiptString(txn)
+	t.AssertContain(receipt,"Int32 -16")
+
+
 	// use addr1 to deposit (should enter direct deposit map)
 	// ssn becomes active
 	txn,err := proxy.DelegateStake("0x"+addr2,"100000000000000")
 	if err != nil {
 		t.LogError("DelegateStake",err)
 	}
-	receipt :=  t.GetReceiptString(txn)
+	receipt =  t.GetReceiptString(txn)
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
 	t.AssertContain(state,"_balance\":\"100000000000000")
