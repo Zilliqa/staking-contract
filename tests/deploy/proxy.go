@@ -175,11 +175,6 @@ func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.T
 			"0",
 		},
 		{
-			"min_delegate_amt",
-			"Uint128",
-			"0",
-		},
-		{
 			"rec_addr",
 			"ByStr20",
 			addr,

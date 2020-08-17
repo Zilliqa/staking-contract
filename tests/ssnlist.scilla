@@ -460,7 +460,7 @@ e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
 event e
 end
 end
-transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, rec_addr : ByStr20, initiator : ByStr20)
+transition AddSSNAfterUpgrade(ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, rec_addr : ByStr20, initiator : ByStr20)
 IsProxy;
 IsAdmin initiator;
 already_exists <- exists ssnlist[ssnaddr];
