@@ -829,8 +829,8 @@ transition AssignStakeReward(ssnreward_list : List SsnRewardShare, initiator : B
   forall ssnreward_list UpdateStakeReward;
   newLastRewardCycleNum = builtin add uint128_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
-  rcl_local <- reward_cycle_list;
-  rcl_new = Cons {Uint128} newLastRewardCycleNum rcl_local;
+  rcl <- reward_cycle_list;
+  rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
   reward_cycle_list := rcl_new
 end
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)

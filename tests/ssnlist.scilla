@@ -386,17 +386,17 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
 last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
 last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
 lrc <- lastrewardcycle;
-rcl_local <- reward_cycle_list;
+rcl <- reward_cycle_list;
 list_reverse_uint128 = @list_reverse Uint128;
-rcl_local_reverse = list_reverse_uint128 rcl_local;
-list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl_local;
+rcl_reverse = list_reverse_uint128 rcl;
+list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
 mapper = @list_map Uint128 TmpArg;
 f = fun (cycle : Uint128) => TmpArg deleg ssn_operator cycle;
 combined_args_list = mapper f list_need_compute_rewards;
 emp_map = Emp Uint128 Uint128;
 stake_deleg_per_cycle := emp_map;
-rcl_local_reverse_t = mapper f rcl_local_reverse;
-forall rcl_local_reverse_t CalcStakeDelegPerCycle;
+rcl_reverse_t = mapper f rcl_reverse;
+forall rcl_reverse_t CalcStakeDelegPerCycle;
 forall combined_args_list CalcRewardsDelegPerCycleAndSend;
 sdpc <- stake_deleg_per_cycle;
 sdpc_list = builtin to_list sdpc;
@@ -606,8 +606,8 @@ lrc <- lastrewardcycle;
 forall ssnreward_list UpdateStakeReward;
 newLastRewardCycleNum = builtin add uint128_one lrc;
 lastrewardcycle := newLastRewardCycleNum;
-rcl_local <- reward_cycle_list;
-rcl_new = Cons {Uint128} newLastRewardCycleNum rcl_local;
+rcl <- reward_cycle_list;
+rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
 reward_cycle_list := rcl_new
 end
 transition WithdrawComm(initiator : ByStr20)
