@@ -488,11 +488,11 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
-  rcl_local <- reward_cycle_list;
+  rcl <- reward_cycle_list;
   list_reverse_uint128 = @list_reverse Uint128;
-  rcl_local_reverse = list_reverse_uint128 rcl_local;
+  rcl_local_reverse = list_reverse_uint128 rcl;
   (* those are the cycles that we want to compute for computing rewards *)
-  list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl_local;
+  list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint128 TmpArg;
   f = fun (cycle : Uint128) => TmpArg deleg ssn_operator cycle;
