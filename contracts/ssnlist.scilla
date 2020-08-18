@@ -490,7 +490,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   lrc <- lastrewardcycle;
   rcl <- reward_cycle_list;
   list_reverse_uint128 = @list_reverse Uint128;
-  rcl_local_reverse = list_reverse_uint128 rcl;
+  rcl_reverse = list_reverse_uint128 rcl;
   (* those are the cycles that we want to compute for computing rewards *)
   list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
@@ -502,8 +502,8 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   (* calculate stake_deleg_per_cycle *)
   emp_map = Emp Uint128 Uint128;
   stake_deleg_per_cycle := emp_map;
-  rcl_local_reverse_t = mapper f rcl_local_reverse;
-  forall rcl_local_reverse_t CalcStakeDelegPerCycle;
+  rcl_reverse_t = mapper f rcl_reverse;
+  forall rcl_reverse_t CalcStakeDelegPerCycle;
 
   (* Calculate and send rewards *)
   forall combined_args_list CalcRewardsDelegPerCycleAndSend;
