@@ -14,7 +14,8 @@ func (t *Testing) AddSSNAfterUpgrade() {
 	min := "100000000000000"
 	more_than_min := "110000000000000"
 	ten_zil := "10000000000000"
-	proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	proxy.UpdateStakingParameters(min,delegMin)
 	ssnlist.LogContractStateJson()
 
 	// add ssn1 with stake deposit more than min stake

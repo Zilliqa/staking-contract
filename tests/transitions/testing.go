@@ -37,6 +37,8 @@ func (t *Testing) LogError(tag string, err error) {
 
 func (t *Testing) AssertContain(s1, s2 string) {
 	if !strings.Contains(s1, s2) {
+		log.Println(s1)
+		log.Println(s2)
 		log.Fatal("assert failed")
 	}
 }
@@ -50,4 +52,9 @@ func (t *Testing) AssertError(err error) {
 func (t *Testing) GetReceiptString(tnx *transaction.Transaction) string {
 	receipt, _ := json.Marshal(tnx.Receipt)
 	return string(receipt)
+}
+
+func (t *Testing) LogPrettyReceipt(tnx *transaction.Transaction) {
+	data,_ := json.MarshalIndent(tnx.Receipt,"","     ")
+	log.Println(string(data))
 }

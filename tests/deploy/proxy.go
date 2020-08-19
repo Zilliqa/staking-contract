@@ -24,12 +24,17 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) WithdrawStakeAmount(ssn string) (*transaction.Transaction, error) {
+func (p *Proxy) WithdrawStakeAmount(ssn, amt string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"ssn",
 			"ByStr20",
 			ssn,
+		},
+		{
+			"amt",
+			"Uint128",
+			amt,
 		},
 	}
 	return p.Call("WithdrawStakeAmt", args, "0")
@@ -78,12 +83,17 @@ func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Trans
 	return p.Call("DelegateStake", args, amount)
 }
 
-func (p *Proxy) UpdateStakingParameters(min string) (*transaction.Transaction, error) {
+func (p *Proxy) UpdateStakingParameters(min,delegmin string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"min_stake",
 			"Uint128",
 			min,
+		},
+		{
+			"min_deleg_stake",
+			"Uint128",
+			delegmin,
 		},
 	}
 	return p.Call("UpdateStakingParameters", args, "0")
@@ -165,12 +175,7 @@ func (p *Proxy) AddSSNAfterUpgrade(addr string, stakeAmt string) (*transaction.T
 			"0",
 		},
 		{
-			"min_delegate_amt",
-			"Uint128",
-			"0",
-		},
-		{
-			"received_addr",
+			"rec_addr",
 			"ByStr20",
 			addr,
 		},

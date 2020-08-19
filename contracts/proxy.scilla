@@ -98,9 +98,10 @@ end
 
 (* @dev: Set the minstake, maxstake and contract maxstake of contract. Used by admin only. *)
 (* @param min_stake: New min_stake value *)
-transition UpdateStakingParameters (min_stake : Uint128)
+(* @param min_deleg_stake: New mindelegstake value *)
+transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; initiator : _sender};
+    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -118,9 +119,9 @@ transition AddSSN (ssnaddr : ByStr20, name : String, urlraw : String, urlapi : S
     send msgs
 end
 
-transition AddSSNAfterUpgrade (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, min_delegate_amt : Uint128, received_addr : ByStr20)
+transition AddSSNAfterUpgrade (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, name : String, urlraw : String, urlapi : String, buff_deposit : Uint128,  comm : Uint128, comm_rewards : Uint128, rec_addr : ByStr20)
     current_impl <- implementation;
-    msg = {_tag : "AddSSNAfterUpgrade"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; min_delegate_amt: min_delegate_amt; received_addr: received_addr; initiator : _sender};
+    msg = {_tag : "AddSSNAfterUpgrade"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; rec_addr: rec_addr; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -199,9 +200,9 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20)
     send msgs
 end
 
-transition WithdrawStakeAmt(ssn: ByStr20)
+transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag : "WithdrawStakeAmt"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender};
+    msg = {_tag : "WithdrawStakeAmt"; _recipient : current_impl; _amount : zero; ssn : ssn; initiator: _sender; amt: amt};
     msgs = one_msg msg;
     send msgs
 end

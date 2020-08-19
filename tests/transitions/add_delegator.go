@@ -22,7 +22,7 @@ func (t *Testing) AddDelegator() {
 	receipt := t.GetReceiptString(tnx)
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"delegs\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82\":\"100000\"}")
+	t.AssertContain(state,"\"deposit_amt_deleg\":{\"0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":\"100000\"}")
 
 	// as admin, update delegator (addr1) with 200000 to ssn1 (add1)
 	tnx, err1 := proxy.AddDelegator("0x"+addr1, "0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82", "200000")
@@ -32,7 +32,7 @@ func (t *Testing) AddDelegator() {
 	receipt = t.GetReceiptString(tnx)
 	log.Println(receipt)
 	state = ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"delegs\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":{\"0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82\":\"300000\"}")
+	t.AssertContain(state,"\"deposit_amt_deleg\":{\"0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82\":{\"0x29cf16563fac1ad1596dfe6f333978fece9706ec\":\"300000\"}")
 
 	// as admin, update delegator (addr1) with 0 to ssn1 (add1)
 	tnx, err2 := proxy.AddDelegator("0x"+addr1, "0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82", "0")

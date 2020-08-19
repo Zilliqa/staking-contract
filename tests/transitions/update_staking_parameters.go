@@ -12,7 +12,8 @@ func (t *Testing) UpdateStakingParameters() {
 	// as admin, should succeed
 	ssnlist.LogContractStateJson()
 	min := "100000"
-	txn,err1 := proxy.UpdateStakingParameters(min)
+	delegMin := "50000"
+	txn,err1 := proxy.UpdateStakingParameters(min,delegMin)
 	if err1 != nil {
 		t.LogError("UpdateStakingParameters failed", err1)
 	}
@@ -25,7 +26,7 @@ func (t *Testing) UpdateStakingParameters() {
 
 	// as non admin
 	proxy.UpdateWallet(key2)
-	txn, err2 := proxy.UpdateStakingParameters(min)
+	txn, err2 := proxy.UpdateStakingParameters(min,delegMin)
 	t.AssertError(err2)
 	receipt, _ = json.Marshal(txn.Receipt)
 	recp = string(receipt)
