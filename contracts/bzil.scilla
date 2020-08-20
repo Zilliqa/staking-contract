@@ -204,11 +204,11 @@ end
 (* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
-transition Burn(burn_account: ByStr20, amount: Uint128)
+transition Burn(ssn: ByStr20, burn_account: ByStr20, amount: Uint128)
   IsMinter _sender;
   AuthorizedBurnIfSufficientBalance burn_account amount;
-  msg_to_sender = {_tag : "BurnSuccessCallBack"; _recipient : _sender; _amount : zero; 
-                    burner : _sender; burn_account : burn_account; amount : amount};
+  msg_to_sender = {_tag : "WithdrawStakeAmtCallBack"; _recipient : _sender; _amount : zero; 
+                  ssn: ssn; deleg : burn_account; amount : amount};
   msgs = one_msg msg_to_sender;
   send msgs
 end

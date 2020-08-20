@@ -532,6 +532,12 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_bzil;
   send msgs
 end
+procedure BurnCall(ssn: ByStr20, burn_account: ByStr20, amt: Uint128)
+  msg_to_bzil = {_tag : "Burn"; _recipient : bzil_address; _amount : uint128_zero; 
+  ssn : ssn; burn_account: burn_account; amount : amt};
+  msgs = one_msg msg_to_bzil;
+  send msgs  
+end
 procedure CheckBzilBalance(ssn_operator: ByStr20, deleg: ByStr20, amt: Uint128)
   msg_to_bzil = {_tag : "CheckBalance"; _recipient : bzil_address; _amount : uint128_zero; 
                 ssn: ssn_operator; deleg : deleg; amount : amt};
@@ -911,7 +917,12 @@ end
 transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20, amt: Uint128)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssn amt
+  BurnCall ssn initiator amt
+end
+transition WithdrawStakeAmtCallBack(ssn: ByStr20, deleg : ByStr20, amount: Uint128)
+  IsPaused;
+  IsBzil;
+  WithdrawalStakeAmt initiator ssn amount
 end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
