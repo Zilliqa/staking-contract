@@ -2,7 +2,7 @@ scilla_version 0
 (***************************************************)
 (*               Associated library                *)
 (***************************************************)
-import IntUtils
+import IntUtils ListUtils
 library BondedZIL
 let one_msg = 
   fun (msg : Message) => 
@@ -97,6 +97,17 @@ procedure IsNotSender(address: ByStr20)
   | False =>
   end
 end
+procedure CheckBalanceWithAmount(address: ByStr20, amount: Uint128)
+  some_bal <- balances[address];
+  bal = get_val some_bal;
+  is_sufficient = uint128_le amount bal;
+  match is_sufficient with
+  | True =>
+  | False =>
+    err = CodeInsufficientFunds;
+    ThrowError err
+  end
+end
 procedure AuthorizedMint(recipient: ByStr20, amount: Uint128) 
   some_bal <- balances[recipient];
   bal = get_val some_bal;
@@ -180,6 +191,14 @@ transition Mint(recipient: ByStr20, amount: Uint128)
   msg_to_sender = {_tag : "MintSuccessCallBack"; _recipient : _sender; _amount : zero; 
                       minter : _sender; recipient : recipient; amount : amount};
   msgs = two_msgs msg_to_recipient msg_to_sender;
+  send msgs
+end
+transition CheckBalance(ssn: ByStr20, deleg: ByStr20, amount: Uint128)
+  IsMinter _sender;
+  CheckBalanceWithAmount deleg amount;
+  msg_to_sender = {_tag : "WithdrawStakeRewardsCallBack"; _recipient : _sender; _amount : zero; 
+                   ssn_operator : ssn; deleg : deleg};
+  msgs = one_msg msg_to_sender;
   send msgs
 end
 (* @dev: Burn existing tokens. Only contract_owner can burn.                      *)

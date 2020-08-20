@@ -532,6 +532,12 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_bzil;
   send msgs
 end
+procedure CheckBzilBalance(ssn_operator: ByStr20, deleg: ByStr20, amt: Uint128)
+  msg_to_bzil = {_tag : "CheckBalance"; _recipient : bzil_address; _amount : uint128_zero; 
+                ssn: ssn_operator; deleg : deleg; amount : amt};
+  msgs = one_msg msg_to_bzil;
+  send msgs
+end
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -881,7 +887,6 @@ transition WithdrawComm(initiator : ByStr20)
       e = SSNNoComm;
       ThrowError e
     end
-    
   end
 end
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
@@ -890,6 +895,13 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20, deleg : ByStr20)
   IsPaused;
   IsProxy;
   DelegExists ssn_operator deleg;
+  amt_opt <- deposit_amt_deleg[deleg][ssn_operator];
+  amt = option_uint128_value amt_opt;
+  CheckBzilBalance ssn_operator deleg amt
+end
+transition WithdrawStakeRewardsCallBack(ssn_operator : ByStr20, deleg : ByStr20)
+  IsPaused;
+  IsBzil;
   WithdrawalStakeRewards deleg ssn_operator
 end
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
