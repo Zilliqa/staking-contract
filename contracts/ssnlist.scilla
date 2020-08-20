@@ -139,6 +139,7 @@ type Error =
   | DelegHasNoSufficientAmt
   | SSNNoComm
   | DelegStakeNotEnough
+  | BzilValidationFailed
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -159,6 +160,7 @@ let make_error =
       | DelegHasNoSufficientAmt => Int32 -14
       | SSNNoComm => Int32 -15
       | DelegStakeNotEnough => Int32 -16
+      | BzilValidationFailed => Int32 -17
       end
     in
     { _exception : "Error"; code : result_code }
@@ -167,7 +169,8 @@ let make_error =
 (***************************************************)
 contract SSNList(
   init_admin : ByStr20,
-  proxy_address : ByStr20
+  proxy_address : ByStr20,
+  bzil_address : ByStr20
 )
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
@@ -256,6 +259,16 @@ procedure IsProxy()
   | True  =>
   | False =>
     e = ProxyValidationFailed;
+    ThrowError e
+  end
+end
+(* Check if the caller is the bzil contract *)
+procedure IsBzil()
+  is_bzil = builtin eq _sender bzil_address;
+  match is_bzil with
+  | True =>
+  | False =>
+    e = BzilValidationFailed;
     ThrowError e
   end
 end
@@ -512,7 +525,12 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   e = { _eventname : "WithdrawalStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
-
+end
+procedure MintCall(recipient: ByStr20, amount: Uint128)
+  msg_to_bzil = {_tag : "Mint"; _recipient : bzil_address; _amount : uint128_zero; 
+                  recipient : recipient; amount : amount};
+  msgs = one_msg msg_to_bzil;
+  send msgs
 end
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
@@ -815,8 +833,15 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       | None =>
         direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
       end
-    end
+    end;
+    MintCall initiator _amount
   end
+end
+(* Handle callback message from bzil contract *)
+transition MintSuccessCallBack(minter: ByStr20, recipient: ByStr20, amount: Uint128)
+  IsBzil;
+  e = { _eventname : "MintSuccessCallBack"; minter : minter; recipient : recipient; amount : amount };
+  event e
 end
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
