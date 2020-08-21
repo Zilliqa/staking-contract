@@ -192,7 +192,7 @@ transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
   e = {_eventname: "ChangedMinter"; new_minter: new_minter};
   event e  
 end
-(* @dev: Mint new tokens. Only contract_owner can mint.                      *)
+(* @dev:  Mint new tokens. Only contract_owner can mint.                     *)
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
@@ -214,7 +214,7 @@ transition CheckBalance(ssn: ByStr20, deleg: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_sender;
   send msgs
 end
-(* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
+(* @dev:  Burn existing tokens. Only contract_owner can burn.                     *)
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
 transition Burn(ssn: ByStr20, burn_account: ByStr20, amount: Uint128)
@@ -225,7 +225,7 @@ transition Burn(ssn: ByStr20, burn_account: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_sender;
   send msgs
 end
-(* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
+(* @dev:  Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
 (* @param spender:      Address of the designated approved_spender.                                                   *)
 (* @param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
 (* @param initiator:    The original sender.                                                                          *)
@@ -239,7 +239,7 @@ transition IncreaseAllowance(spender: ByStr20, amount: Uint128, initiator: ByStr
   e = {_eventname : "IncreasedAllowance"; token_owner : initiator; spender: spender; new_allowance : new_allowance};
   event e
 end
-(* @dev: Decrease the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke. *)
+(* @dev:  Decrease the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke. *)
 (* @param spender:      Address of the designated approved_spender.                                                 *)
 (* @param amount:       Number of tokens to be decreased as allowance for the approved_spender.                     *)
 (* @param initiator:    The original sender.                                                                        *)
