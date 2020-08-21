@@ -118,6 +118,18 @@ let option_add =
       Some {Uint128} res
     | None => y_opt
     end
+let change_rate =
+  fun (old : Uint128) =>
+  fun (new : Uint128) =>
+    let a = builtin lt old new in
+    let b = match a with
+    | True =>
+      builtin sub new old
+    | False =>
+      builtin sub old new
+    end
+    in 
+    b
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
@@ -140,6 +152,7 @@ type Error =
   | SSNNoComm
   | DelegStakeNotEnough
   | BzilValidationFailed
+  | ExceedMaxChangeRate
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -161,6 +174,7 @@ let make_error =
       | SSNNoComm => Int32 -15
       | DelegStakeNotEnough => Int32 -16
       | BzilValidationFailed => Int32 -17
+      | ExceedMaxChangeRate => Int32 -18
       end
     in
     { _exception : "Error"; code : result_code }
@@ -211,6 +225,8 @@ field mindelegstake : Uint128 = Uint128 1000000000000
 field contractadmin : ByStr20  = init_admin
 field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
+(* 1% *)
+field maxcommchangerate: Uint128 = uint128_one
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
@@ -223,6 +239,18 @@ end
 procedure ThrowError(err : Error)
   e = make_error err;
   throw e
+end
+procedure ValidateChangeRate(old: Uint128, new: Uint128)
+  maxcommchangerate_l <- maxcommchangerate;
+  absolute_change = change_rate old new;
+  absolute_change = builtin div absolute_change uint128_10_power_7;
+  valid = uint128_le absolute_change maxcommchangerate_l;
+  match valid with
+  | True =>
+  | False =>
+    e = ExceedMaxChangeRate;
+    ThrowError e
+  end
 end
 (* Check if the initiator is verifier *)
 procedure CallerIsVerifier (initiator : ByStr20)
@@ -766,6 +794,7 @@ transition UpdateComm(new_rate : Uint128, initiator : ByStr20)
       e = ChangeCommError;
       ThrowError e
     | None =>
+      ValidateChangeRate comm new_rate;
       comm_for_ssn[initiator][lrc] := new_rate;
       ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
       ssnlist[initiator] := ssn
@@ -922,7 +951,7 @@ end
 transition WithdrawStakeAmtCallBack(ssn: ByStr20, deleg : ByStr20, amount: Uint128)
   IsPaused;
   IsBzil;
-  WithdrawalStakeAmt initiator ssn amount
+  WithdrawalStakeAmt deleg ssn amount
 end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
