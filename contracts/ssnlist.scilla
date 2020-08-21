@@ -621,11 +621,12 @@ end
 (* @param min_stake: New minstake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, initiator : ByStr20)
+transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
   minstake := min_stake;
-  mindelegstake := min_deleg_stake
+  mindelegstake := min_deleg_stake;
+  maxcommchangerate := max_comm_change_rate
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
   IsProxy;

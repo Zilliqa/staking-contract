@@ -98,9 +98,9 @@ end
 (* @dev: Set the minstake, maxstake and contract maxstake of contract. Used by admin only. *)
 (* @param min_stake: New min_stake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
-transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128)
+transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; initiator : _sender};
+    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; max_comm_change_rate : Uint128; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
