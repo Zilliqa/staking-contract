@@ -628,7 +628,7 @@ transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint1
   mindelegstake := min_deleg_stake;
   maxcommchangerate := max_comm_change_rate
 end
-transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, initiator : ByStr20)
+transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm: Uint128, initiator : ByStr20)
   IsProxy;
   IsAdmin initiator;
   already_exists <- exists ssnlist[ssnaddr];
@@ -641,7 +641,6 @@ transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : St
     stake_amt = Uint128 0;
     rewards = Uint128 0;
     buff_deposit = Uint128 0;
-    comm = Uint128 0;
     comm_rewards = Uint128 0;
     s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards ssnaddr;
     ssnlist[ssnaddr] := s;
@@ -649,6 +648,19 @@ transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : St
     comm_for_ssn[ssnaddr][lrc] := comm;
     e = { _eventname : "SSN added"; ssn_addr : ssnaddr };
     event e
+  end
+end
+transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  ssn_o <- ssnlist[ssnaddr];
+  match ssn_o with
+  | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
+    ssnlist[ssnaddr] := ssn
+  | None =>
+    e = SSNAlreadyExist;
+    ThrowError e
   end
 end
 (* @dev   Adds new ssn to ssnlist. Used by admin only. *)

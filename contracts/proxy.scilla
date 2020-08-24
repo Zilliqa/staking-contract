@@ -100,7 +100,7 @@ end
 (* @param min_deleg_stake: New mindelegstake value *)
 transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128)
     current_impl <- implementation;
-    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; max_comm_change_rate : Uint128; initiator : _sender};
+    msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; max_comm_change_rate : max_comm_change_rate; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -110,9 +110,16 @@ end
 (* @param urlraw: string representing "ip:port" of the ssn serving raw api request *)
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
 (* @param buff_deposit: Any buffered stake deposit *)
-transition AddSSN (ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String)
+(* @param comm: Percentage of incoming rewards that the SSN takes *)
+transition AddSSN (ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm: Uint128)
     current_impl <- implementation;
-    msg = {_tag : "AddSSN"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; name: name; urlraw: urlraw; urlapi: urlapi; initiator : _sender};
+    msg = {_tag : "AddSSN"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; name: name; urlraw: urlraw; urlapi: urlapi; comm: comm; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
+    current_impl <- implementation;
+    msg = {_tag : "UpdateSSN"; _recipient : current_impl; _amount : zero; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
