@@ -48,7 +48,7 @@ transition ChangeProxyAdmin(newAdmin : ByStr20)
       event e
     end
 end
-transition UpgradeBzilContract(newAddress: ByStr20)
+transition UpgradeGZILContract(newAddress: ByStr20)
     currentAdmin <- admin;
     isAdmin = builtin eq currentAdmin _sender;
     match isAdmin with
