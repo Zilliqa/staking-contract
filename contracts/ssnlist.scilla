@@ -518,6 +518,12 @@ procedure CalcStakeDelegPerCycle (tmp_arg : TmpArg)
     end
   end
 end
+procedure MintCall(recipient: ByStr20, amount: Uint128)
+  msg_to_bzil = {_tag : "Mint"; _recipient : bzil_address; _amount : uint128_zero; 
+                  recipient : recipient; amount : amount};
+  msgs = one_msg msg_to_bzil;
+  send msgs
+end
 procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
@@ -533,7 +539,8 @@ procedure CalcRewardsDelegPerCycleAndSend (tmp_arg : TmpArg)
         reward = builtin div reward_tmp total_staking;
         (* e = { _eventname : "CalcRewardsDelegPerCycleAndSend"; total_rewards : total_rewards; staking_of_deleg : staking_of_deleg; total_staking : total_staking }; *)
         (* event e; *)
-        SendDelegRewards reward_cycle deleg reward
+        SendDelegRewards reward_cycle deleg reward;
+        MintCall deleg reward
       | None =>
       end
     | None =>
@@ -568,24 +575,6 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   e = { _eventname : "WithdrawalStakeRewards"; reward_list_need : list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
-end
-procedure MintCall(recipient: ByStr20, amount: Uint128)
-  msg_to_bzil = {_tag : "Mint"; _recipient : bzil_address; _amount : uint128_zero; 
-                  recipient : recipient; amount : amount};
-  msgs = one_msg msg_to_bzil;
-  send msgs
-end
-procedure BurnCall(ssn: ByStr20, burn_account: ByStr20, amt: Uint128)
-  msg_to_bzil = {_tag : "Burn"; _recipient : bzil_address; _amount : uint128_zero; 
-  ssn : ssn; burn_account: burn_account; amount : amt};
-  msgs = one_msg msg_to_bzil;
-  send msgs  
-end
-procedure CheckBzilBalance(ssn_operator: ByStr20, deleg: ByStr20, amt: Uint128)
-  msg_to_bzil = {_tag : "CheckBalance"; _recipient : bzil_address; _amount : uint128_zero; 
-                ssn: ssn_operator; deleg : deleg; amount : amt};
-  msgs = one_msg msg_to_bzil;
-  send msgs
 end
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
@@ -906,15 +895,8 @@ transition DelegateStake(ssnaddr : ByStr20, initiator : ByStr20)
       | None =>
         direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
       end
-    end;
-    MintCall initiator _amount
+    end
   end
-end
-(* Handle callback message from bzil contract *)
-transition MintSuccessCallBack(minter: ByStr20, recipient: ByStr20, amount: Uint128)
-  IsBzil;
-  e = { _eventname : "MintSuccessCallBack"; minter : minter; recipient : recipient; amount : amount };
-  event e
 end
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
@@ -964,11 +946,6 @@ transition WithdrawStakeRewards(ssn_operator : ByStr20, deleg : ByStr20)
   DelegExists ssn_operator deleg;
   amt_opt <- deposit_amt_deleg[deleg][ssn_operator];
   amt = option_uint128_value amt_opt;
-  CheckBzilBalance ssn_operator deleg amt
-end
-transition WithdrawStakeRewardsCallBack(ssn_operator : ByStr20, deleg : ByStr20)
-  IsPaused;
-  IsBzil;
   WithdrawalStakeRewards deleg ssn_operator
 end
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
@@ -978,12 +955,7 @@ end
 transition WithdrawStakeAmt(ssn: ByStr20, initiator : ByStr20, amt: Uint128)
   IsPaused;
   IsProxy;
-  BurnCall ssn initiator amt
-end
-transition WithdrawStakeAmtCallBack(ssn: ByStr20, deleg : ByStr20, amount: Uint128)
-  IsPaused;
-  IsBzil;
-  WithdrawalStakeAmt deleg ssn amount
+  WithdrawalStakeAmt initiator ssn amt
 end
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
