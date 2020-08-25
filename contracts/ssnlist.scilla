@@ -186,7 +186,7 @@ let make_error =
 contract SSNList(
   init_admin : ByStr20,
   proxy_address : ByStr20,
-  bzil_address : ByStr20
+  gzil_address : ByStr20
 )
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
@@ -226,7 +226,7 @@ field minstake : Uint128 = Uint128 0
 field mindelegstake : Uint128 = Uint128 1000000000000
 field contractadmin : ByStr20  = init_admin
 field proxyaddr : ByStr20 = proxy_address
-field bziladdr : ByStr20 = bzil_address
+field gziladdr : ByStr20 = gzil_address
 field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
 (* 1% *)
@@ -302,16 +302,6 @@ procedure IsProxy()
   | True  =>
   | False =>
     e = ProxyValidationFailed;
-    ThrowError e
-  end
-end
-(* Check if the caller is the bzil contract *)
-procedure IsBzil()
-  is_bzil = builtin eq _sender bzil_address;
-  match is_bzil with
-  | True =>
-  | False =>
-    e = BzilValidationFailed;
     ThrowError e
   end
 end
@@ -519,7 +509,8 @@ procedure CalcStakeDelegPerCycle (tmp_arg : TmpArg)
   end
 end
 procedure MintCall(recipient: ByStr20, amount: Uint128)
-  msg_to_bzil = {_tag : "Mint"; _recipient : bzil_address; _amount : uint128_zero; 
+  addr <- gziladdr;
+  msg_to_bzil = {_tag : "Mint"; _recipient : addr; _amount : uint128_zero; 
                   recipient : recipient; amount : amount};
   msgs = one_msg msg_to_bzil;
   send msgs
@@ -631,6 +622,12 @@ transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint1
   minstake := min_stake;
   mindelegstake := min_deleg_stake;
   maxcommchangerate := max_comm_change_rate
+end
+transition UpdateContractAddr(proxy_addr : ByStr20, gzil_addr : ByStr20, initiator : ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  gziladdr := gzil_addr;
+  proxyaddr := proxy_addr
 end
 transition AddSSN(ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm: Uint128, initiator : ByStr20)
   IsProxy;

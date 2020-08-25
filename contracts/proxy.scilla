@@ -14,12 +14,12 @@ type SSNCycleInfo =
 (***************************************************)
 contract SSNListProxy(
   init_implementation : ByStr20,
-  bzil_contract : ByStr20,
+  gzil_contract : ByStr20,
   init_admin : ByStr20
 )
 (* Mutable fields *)
 field implementation : ByStr20 = init_implementation
-field bzil_contract : ByStr20 = bzil_contract
+field gzil_contract : ByStr20 = gzil_contract
 field admin : ByStr20 = init_admin
 (* Transitions belong proxy itself *)
 transition UpgradeTo(newImplementation : ByStr20)
@@ -53,11 +53,11 @@ transition UpgradeBzilContract(newAddress: ByStr20)
     isAdmin = builtin eq currentAdmin _sender;
     match isAdmin with
     | True =>
-      bzil_contract := newAddress;
-      e = {_eventname : "Bzil Upgraded"; bzil_address : newAddress};
+      gzil_contract := newAddress;
+      e = {_eventname : "Gzil Upgraded"; gzil_address : newAddress};
       event e
     | False =>
-      e = {_eventname : "UpgradeTo FailedNotAdmin"; bzil_address : newAddress};
+      e = {_eventname : "UpgradeTo FailedNotAdmin"; gzil_address : newAddress};
       event e
     end
 end
@@ -101,6 +101,12 @@ end
 transition UpdateStakingParameters (min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128)
     current_impl <- implementation;
     msg = {_tag : "UpdateStakingParameters"; _recipient : current_impl; _amount : zero; min_stake : min_stake; min_deleg_stake : min_deleg_stake; max_comm_change_rate : max_comm_change_rate; initiator : _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+transition UpdateContractAddr(proxy_address : ByStr20, gzil_address : ByStr20)
+    current_impl <- implementation;
+    msg = {_tag : "UpdateContractAddr"; _recipient : current_impl; _amount : zero; proxy_addr : proxy_address; gzil_addr : gzil_address; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -252,8 +258,8 @@ transition PopulateDepositAmtForDeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, 
 end
 (* Transitions will be sent to bzil implemetion *)
 transition ChangeMinter(new_minter: ByStr20)
-    bzil <- bzil_contract;
-    msg = {_tag : "ChangeMinter"; _recipient : bzil; _amount : zero; new_minter : new_minter; initiator : _sender};
+    gzil <- gzil_contract;
+    msg = {_tag : "ChangeMinter"; _recipient : gzil; _amount : zero; new_minter : new_minter; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -261,8 +267,8 @@ end
 (* @param spender:      Address of the designated approved_spender.                                                   *)
 (* @param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
 transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
-    bzil <- bzil_contract;
-    msg = {_tag : "IncreaseAllowance"; _recipient : bzil; _amount : zero; spender : spender; amount : amount; initiator : _sender};
+    gzil <- gzil_contract;
+    msg = {_tag : "IncreaseAllowance"; _recipient : gzil; _amount : zero; spender : spender; amount : amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -270,8 +276,8 @@ end
 (* @param spender:      Address of the designated approved_spender.                                                 *)
 (* @param amount:       Number of tokens to be decreased as allowance for the approved_spender.                     *)
 transition DecreaseAllowance(spender: ByStr20, amount: Uint128)
-    bzil <- bzil_contract;
-    msg = {_tag : "DecreaseAllowance"; _recipient : bzil; _amount : zero; spender : spender; amount : amount; initiator : _sender};
+    gzil <- gzil_contract;
+    msg = {_tag : "DecreaseAllowance"; _recipient : gzil; _amount : zero; spender : spender; amount : amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -280,8 +286,8 @@ end
 (* @param to:  Address of the recipient whose balance is increased.                 *)
 (* @param amount:     Amount of tokens to be sent.                                  *)
 transition Transfer(to: ByStr20, amount: Uint128)
-    bzil <- bzil_contract;
-    msg = {_tag : "Transfer"; _recipient : bzil; _amount : zero; to : to; amount : amount; initiator : _sender};
+    gzil <- gzil_contract;
+    msg = {_tag : "Transfer"; _recipient : gzil; _amount : zero; to : to; amount : amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -291,8 +297,8 @@ end
 (* @param to:      Address of the recipient whose balance is increased.                                                                   *)
 (* @param amount:  Amount of tokens to be transferred.                                                                                    *)
 transition TransferFrom(from: ByStr20, to: ByStr20, amount: Uint128, initiator: ByStr20)
-    bzil <- bzil_contract;
-    msg = {_tag : "TransferFrom"; _recipient : bzil; _amount : zero; from : from; to : to; amount : amount; initiator : _sender};
+    gzil <- gzil_contract;
+    msg = {_tag : "TransferFrom"; _recipient : gzil; _amount : zero; from : from; to : to; amount : amount; initiator : _sender};
     msgs = one_msg msg;
     send msgs
 end
