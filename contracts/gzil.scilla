@@ -121,30 +121,6 @@ procedure AuthorizedMint(recipient: ByStr20, amount: Uint128)
   e = {_eventname: "Minted"; minter: _sender; recipient: recipient; amount: amount};
   event e
 end
-procedure AuthorizedBurnIfSufficientBalance(from: ByStr20, amount: Uint128)
-  get_bal <- balances[from];
-  match get_bal with
-  | Some bal =>
-    can_burn = uint128_le amount bal;
-    match can_burn with
-    | True =>
-      (* Subtract amount from from *)
-      new_balance = builtin sub bal amount;
-      balances[from] := new_balance;
-      current_total_supply <- total_supply;
-      new_total_supply = builtin sub current_total_supply amount;
-      total_supply := new_total_supply;
-      e = {_eventname: "Burnt"; burner: _sender; burn_account: from; amount: amount};
-      event e  
-    | False =>
-      err = CodeInsufficientFunds;
-      ThrowError err
-    end
-  | None => 
-    err = CodeInsufficientFunds;
-    ThrowError err
-  end
-end
 procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: Uint128)
   get_from_bal <- balances[from];
   match get_from_bal with
@@ -191,17 +167,6 @@ transition Mint(recipient: ByStr20, amount: Uint128)
   msg_to_recipient = {_tag : "RecipientAcceptMint"; _recipient : recipient; _amount : zero; 
                       minter : _sender; recipient : recipient; amount : amount};
   msgs = one_msg msg_to_recipient;
-  send msgs
-end
-(* @dev:  Burn existing tokens. Only contract_owner can burn.                     *)
-(* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
-(* @param amount:       Number of tokens to be burned.                            *)
-transition Burn(ssn: ByStr20, burn_account: ByStr20, amount: Uint128)
-  IsMinter _sender;
-  AuthorizedBurnIfSufficientBalance burn_account amount;
-  msg_to_sender = {_tag : "WithdrawStakeAmtCallBack"; _recipient : _sender; _amount : zero; 
-                  ssn: ssn; deleg : burn_account; amount : amount};
-  msgs = one_msg msg_to_sender;
   send msgs
 end
 (* @dev:  Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
