@@ -256,7 +256,7 @@ transition PopulateDepositAmtForDeleg(deleg_addr : ByStr20, ssn_addr : ByStr20, 
     msgs = one_msg msg;
     send msgs
 end
-(* Transitions will be sent to bzil implemetion *)
+(* Transitions will be sent to gZIL implemetion *)
 transition ChangeMinter(new_minter: ByStr20)
     gzil <- gzil_contract;
     msg = {_tag : "ChangeMinter"; _recipient : gzil; _amount : zero; new_minter : new_minter; initiator : _sender};
