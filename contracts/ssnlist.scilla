@@ -122,14 +122,12 @@ let change_rate =
   fun (old : Uint128) =>
   fun (new : Uint128) =>
     let a = builtin lt old new in
-    let b = match a with
+    match a with
     | True =>
       builtin sub new old
     | False =>
       builtin sub old new
     end
-    in 
-    b
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
