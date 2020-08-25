@@ -153,6 +153,7 @@ type Error =
   | DelegStakeNotEnough
   | BzilValidationFailed
   | ExceedMaxChangeRate
+  | ExceedMaxRate
 let make_error =
   fun (result : Error) =>
     let result_code =
@@ -175,6 +176,7 @@ let make_error =
       | DelegStakeNotEnough => Int32 -16
       | BzilValidationFailed => Int32 -17
       | ExceedMaxChangeRate => Int32 -18
+      | ExceedMaxRate => Int32 -19
       end
     in
     { _exception : "Error"; code : result_code }
@@ -223,10 +225,13 @@ field minstake : Uint128 = Uint128 0
 (* 1 zil *)
 field mindelegstake : Uint128 = Uint128 1000000000000
 field contractadmin : ByStr20  = init_admin
+field proxyaddr : ByStr20 = proxy_address
+field bziladdr : ByStr20 = bzil_address
 field lastrewardcycle : Uint128 = uint128_one
 field paused : Bool = True
 (* 1% *)
 field maxcommchangerate: Uint128 = uint128_one
+field maxcommrate: Uint128 = Uint128 1000000000
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
@@ -239,6 +244,16 @@ end
 procedure ThrowError(err : Error)
   e = make_error err;
   throw e
+end
+procedure ValidateRate(rate: Uint128)
+  max_rate <- maxcommrate;
+  validate = uint128_le rate max_rate;
+  match validate with
+  | True =>
+  | False =>
+    e = ExceedMaxRate;
+    ThrowError e
+  end
 end
 procedure ValidateChangeRate(old: Uint128, new: Uint128)
   maxcommchangerate_l <- maxcommchangerate;
@@ -794,6 +809,9 @@ end
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
+(* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
+(* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
+(* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
 transition UpdateComm(new_rate : Uint128, initiator : ByStr20)
   IsPaused;
   IsProxy;
@@ -807,6 +825,7 @@ transition UpdateComm(new_rate : Uint128, initiator : ByStr20)
       e = ChangeCommError;
       ThrowError e
     | None =>
+      ValidateRate new_rate;
       ValidateChangeRate comm new_rate;
       comm_for_ssn[initiator][lrc] := new_rate;
       ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
