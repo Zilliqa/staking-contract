@@ -57,7 +57,7 @@ transition UpgradeGZILContract(newAddress: ByStr20)
       e = {_eventname : "Gzil Upgraded"; gzil_address : newAddress};
       event e
     | False =>
-      e = {_eventname : "UpgradeTo FailedNotAdmin"; gzil_address : newAddress};
+      e = {_eventname : "UpgradeGZILContract FailedNotAdmin"; gzil_address : newAddress};
       event e
     end
 end
