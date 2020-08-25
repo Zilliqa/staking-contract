@@ -174,7 +174,7 @@ let make_error =
       | DelegHasNoSufficientAmt => Int32 -14
       | SSNNoComm => Int32 -15
       | DelegStakeNotEnough => Int32 -16
-      | BzilValidationFailed => Int32 -17
+      | GZILValidationFailed => Int32 -17
       | ExceedMaxChangeRate => Int32 -18
       | ExceedMaxRate => Int32 -19
       end
