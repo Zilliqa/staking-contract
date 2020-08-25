@@ -151,7 +151,7 @@ type Error =
   | DelegHasNoSufficientAmt
   | SSNNoComm
   | DelegStakeNotEnough
-  | BzilValidationFailed
+  | GZILValidationFailed
   | ExceedMaxChangeRate
   | ExceedMaxRate
 let make_error =
