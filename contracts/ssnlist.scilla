@@ -510,7 +510,7 @@ procedure CalcStakeDelegPerCycle (tmp_arg : TmpArg)
 end
 procedure MintCall(recipient: ByStr20, amount: Uint128)
   addr <- gziladdr;
-  msg_to_bzil = {_tag : "Mint"; _recipient : addr; _amount : uint128_zero; 
+  msg_to_gzil = {_tag : "Mint"; _recipient : addr; _amount : uint128_zero; 
                   recipient : recipient; amount : amount};
   msgs = one_msg msg_to_gzil;
   send msgs
