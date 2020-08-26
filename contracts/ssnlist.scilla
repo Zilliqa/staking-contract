@@ -32,11 +32,11 @@ type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 (* SSNRewardShare Data Type *)
 (* SSNRewardShare has the following fields: *)
+(* CycleReward is in Qa *)
 
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)
-(*  Todo: Cyclereward in Qa? *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 (* DelegCycleInfo Data Type *)
@@ -129,6 +129,7 @@ let change_rate =
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
+let uint128_100 = Uint128 100
 let addfunds_tag = "AddFunds"
 type Error =
   | ContractFreezedFailure
@@ -361,10 +362,11 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
       match active_status with
       | False => throw
       | True  =>
-        hundred = Uint128 100;
-        new_reward = builtin add stake_amt cycle_reward;
+        total_stake_amt <- totalstakeamount;
+        new_reward_tmp = builtin mul stake_amt cycle_reward;
+        new_reward = builtin div new_reward_tmp total_stake_amt;
         reward_comm_tmp = builtin mul new_reward comm;
-        reward_comm_tmp = builtin div reward_comm_tmp hundred;
+        reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
         total_reward_comm = builtin add reward_comm_tmp comm_rewards;
         expected_reward = builtin sub new_reward total_reward_comm;
@@ -930,7 +932,7 @@ end
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128 initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   CallerIsVerifier initiator;
