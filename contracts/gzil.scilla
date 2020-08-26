@@ -3,7 +3,7 @@ scilla_version 0
 (*               Associated library                *)
 (***************************************************)
 import IntUtils ListUtils
-library BondedZIL
+library GZIL
 let one_msg = 
   fun (msg: Message) => 
   let nil_msg = Nil {Message} in
