@@ -138,7 +138,6 @@ type Error =
   | ProxyValidationFailed
   | DelegDoesNotExistAtSSN
   | DelegDepositBlowMin
-  | UpdateStakingParamError
   | DelegHasBufferedDeposit
   | ChangeCommError
   | SSNNotExist
@@ -162,20 +161,19 @@ let make_error =
       | ProxyValidationFailed => Int32 -4
       | DelegDoesNotExistAtSSN => Int32 -5
       | DelegDepositBlowMin => Int32 -6
-      | UpdateStakingParamError => Int32 -7
-      | DelegHasBufferedDeposit => Int32 -8
-      | ChangeCommError => Int32 -9
-      | SSNNotExist => Int32 -10
-      | DelegNotExist => Int32 -11
-      | SSNAlreadyExist => Int32 -12
-      | DelegHasUnwithdrawRewards => Int32 -13
-      | DelegHasNoSufficientAmt => Int32 -14
-      | SSNNoComm => Int32 -15
-      | DelegStakeNotEnough => Int32 -16
-      | GZILValidationFailed => Int32 -17
-      | ExceedMaxChangeRate => Int32 -18
-      | ExceedMaxCommRate => Int32 -19
-      | InvalidTotalAmt => Int32 -20
+      | DelegHasBufferedDeposit => Int32 -7
+      | ChangeCommError => Int32 -8
+      | SSNNotExist => Int32 -9
+      | DelegNotExist => Int32 -10
+      | SSNAlreadyExist => Int32 -11
+      | DelegHasUnwithdrawRewards => Int32 -12
+      | DelegHasNoSufficientAmt => Int32 -13
+      | SSNNoComm => Int32 -14
+      | DelegStakeNotEnough => Int32 -15
+      | GZILValidationFailed => Int32 -16
+      | ExceedMaxChangeRate => Int32 -17
+      | ExceedMaxCommRate => Int32 -18
+      | InvalidTotalAmt => Int32 -19
       end
     in
     { _exception: "Error"; code: result_code }
