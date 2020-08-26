@@ -1,0 +1,17 @@
+{
+  "name": "zil-staking-rewards",
+  "version": "0.0.1",
+  "description": "lib to calculate zilliqa staking rewards",
+  "scripts": {
+    "test": "jest"
+  },
+  "main": "lib/index.js",
+  "author": "lulu@zilliqa.com",
+  "license": "MIT",
+  "dependencies": {
+    "@zilliqa-js/zilliqa": "^1.0.0-alpha.1"
+  },
+  "devDependencies": {
+    "jest": "^26.4.2"
+  }
+}
