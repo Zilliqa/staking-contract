@@ -74,7 +74,7 @@ transition UnPause()
     msgs = one_msg msg;
     send msgs
 end
-transition UpdateAdmin (new_admin: ByStr20)
+transition UpdateAdmin(new_admin: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateAdmin"; _recipient: current_impl; _amount: zero; admin: new_admin; initiator: _sender};
     msgs = one_msg msg;
@@ -82,14 +82,14 @@ transition UpdateAdmin (new_admin: ByStr20)
 end
 (* @dev: Set the verifier of contract. Used by admin only. *)
 (* @param verif: New verifier value *)
-transition UpdateVerifier (verif: ByStr20)
+transition UpdateVerifier(verif: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateVerifier"; _recipient: current_impl; _amount: zero; verif: verif; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 (* @dev: Set the admin of contract. Used by current admin only. *)
-transition DrainContractBalance (amt: Uint128)
+transition DrainContractBalance(amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "DrainContractBalance"; _recipient: current_impl; _amount: zero; initiator: _sender; amt: amt};
     msgs = one_msg msg;
@@ -98,7 +98,7 @@ end
 (* @dev: Set the minstake, maxstake and contract maxstake of contract. Used by admin only. *)
 (* @param min_stake: New min_stake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
-transition UpdateStakingParameters (min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
+transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
     current_impl <- implementation;
     msg = {_tag: "UpdateStakingParameters"; _recipient: current_impl; _amount: zero; min_stake: min_stake; min_deleg_stake: min_deleg_stake; max_comm_change_rate: max_comm_change_rate; initiator: _sender};
     msgs = one_msg msg;
@@ -117,7 +117,7 @@ end
 (* @param urlapi: string representing url exposed by ssn serving public api request *)
 (* @param buff_deposit: Any buffered stake deposit *)
 (* @param comm: Percentage of incoming rewards that the SSN takes *)
-transition AddSSN (ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
+transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
     current_impl <- implementation;
     msg = {_tag: "AddSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; name: name; urlraw: urlraw; urlapi: urlapi; comm: comm; initiator: _sender};
     msgs = one_msg msg;
@@ -255,6 +255,12 @@ transition PopulateDepositAmtForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, am
     msg = {_tag: "PopulateDepositAmtForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
+end
+transition PopulateTotalStakeAmt(amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+send msgs
 end
 (* Transitions will be sent to gZIL implemetion *)
 transition ChangeMinter(new_minter: ByStr20)

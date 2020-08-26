@@ -796,6 +796,11 @@ transition PopulateCommForSSN(initiator: ByStr20, ssn_addr: ByStr20, cycle: Uint
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
 end
+transition PopulateTotalStakeAmt(initiator: ByStr20, amt: Uint128)
+  IsProxy;
+  IsAdmin initiator;
+  totalstakeamount := amt
+end
 (* @dev: Update reward cycle list and last reward cycle *)
 (* @param list: reward cycle list *)
 (* @param last_cycle: last reward cycle *)
