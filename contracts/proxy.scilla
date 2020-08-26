@@ -14,12 +14,12 @@ type SSNCycleInfo =
 (***************************************************)
 contract SSNListProxy(
   init_implementation: ByStr20,
-  gzil_contract: ByStr20,
+  init_gzil_contract: ByStr20,
   init_admin: ByStr20
 )
 (* Mutable fields *)
 field implementation: ByStr20 = init_implementation
-field gzil_contract: ByStr20 = gzil_contract
+field gzil_contract: ByStr20 = init_gzil_contract
 field admin: ByStr20 = init_admin
 (* Transitions belong proxy itself *)
 transition UpgradeTo(newImplementation: ByStr20)
@@ -74,9 +74,9 @@ transition UnPause()
     msgs = one_msg msg;
     send msgs
 end
-transition UpdateAdmin (admin: ByStr20)
+transition UpdateAdmin (new_admin: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "UpdateAdmin"; _recipient: current_impl; _amount: zero; admin: admin; initiator: _sender};
+    msg = {_tag: "UpdateAdmin"; _recipient: current_impl; _amount: zero; admin: new_admin; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
