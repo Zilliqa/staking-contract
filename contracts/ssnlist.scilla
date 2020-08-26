@@ -150,6 +150,7 @@ type Error =
   | GZILValidationFailed
   | ExceedMaxChangeRate
   | ExceedMaxCommRate
+  | InvalidTotalAmt
 let make_error =
   fun (result: Error) =>
     let result_code =
@@ -173,6 +174,7 @@ let make_error =
       | GZILValidationFailed => Int32 -17
       | ExceedMaxChangeRate => Int32 -18
       | ExceedMaxCommRate => Int32 -19
+      | InvalidTotalAmt => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -228,6 +230,7 @@ field paused: Bool = True
 (* 1% *)
 field maxcommchangerate: Uint128 = uint128_one
 field maxcommrate: Uint128 = Uint128 1000000000
+field totalstakeamount: Uint128 = uint128_zero
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
@@ -261,6 +264,35 @@ procedure ValidateChangeRate(old: Uint128, new: Uint128)
   | False =>
     e = ExceedMaxChangeRate;
     ThrowError e
+  end
+end
+procedure IncreaseTotalStakeAmt(amt: Uint128)
+  current_amt <- totalstakeamount;
+  new_amt = builtin add current_amt amt;
+  totalstakeamount := new_amt
+end
+procedure DecreaseTotalStakeAmt(amt: Uint128)
+  current_amt <- totalstakeamount;
+  valid = uint128_le amt current_amt;
+  match valid with
+  | True =>
+  | False =>
+    e = InvalidTotalAmt;
+    ThrowError e
+  end
+end
+procedure IncreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
+  match status with
+  | True =>
+    IncreaseTotalStakeAmt amt
+  | False =>
+  end  
+end
+procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
+  match status with
+  | True =>
+  | False =>
+    DecreaseTotalStakeAmt amt
   end
 end
 (* Check if the initiator is verifier *)
@@ -343,6 +375,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
+        IncreaseTotalStakeAmt buffdeposit;
         e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
         event e
       end
@@ -465,11 +498,14 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       HasBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
+      DecreaseTotalStakeAmt withdraw_amount;
       new_amt = builtin sub stake_amt withdraw_amount;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
+      (* If ssn becomes inactive, we need to decrease the rest ones also *)
+      DecreaseTotalStakeAmtOnStatus new_amt status;
       TransferFunds addfunds_tag withdraw_amount initiator;
       e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
       event e
@@ -877,6 +913,8 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
       (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
       ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
+      (* If ssn becomes active, then we need to increase totalstakeamount *)
+      IncreaseTotalStakeAmtOnStatus new_stake_amt status;
       (* record this to direct deposit for deleg *)
       stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
       match stake_amt_for_deleg_option  with
