@@ -35,10 +35,8 @@ type Ssn =
 
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
-(*  RewardPercentage  : Uint128 *)
-(*                      This is the integer representation of the percentage of the staked amount that will be given as reward to the SSN. *)
-(*                      If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer. *)
-(*                      If the percentage is 10%, and the SSN has a stake of 100 ZILs, then the reward in ZILs will be 10% of 100 = 10 ZILs. *)
+(*  CycleReward       : Uint128 *)
+(*  Todo: Cyclereward in Qa? *)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 (* DelegCycleInfo Data Type *)
@@ -321,7 +319,7 @@ end
 procedure UpdateStakeReward(entry: SsnRewardShare)
   lastreward_blk <- lastrewardcycle;
   match entry with
-  | SsnRewardShare ssnaddr reward_pct =>
+  | SsnRewardShare ssnaddr cycle_reward =>
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
@@ -332,9 +330,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
       | False => throw
       | True  =>
         hundred = Uint128 100;
-        new_reward = builtin mul stake_amt reward_pct;
-        new_reward = builtin div new_reward hundred;
-        new_reward = builtin div new_reward uint128_10_power_7;
+        new_reward = builtin add stake_amt cycle_reward;
         reward_comm_tmp = builtin mul new_reward comm;
         reward_comm_tmp = builtin div reward_comm_tmp hundred;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
@@ -896,7 +892,7 @@ end
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128 initiator: ByStr20)
   IsPaused;
   IsProxy;
   CallerIsVerifier initiator;
