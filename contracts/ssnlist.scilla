@@ -174,7 +174,7 @@ let make_error =
       | DelegStakeNotEnough => Int32 -16
       | GZILValidationFailed => Int32 -17
       | ExceedMaxChangeRate => Int32 -18
-      | ExceedMaxRate => Int32 -19
+      | ExceedMaxCommRate => Int32 -19
       end
     in
     { _exception: "Error"; code: result_code }
