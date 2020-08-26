@@ -249,7 +249,7 @@ procedure ValidateRate(rate: Uint128)
   match validate with
   | True =>
   | False =>
-    e = ExceedMaxRate;
+    e = ExceedMaxCommRate;
     ThrowError e
   end
 end
