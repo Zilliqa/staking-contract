@@ -162,6 +162,7 @@ type Error =
   | ExceedMaxChangeRate
   | ExceedMaxCommRate
   | InvalidTotalAmt
+  | InvalidRecvAddr
 
 let make_error =
   fun (result: Error) =>
@@ -186,6 +187,7 @@ let make_error =
       | ExceedMaxChangeRate => Int32 -17
       | ExceedMaxCommRate => Int32 -18
       | InvalidTotalAmt => Int32 -19
+      | InvalidRecvAddr => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -902,11 +904,12 @@ end
 
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
-(* @param initiator: The original caller who called the proxy. This is SSN address. *)
+(* @param ssnaddr: The ssn operator address *)
+(* @param initiator: The original caller who called the proxy. This is SSN receiving address. *)
 (* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
 (* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
 (* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
-transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
+transition UpdateComm(new_rate: Uint128, ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
@@ -1025,26 +1028,34 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
 end
 
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
+(* @param ssnaddr: The ssn operator address *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawComm(initiator: ByStr20)
+transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  curval <- ssnlist[initiator];
+  curval <- ssnlist[ssnaddr];
   match curval with
   | None =>
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    has_comm = uint128_gt comm_rewards uint128_zero;
-    match has_comm with
+    is_valid_addr = builtin eq initiator rec_addr;
+    match is_valid_addr with
     | True =>
-      e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
-      event e;
-      ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
-      ssnlist[initiator] := ssn;
-      TransferFunds addfunds_tag comm_rewards rec_addr
+      has_comm = uint128_gt comm_rewards uint128_zero;
+      match has_comm with
+      | True =>
+        e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
+        event e;
+        ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
+        ssnlist[initiator] := ssn;
+        TransferFunds addfunds_tag comm_rewards rec_addr
+      | False =>
+        e = SSNNoComm;
+        ThrowError e
+      end
     | False =>
-      e = SSNNoComm;
+      e = InvalidRecvAddr;
       ThrowError e
     end
   end
