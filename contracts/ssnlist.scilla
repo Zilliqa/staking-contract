@@ -653,7 +653,14 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
 
-(* Transitions *)
+(***************************************************)
+(*                  Transition                     *)
+(***************************************************)
+
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition Pause(initiator: ByStr20)
@@ -758,6 +765,234 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     ThrowError e
   end
 end
+
+(* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
+(* @param ssnaddr: Address of the ssn to be removed *)
+(* @param initiator: The original caller who called the proxy *)
+transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  already_exists <- exists ssnlist[ssnaddr];
+  match already_exists with
+  | False =>
+    e = SSNNotExist;
+    ThrowError e
+  | True =>
+    delete ssnlist[ssnaddr];
+    delete comm_for_ssn[ssnaddr];
+    e = { _eventname: "SSN removed"; ssn_addr: ssnaddr };
+    event e
+  end
+end
+
+(***************************************************)
+(*             SSN operator transition             *)
+(***************************************************)
+
+(* @dev : To update the commision rate for a given SSN *)
+(* @param new_rate: The new commision rate *)
+(* @param ssnaddr: The ssn operator address *)
+(* @param initiator: The original caller who called the proxy. This is SSN receiving address. *)
+(* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
+(* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
+(* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
+transition UpdateComm(new_rate: Uint128, ssnaddr: ByStr20, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  curval <- ssnlist[initiator];
+  match curval with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    lrc <- lastrewardcycle;
+    old_comm_option <- comm_for_ssn[initiator][lrc];
+    match old_comm_option with
+    | Some old_comm =>
+      e = ChangeCommError;
+      ThrowError e
+    | None =>
+      ValidateRate new_rate;
+      ValidateChangeRate comm new_rate;
+      comm_for_ssn[initiator][lrc] := new_rate;
+      ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
+      ssnlist[initiator] := ssn
+    end
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
+  end
+end
+
+(* @dev: Withdraw comm. Can be called by a ssn operator. *)
+(* @param ssnaddr: The ssn operator address *)
+(* @param initiator: The original caller who called the proxy *)
+transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  curval <- ssnlist[ssnaddr];
+  match curval with
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    is_valid_addr = builtin eq initiator rec_addr;
+    match is_valid_addr with
+    | True =>
+      has_comm = uint128_gt comm_rewards uint128_zero;
+      match has_comm with
+      | True =>
+        e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
+        event e;
+        ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
+        ssnlist[initiator] := ssn;
+        TransferFunds addfunds_tag comm_rewards rec_addr
+      | False =>
+        e = SSNNoComm;
+        ThrowError e
+      end
+    | False =>
+      e = InvalidRecvAddr;
+      ThrowError e
+    end
+  end
+end
+
+(* @dev : To update the received address for a given SSN *)
+(* @param new_addr: The new received address *)
+(* @param initiator: The original caller who called the proxy. This is SSN address. *)
+transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  curval <- ssnlist[initiator];
+  match curval with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
+    ssnlist[initiator] := ssn
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
+  end
+end
+
+(***************************************************)
+(*                Delegator transition             *)
+(***************************************************)
+
+(* @dev : To delegate the stake to the contract. *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
+(* @param initiator: The original caller who called the proxy aka the deleg. *)
+transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  (* Accept the deposit from SSN and add to contract balance. *)
+  (* Transfer back to initiator if any of the validation failed *)
+  accept;
+  curval <- ssnlist[ssnaddr];
+  match curval with
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    IsDelegstakeSufficient;
+    minstake_tmp <- minstake;
+    lrc <- lastrewardcycle;
+    (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
+    FillInDepositDeleg ssnaddr initiator;
+    FillLastRewardCycle ssnaddr initiator;
+    match active_status with
+    | True  =>
+      last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
+      new_buff_amt  = builtin add _amount buffdeposit;
+      new_stake_amt = builtin add new_buff_amt stake_amt;
+      (* The SSN is active so add the delegated stake to the buffer *)
+      ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
+      ssnlist[ssnaddr] := ssn;
+      (* record this to buffer deposit for deleg *)
+      stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][lrc];
+      match stake_amt_for_deleg_option  with
+      | Some stake_amt_for_deleg =>
+        new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+        buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
+      | None =>
+        buff_deposit_deleg[initiator][ssnaddr][lrc] := _amount
+      end
+    | False =>
+      (* The SSN is inactive so add the delegated stake to stake_amount *)
+      new_stake_amt  = builtin add _amount stake_amt;
+      status = uint128_le minstake_tmp new_stake_amt;
+      (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
+      ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+      ssnlist[ssnaddr] := ssn;
+      (* If ssn becomes active, then we need to increase totalstakeamount *)
+      IncreaseTotalStakeAmtOnStatus new_stake_amt status;
+      (* record this to direct deposit for deleg *)
+      stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
+      match stake_amt_for_deleg_option  with
+      | Some stake_amt_for_deleg =>
+        new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
+        direct_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
+      | None =>
+        direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
+      end
+    end
+  end
+end
+
+(* @dev: Withdraw stake reward. Can be called by a deleg. *)
+(* @param initiator: The original caller who called the proxy *)
+transition WithdrawStakeRewards(ssn_operator: ByStr20, deleg: ByStr20)
+  IsPaused;
+  IsProxy;
+  DelegExists ssn_operator deleg;
+  amt_opt <- deposit_amt_deleg[deleg][ssn_operator];
+  amt = option_uint128_value amt_opt;
+  WithdrawalStakeRewards deleg ssn_operator
+end
+
+(* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
+(* @param ssn: Address of the SSN to which stake had been delegated. *)
+(* @param initiator: The original caller who called the proxy. *)
+(* @param amt: The amount which the delegators wanr to withdraw*)
+transition WithdrawStakeAmt(ssn: ByStr20, initiator: ByStr20, amt: Uint128)
+  IsPaused;
+  IsProxy;
+  WithdrawalStakeAmt initiator ssn amt
+end
+
+(***************************************************)
+(*                 Verifier transition             *)
+(***************************************************)
+
+(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
+(* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param initiator: The original caller who called the proxy *)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  CallerIsVerifier initiator;
+  lrc <- lastrewardcycle;
+  forall ssnreward_list UpdateStakeReward;
+  newLastRewardCycleNum = builtin add uint128_one lrc;
+  lastrewardcycle := newLastRewardCycleNum;
+  rcl <- reward_cycle_list;
+  rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
+  reward_cycle_list := rcl_new
+end
+
+(***************************************************)
+(*                  Generic transition             *)
+(***************************************************)
+
+(* @dev: Move funds from initiator to recipient, i.e., contract address. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition AddFunds(initiator: ByStr20)
+  IsProxy;
+  accept;
+  e = { _eventname : "Verifier deposit funds"; Funder : initiator };
+  event e
+end
+
+(***************************************************)
+(*         Contract upgrade transition             *)
+(***************************************************)
 
 (* @dev   Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
@@ -881,212 +1116,4 @@ transition UpdateRewardCycleList(initiator: ByStr20, list: List Uint128, last_cy
   IsAdmin initiator;
   reward_cycle_list := list;
   lastrewardcycle := last_cycle
-end
-
-(* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-(* @param initiator: The original caller who called the proxy *)
-transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | False =>
-    e = SSNNotExist;
-    ThrowError e
-  | True =>
-    delete ssnlist[ssnaddr];
-    delete comm_for_ssn[ssnaddr];
-    e = { _eventname: "SSN removed"; ssn_addr: ssnaddr };
-    event e
-  end
-end
-
-(* @dev : To update the commision rate for a given SSN *)
-(* @param new_rate: The new commision rate *)
-(* @param ssnaddr: The ssn operator address *)
-(* @param initiator: The original caller who called the proxy. This is SSN receiving address. *)
-(* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
-(* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
-(* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
-transition UpdateComm(new_rate: Uint128, ssnaddr: ByStr20, initiator: ByStr20)
-  IsPaused;
-  IsProxy;
-  curval <- ssnlist[initiator];
-  match curval with
-  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    lrc <- lastrewardcycle;
-    old_comm_option <- comm_for_ssn[initiator][lrc];
-    match old_comm_option with
-    | Some old_comm =>
-      e = ChangeCommError;
-      ThrowError e
-    | None =>
-      ValidateRate new_rate;
-      ValidateChangeRate comm new_rate;
-      comm_for_ssn[initiator][lrc] := new_rate;
-      ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
-      ssnlist[initiator] := ssn
-    end
-  | None =>
-    e = SSNNotExist;
-    ThrowError e
-  end
-end
-(* @dev : To update the received address for a given SSN *)
-(* @param new_addr: The new received address *)
-(* @param initiator: The original caller who called the proxy. This is SSN address. *)
-
-transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
-  IsPaused;
-  IsProxy;
-  curval <- ssnlist[initiator];
-  match curval with
-  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-    ssnlist[initiator] := ssn
-  | None =>
-    e = SSNNotExist;
-    ThrowError e
-  end
-end
-
-(* @dev : To delegate the stake to the contract. *)
-(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
-(* @param initiator: The original caller who called the proxy aka the deleg. *)
-transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
-  IsPaused;
-  IsProxy;
-  (* Accept the deposit from SSN and add to contract balance. *)
-  (* Transfer back to initiator if any of the validation failed *)
-  accept;
-  curval <- ssnlist[ssnaddr];
-  match curval with
-  | None =>
-    e = SSNNotExist;
-    ThrowError e
-  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    IsDelegstakeSufficient;
-    minstake_tmp <- minstake;
-    lrc <- lastrewardcycle;
-    (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
-    FillInDepositDeleg ssnaddr initiator;
-    FillLastRewardCycle ssnaddr initiator;
-    match active_status with
-    | True  =>
-      last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
-      new_buff_amt  = builtin add _amount buffdeposit;
-      new_stake_amt = builtin add new_buff_amt stake_amt;
-      (* The SSN is active so add the delegated stake to the buffer *)
-      ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
-      ssnlist[ssnaddr] := ssn;
-      (* record this to buffer deposit for deleg *)
-      stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][lrc];
-      match stake_amt_for_deleg_option  with
-      | Some stake_amt_for_deleg =>
-        new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
-        buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
-      | None =>
-        buff_deposit_deleg[initiator][ssnaddr][lrc] := _amount
-      end
-    | False =>
-      (* The SSN is inactive so add the delegated stake to stake_amount *)
-      new_stake_amt  = builtin add _amount stake_amt;
-      status = uint128_le minstake_tmp new_stake_amt;
-      (* The SSN becomes active if the total stake after deposit is greater than the minimum required. *)
-      ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
-      ssnlist[ssnaddr] := ssn;
-      (* If ssn becomes active, then we need to increase totalstakeamount *)
-      IncreaseTotalStakeAmtOnStatus new_stake_amt status;
-      (* record this to direct deposit for deleg *)
-      stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
-      match stake_amt_for_deleg_option  with
-      | Some stake_amt_for_deleg =>
-        new_stake_amt_for_deleg = builtin add stake_amt_for_deleg _amount;
-        direct_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
-      | None =>
-        direct_deposit_deleg[initiator][ssnaddr][lrc] := _amount
-      end
-    end
-  end
-end
-
-(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
-  IsPaused;
-  IsProxy;
-  CallerIsVerifier initiator;
-  lrc <- lastrewardcycle;
-  forall ssnreward_list UpdateStakeReward;
-  newLastRewardCycleNum = builtin add uint128_one lrc;
-  lastrewardcycle := newLastRewardCycleNum;
-  rcl <- reward_cycle_list;
-  rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
-  reward_cycle_list := rcl_new
-end
-
-(* @dev: Withdraw comm. Can be called by a ssn operator. *)
-(* @param ssnaddr: The ssn operator address *)
-(* @param initiator: The original caller who called the proxy *)
-transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
-  IsPaused;
-  IsProxy;
-  curval <- ssnlist[ssnaddr];
-  match curval with
-  | None =>
-    e = SSNNotExist;
-    ThrowError e
-  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    is_valid_addr = builtin eq initiator rec_addr;
-    match is_valid_addr with
-    | True =>
-      has_comm = uint128_gt comm_rewards uint128_zero;
-      match has_comm with
-      | True =>
-        e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
-        event e;
-        ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
-        ssnlist[initiator] := ssn;
-        TransferFunds addfunds_tag comm_rewards rec_addr
-      | False =>
-        e = SSNNoComm;
-        ThrowError e
-      end
-    | False =>
-      e = InvalidRecvAddr;
-      ThrowError e
-    end
-  end
-end
-
-(* @dev: Withdraw stake reward. Can be called by a deleg. *)
-(* @param initiator: The original caller who called the proxy *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20, deleg: ByStr20)
-  IsPaused;
-  IsProxy;
-  DelegExists ssn_operator deleg;
-  amt_opt <- deposit_amt_deleg[deleg][ssn_operator];
-  amt = option_uint128_value amt_opt;
-  WithdrawalStakeRewards deleg ssn_operator
-end
-
-(* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
-(* @param ssn: Address of the SSN to which stake had been delegated. *)
-(* @param initiator: The original caller who called the proxy. *)
-(* @param amt: The amount which the delegators wanr to withdraw*)
-transition WithdrawStakeAmt(ssn: ByStr20, initiator: ByStr20, amt: Uint128)
-  IsPaused;
-  IsProxy;
-  WithdrawalStakeAmt initiator ssn amt
-end
-
-(* @dev: Move funds from initiator to recipient, i.e., contract address. *)
-(* @param initiator: The original caller who called the proxy. *)
-transition AddFunds(initiator: ByStr20)
-  IsProxy;
-  accept;
-  e = { _eventname : "Verifier deposit funds"; Funder : initiator };
-  event e
 end
