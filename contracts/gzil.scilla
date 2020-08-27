@@ -24,7 +24,6 @@ type Error =
 | CodeNotOwner
 | CodeNotMinter
 | CodeNotProxy
-| CodeNoMoreMinting
 let make_error =
   fun (result: Error) =>
     let result_code = 
@@ -35,7 +34,6 @@ let make_error =
       | CodeNotOwner              => Int32 -4
       | CodeNotMinter             => Int32 -5
       | CodeNotProxy              => Int32 -6
-      | CodeNoMoreMinting         => Int32 -7
       end
     in
     { _exception: "Error"; code: result_code }
