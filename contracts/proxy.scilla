@@ -162,7 +162,6 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
     send msgs
 end
 
-
 transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
     current_impl <- implementation;
     msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
@@ -258,9 +257,9 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
     send msgs
 end
 
-transition WithdrawComm()
+transition WithdrawComm(ssnaddr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
