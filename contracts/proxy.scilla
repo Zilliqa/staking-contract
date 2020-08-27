@@ -162,7 +162,57 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
     send msgs
 end
 
-(* @dev: Remove a specific ssn from ssnlist. Used by verifier only. *)
+
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_address; cycle: cycle; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateTotalStakeAmt(amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+send msgs
+end
+
+transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "UpdateRewardCycleList"; _recipient: current_impl; _amount: zero; list: list; last_cycle: last_cycle; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Remove a specific ssn from ssnlist. Used by Admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 transition RemoveSSN(ssnaddr: ByStr20)
     current_impl <- implementation;
@@ -201,9 +251,9 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; initiator: _sender};
+    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; verifier_reward: verifier_reward; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -239,61 +289,6 @@ transition AddFunds()
     send msgs
 end
 
-transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "UpdateRewardCycleList"; _recipient: current_impl; _amount: zero; list: list; last_cycle: last_cycle; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_address; cycle: cycle; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateDepositAmtForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateDepositAmtForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; amt: amt; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition PopulateTotalStakeAmt(amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
-    msgs = one_msg msg;
-send msgs
-end
 
 (* Transitions will be sent to gZIL implemetion *)
 transition ChangeMinter(new_minter: ByStr20)

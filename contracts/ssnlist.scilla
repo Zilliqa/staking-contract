@@ -1076,6 +1076,6 @@ end
 transition AddFunds(initiator: ByStr20)
   IsProxy;
   accept;
-  e = { _eventname : "Verifier deposit funds"; verifier : initiator };
+  e = { _eventname : "Verifier deposit funds"; Funder : initiator };
   event e
 end
