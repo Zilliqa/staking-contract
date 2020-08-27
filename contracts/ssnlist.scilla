@@ -930,20 +930,20 @@ end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20, deleg: ByStr20)
+transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  DelegExists ssn_operator deleg;
-  amt_opt <- deposit_amt_deleg[deleg][ssn_operator];
+  DelegExists ssn_operator initiator;
+  amt_opt <- deposit_amt_deleg[initiator][ssn_operator];
   amt = option_uint128_value amt_opt;
-  WithdrawalStakeRewards deleg ssn_operator
+  WithdrawalStakeRewards initiator ssn_operator
 end
 
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
-(* @param initiator: The original caller who called the proxy. *)
 (* @param amt: The amount which the delegators wanr to withdraw*)
-transition WithdrawStakeAmt(ssn: ByStr20, initiator: ByStr20, amt: Uint128)
+(* @param initiator: The original caller who called the proxy. *)
+transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   WithdrawalStakeAmt initiator ssn amt
@@ -1077,37 +1077,37 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
   end
 end
 
-transition PopulateStakeSSNPerCycle(initiator: ByStr20, ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 
-transition PopulateLastWithdrawCycleForDeleg(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
+transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 
-transition PopulateBuffDeposit(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
-transition PopulateDirectDeposit(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
-transition PopulateCommForSSN(initiator: ByStr20, ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
+transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
 end
 
-transition PopulateTotalStakeAmt(initiator: ByStr20, amt: Uint128)
+transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   totalstakeamount := amt
@@ -1117,7 +1117,7 @@ end
 (* @param list: reward cycle list *)
 (* @param last_cycle: last reward cycle *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateRewardCycleList(initiator: ByStr20, list: List Uint128, last_cycle: Uint128)
+transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   reward_cycle_list := list;
@@ -1128,7 +1128,7 @@ end
 (*        in event of contract upgrade or emergency. *)
 (* @param initiator: The original caller who called the proxy *)
 (* @param amt: The amount (Qa) to be drained from the contract back to the admin address *)
-transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
+transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   bal <- _balance;
