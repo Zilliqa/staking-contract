@@ -246,7 +246,7 @@ end
 
 (***************************************************)
 (*         Contract upgrade transition             *)
-(***************************************************
+(***************************************************)
 
 (* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
