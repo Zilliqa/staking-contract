@@ -1,13 +1,16 @@
 scilla_version 0
+
 (***************************************************)
 (*               Associated library                *)
 (***************************************************)
 import IntUtils ListUtils
 library GZIL
+
 let one_msg = 
   fun (msg: Message) => 
   let nil_msg = Nil {Message} in
   Cons {Message} msg nil_msg
+
 let two_msgs =
 fun (msg1: Message) =>
 fun (msg2: Message) =>
@@ -39,6 +42,7 @@ let zero = Uint128 0
 (* Dummy user-defined ADT *)
 type Unit =
 | Unit
+
 let get_val =
   fun (some_val: Option Uint128) =>
   match some_val with
@@ -58,6 +62,7 @@ contract HiveZIL
   decimals: Uint32,
   init_supply: Uint128
 )
+
 (* Mutable fields *)
 field total_supply: Uint128 = init_supply
 field balances: Map ByStr20 Uint128 = Emp ByStr20 Uint128
@@ -65,6 +70,7 @@ field allowances: Map ByStr20 (Map ByStr20 Uint128)
   = Emp ByStr20 (Map ByStr20 Uint128)
 (* This will be set to the current implementation contract address *)
 field minter: ByStr20 = init_minter
+
 (**************************************)
 (*             Procedures             *)
 (**************************************)
@@ -72,6 +78,7 @@ procedure ThrowError(err: Error)
   e = make_error err;
   throw e
 end
+
 procedure IsOwner(address: ByStr20)
   is_owner = builtin eq contract_owner address;
   match is_owner with
@@ -81,6 +88,7 @@ procedure IsOwner(address: ByStr20)
     ThrowError err
   end
 end
+
 procedure AuthorizedBurnIfSufficientBalance(from: ByStr20, amount: Uint128)
   get_bal <- balances[from];
   match get_bal with
@@ -105,6 +113,7 @@ procedure AuthorizedBurnIfSufficientBalance(from: ByStr20, amount: Uint128)
     ThrowError err
   end
 end
+
 (* Check is the caller is the proxy *)
 procedure IsProxy()
   is_proxy = builtin eq _sender proxy_address;
@@ -115,6 +124,7 @@ procedure IsProxy()
     ThrowError e
   end
 end
+
 procedure IsMinter(address: ByStr20)
   current_minter <- minter;
   is_minter = builtin eq current_minter address;
@@ -125,6 +135,7 @@ procedure IsMinter(address: ByStr20)
     ThrowError err
   end
 end
+
 procedure IsNotSender(address: ByStr20)
   is_sender = builtin eq _sender address;
   match is_sender with
@@ -134,6 +145,7 @@ procedure IsNotSender(address: ByStr20)
   | False =>
   end
 end
+
 procedure AuthorizedMint(recipient: ByStr20, amount: Uint128) 
   some_bal <- balances[recipient];
   bal = get_val some_bal;
@@ -145,6 +157,7 @@ procedure AuthorizedMint(recipient: ByStr20, amount: Uint128)
   e = {_eventname: "Minted"; minter: _sender; recipient: recipient; amount: amount};
   event e
 end
+
 procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: Uint128)
   get_from_bal <- balances[from];
   match get_from_bal with
@@ -172,6 +185,7 @@ procedure AuthorizedMoveIfSufficientBalance(from: ByStr20, to: ByStr20, amount: 
     ThrowError err
   end
 end
+
 (***************************************)
 (*             Transitions             *)
 (***************************************)
@@ -182,6 +196,7 @@ transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
   e = {_eventname: "ChangedMinter"; new_minter: new_minter};
   event e  
 end
+
 (* @dev:  Mint new tokens. Only contract_owner can mint.                     *)
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
@@ -194,6 +209,7 @@ transition Mint(recipient: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_recipient;
   send msgs
 end
+
 (* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
 (* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
 (* @param amount:       Number of tokens to be burned.                            *)
@@ -205,6 +221,7 @@ transition Burn(burn_account: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_sender;
   send msgs
 end
+
 (* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
 (* param spender:      Address of the designated approved_spender.                                                   *)
 (* param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
@@ -217,6 +234,7 @@ transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
   e = {_eventname: "IncreasedAllowance"; token_owner: _sender; spender: spender; new_allowance: new_allowance};
   event e
 end
+
 (* @dev: Decrease the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke. *)
 (* param spender:      Address of the designated approved_spender.                                                 *)
 (* param amount:       Number of tokens to be decreased as allowance for the approved_spender.                     *)
@@ -234,6 +252,7 @@ transition DecreaseAllowance(spender: ByStr20, amount: Uint128)
   e = {_eventname: "DecreasedAllowance"; token_owner: _sender; spender: spender; new_allowance: new_allowance};
   event e
 end
+
 (* @dev: Moves an amount tokens from _sender to the recipient. Used by token_owner. *)
 (* @dev: Balance of recipient will increase. Balance of _sender will decrease.      *)
 (* @param to:  Address of the recipient whose balance is increased.                 *)
@@ -250,6 +269,7 @@ transition Transfer(to: ByStr20, amount: Uint128)
   msgs = two_msgs msg_to_recipient msg_to_sender;
   send msgs
 end
+
 (* @dev: Move a given amount of tokens from one address to another using the allowance mechanism. The caller must be an approved_spender. *)
 (* @dev: Balance of recipient will increase. Balance of token_owner will decrease.                                                        *)
 (* @param from:    Address of the token_owner whose balance is decreased.                                                                 *)
