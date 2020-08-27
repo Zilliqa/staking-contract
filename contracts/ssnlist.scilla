@@ -977,7 +977,7 @@ end
 transition AddFunds(initiator: ByStr20)
   IsProxy;
   accept;
-  e = { _eventname : "Verifier deposit funds"; funder : initiator };
+  e = { _eventname : "Funds deposit "; funder : initiator };
   event e
 end
 
@@ -1109,8 +1109,10 @@ transition UpdateRewardCycleList(initiator: ByStr20, list: List Uint128, last_cy
   lastrewardcycle := last_cycle
 end
 
-(* @dev: Drain the contract's balance. Used by current admin only in case of emergency. *)
+(* @dev:  Drain the contract's balance. Used by current admin only *)
+(*        in event of contract upgrade or emergency. *)
 (* @param initiator: The original caller who called the proxy *)
+(* @param amt: The amount (Qa) to be drained from the contract back to the admin address *)
 transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
   IsProxy;
   IsAdmin initiator;
