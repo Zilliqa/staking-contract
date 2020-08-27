@@ -24,6 +24,10 @@ field gzil_contract: ByStr20 = init_gzil_contract
 field admin: ByStr20 = init_admin
 
 (***************************************************)
+(*                  Transition                     *)
+(***************************************************)
+
+(***************************************************)
 (*              Proxy Transition                   *)
 (***************************************************)
 transition UpgradeTo(newImplementation: ByStr20)
