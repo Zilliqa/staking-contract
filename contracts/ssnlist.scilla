@@ -63,12 +63,15 @@ type SSNCycleInfo =
 (* deleg, ssn_operator, reward_cycle *)
 type TmpArg =
 | TmpArg of ByStr20 ByStr20 Uint128
+
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
     Cons {Message} m e
+
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
+
 (* left < element <= right *)
 (* This function is used for filting out those cycles that need to compute rewards for delegs *)
 let list_filter_between =
@@ -81,6 +84,7 @@ let list_filter_between =
       let res_r = uint128_le element right in
       andb res_l res_r
     in fil f l
+
 let option_value =
   tfun 'A =>
   fun (default: 'A) =>
@@ -89,13 +93,16 @@ let option_value =
     | Some v => v
     | None => default
     end
+
 let option_map_uint128_uint128_value =
   let f = @option_value (Map Uint128 Uint128) in
   let emt = Emp Uint128 Uint128 in
   f emt
+
 let option_uint128_value =
   let f = @option_value Uint128 in
   f uint128_zero
+
 let sub_one_to_zero =
   fun (x: Uint128) =>
   let less_than_one = builtin lt x uint128_one in
@@ -106,6 +113,7 @@ let sub_one_to_zero =
     let res = builtin sub x uint128_one in
     res
   end
+
 let option_add =
   fun (x_opt: Option Uint128) =>
   fun (y_opt: Option Uint128) =>
@@ -116,6 +124,7 @@ let option_add =
       Some {Uint128} res
     | None => y_opt
     end
+
 let change_rate =
   fun (old: Uint128) =>
   fun (new: Uint128) =>
@@ -126,11 +135,13 @@ let change_rate =
     | False =>
       builtin sub old new
     end
+
 let bool_active = True
 let bool_inactive = False
 let uint128_10_power_7 = Uint128 10000000
 let uint128_100 = Uint128 100
 let addfunds_tag = "AddFunds"
+
 type Error =
   | ContractFreezedFailure
   | VerifierValidationFailed
@@ -151,6 +162,7 @@ type Error =
   | ExceedMaxChangeRate
   | ExceedMaxCommRate
   | InvalidTotalAmt
+
 let make_error =
   fun (result: Error) =>
     let result_code =
@@ -232,6 +244,7 @@ field paused: Bool = True
 field maxcommchangerate: Uint128 = uint128_one
 field maxcommrate: Uint128 = Uint128 1000000000
 field totalstakeamount: Uint128 = uint128_zero
+
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
@@ -241,10 +254,12 @@ procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
   delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
+
 procedure ThrowError(err: Error)
   e = make_error err;
   throw e
 end
+
 procedure ValidateRate(rate: Uint128)
   max_rate <- maxcommrate;
   validate = uint128_le rate max_rate;
@@ -255,6 +270,7 @@ procedure ValidateRate(rate: Uint128)
     ThrowError e
   end
 end
+
 procedure ValidateChangeRate(old: Uint128, new: Uint128)
   maxcommchangerate_l <- maxcommchangerate;
   absolute_change = change_rate old new;
@@ -267,11 +283,13 @@ procedure ValidateChangeRate(old: Uint128, new: Uint128)
     ThrowError e
   end
 end
+
 procedure IncreaseTotalStakeAmt(amt: Uint128)
   current_amt <- totalstakeamount;
   new_amt = builtin add current_amt amt;
   totalstakeamount := new_amt
 end
+
 procedure DecreaseTotalStakeAmt(amt: Uint128)
   current_amt <- totalstakeamount;
   valid = uint128_le amt current_amt;
@@ -282,6 +300,7 @@ procedure DecreaseTotalStakeAmt(amt: Uint128)
     ThrowError e
   end
 end
+
 procedure IncreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
@@ -289,6 +308,7 @@ procedure IncreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   | False =>
   end  
 end
+
 procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
@@ -296,6 +316,7 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
     DecreaseTotalStakeAmt amt
   end
 end
+
 (* Check if the initiator is verifier *)
 procedure CallerIsVerifier(initiator: ByStr20)
   verifier_tmp <- verifier;
@@ -313,6 +334,7 @@ procedure CallerIsVerifier(initiator: ByStr20)
     ThrowError e
   end
 end
+
 (* Check if the initiator is admin *)
 procedure IsAdmin(initiator: ByStr20)
   contractadmin_tmp <- contractadmin;
@@ -324,6 +346,7 @@ procedure IsAdmin(initiator: ByStr20)
     ThrowError e
   end
 end
+
 (* Check if the caller is the proxy *)
 procedure IsProxy()
   is_proxy = builtin eq _sender proxy_address;
@@ -334,6 +357,7 @@ procedure IsProxy()
     ThrowError e
   end
 end
+
 (* Check if the contract is paused *)
 procedure IsPaused()
   paused_tmp <- paused;
@@ -344,11 +368,13 @@ procedure IsPaused()
     ThrowError e
   end
 end
+
 procedure TransferFunds(tag: String, amt: Uint128, recipient: ByStr20)
     msg = {_tag: tag; _recipient: recipient; _amount: amt};
     msgs = one_msg msg;
     send msgs
 end
+
 procedure UpdateStakeReward(entry: SsnRewardShare)
   lastreward_blk <- lastrewardcycle;
   match entry with
@@ -384,6 +410,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
     end
   end
 end
+
 (* this procedure is to send rewards to deleg *)
 procedure SendDelegRewards(addr: ByStr20, amt: Uint128)
   to_send = builtin eq amt uint128_zero;
@@ -395,6 +422,7 @@ procedure SendDelegRewards(addr: ByStr20, amt: Uint128)
     event e
   end
 end
+
 (* Check if a delegs exists for a given SSN *)
 procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
   if_exists <- exists deposit_amt_deleg[deleg][ssnaddr];
@@ -405,6 +433,7 @@ procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
     ThrowError e
     end
 end
+
 procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
   lwcd_o <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   match lwcd_o with
@@ -414,6 +443,7 @@ procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
     last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
   end
 end
+
 procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint128)
   deposit_amt <- deposit_amt_deleg[deleg][ssnaddr];
   match deposit_amt with
@@ -424,9 +454,11 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
     deposit_amt_deleg[deleg][ssnaddr] := amount
   end
 end
+
 procedure FillInDepositDeleg(ssnaddr: ByStr20, deleg: ByStr20)
   FillInDepositDelegAmt ssnaddr deleg _amount
 end
+
 procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   lrcd = option_uint128_value lrcd_tmp;
@@ -439,6 +471,7 @@ procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
   | False =>
   end
 end
+
 procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
   ldcd = option_uint128_value ldcd_o;
@@ -452,6 +485,7 @@ procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   | False =>
   end
 end
+
 procedure IsDelegstakeSufficient()
   mindelegstake_l <- mindelegstake;
   suffi =  uint128_le mindelegstake_l _amount;
@@ -462,6 +496,7 @@ procedure IsDelegstakeSufficient()
     ThrowError e
   end
 end
+
 procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
   suffient = uint128_le withdraw_amount total_amount;
   match suffient with
@@ -488,6 +523,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
     ThrowError e
   end
 end
+
 procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
@@ -520,6 +556,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
     ThrowError e
   end
 end
+
 procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
@@ -540,6 +577,7 @@ procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
     end
   end
 end
+
 procedure MintCall(recipient: ByStr20, amount: Uint128)
   addr <- gziladdr;
   msg_to_gzil = {_tag: "Mint"; _recipient: addr; _amount: uint128_zero; 
@@ -547,12 +585,14 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
   msgs = one_msg msg_to_gzil;
   send msgs
 end
+
 procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
   exist_reward_o <- rewards_amt_deleg[ssn][deleg];
   exist_reward = option_uint128_value exist_reward_o;
   new_reward = builtin add exist_reward reward;
   rewards_amt_deleg[ssn][deleg] := new_reward
 end
+
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
@@ -573,6 +613,7 @@ procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
     end
   end
 end
+
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
@@ -609,6 +650,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
+
 (* Transitions *)
 (* @dev: pause the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -617,6 +659,7 @@ transition Pause(initiator: ByStr20)
   IsAdmin initiator;
   paused := bool_active
 end
+
 (* @dev: unpause/unfreeze the contract. Used by admin only. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition UnPause(initiator: ByStr20)
@@ -624,6 +667,7 @@ transition UnPause(initiator: ByStr20)
   IsAdmin initiator;
   paused := bool_inactive
 end
+
 (* @dev: Set the admin of the contract. Used by admin only. *)
 (* @param admin: New admin value *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -632,6 +676,7 @@ transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   IsAdmin initiator;
   contractadmin := admin
 end
+
 (* @dev: Set the verifier of the contract. Used by admin only. *)
 (* @param verif: New verifier value *)
 (* @param initiator: The original caller who called the proxy *)
@@ -641,6 +686,7 @@ transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
   newverifier = Some {ByStr20} verif;
   verifier := newverifier
 end
+
 (* @dev: Drain the contract's balance. Used by current admin only in case of emergency. *)
 (* @param initiator: The original caller who called the proxy *)
 transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
@@ -654,6 +700,7 @@ transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
     TransferFunds addfunds_tag amt initiator
   end
 end
+
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
@@ -665,12 +712,14 @@ transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128,
   mindelegstake := min_deleg_stake;
   maxcommchangerate := max_comm_change_rate
 end
+
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   gziladdr := gzil_addr;
   proxyaddr := proxy_addr
 end
+
 transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
@@ -693,6 +742,7 @@ transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String
     event e
   end
 end
+
 transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
@@ -706,6 +756,7 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     ThrowError e
   end
 end
+
 (* @dev   Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param stake_amt: Stake amount of ssn *)
@@ -738,6 +789,7 @@ transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uin
     event e
   end
 end
+
 (* @dev: Adds or deletes a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
 (* @param deleg: Address of the deleg *)
@@ -781,36 +833,43 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
     ThrowError e
   end
 end
+
 transition PopulateStakeSSNPerCycle(initiator: ByStr20, ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
   IsProxy;
   IsAdmin initiator;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
+
 transition PopulateLastWithdrawCycleForDeleg(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
   IsProxy;
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
+
 transition PopulateBuffDeposit(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
   IsProxy;
   IsAdmin initiator;
   buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
+
 transition PopulateDirectDeposit(initiator: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
+
 transition PopulateCommForSSN(initiator: ByStr20, ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
 end
+
 transition PopulateTotalStakeAmt(initiator: ByStr20, amt: Uint128)
   IsProxy;
   IsAdmin initiator;
   totalstakeamount := amt
 end
+
 (* @dev: Update reward cycle list and last reward cycle *)
 (* @param list: reward cycle list *)
 (* @param last_cycle: last reward cycle *)
@@ -821,6 +880,7 @@ transition UpdateRewardCycleList(initiator: ByStr20, list: List Uint128, last_cy
   reward_cycle_list := list;
   lastrewardcycle := last_cycle
 end
+
 (* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 (* @param initiator: The original caller who called the proxy *)
@@ -839,6 +899,7 @@ transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
     event e
   end
 end
+
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
@@ -872,6 +933,7 @@ end
 (* @dev : To update the received address for a given SSN *)
 (* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
+
 transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
@@ -885,6 +947,7 @@ transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
     ThrowError e
   end
 end
+
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the deleg. *)
@@ -944,6 +1007,7 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
     end
   end
 end
+
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
@@ -959,6 +1023,7 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
   rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
   reward_cycle_list := rcl_new
 end
+
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawComm(initiator: ByStr20)
@@ -984,6 +1049,7 @@ transition WithdrawComm(initiator: ByStr20)
     end
   end
 end
+
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawStakeRewards(ssn_operator: ByStr20, deleg: ByStr20)
@@ -994,6 +1060,7 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, deleg: ByStr20)
   amt = option_uint128_value amt_opt;
   WithdrawalStakeRewards deleg ssn_operator
 end
+
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
 (* @param ssn: Address of the SSN to which stake had been delegated. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -1003,6 +1070,7 @@ transition WithdrawStakeAmt(ssn: ByStr20, initiator: ByStr20, amt: Uint128)
   IsProxy;
   WithdrawalStakeAmt initiator ssn amt
 end
+
 (* @dev: Move funds from initiator to recipient, i.e., contract address. *)
 (* @param initiator: The original caller who called the proxy. *)
 transition AddFunds(initiator: ByStr20)
