@@ -784,12 +784,11 @@ end
 
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
-(* @param ssnaddr: The ssn operator address *)
-(* @param initiator: The original caller who called the proxy. This is SSN receiving address. *)
+(* @param initiator: The original caller who called the proxy *)
 (* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
 (* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
 (* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
-transition UpdateComm(new_rate: Uint128, ssnaddr: ByStr20, initiator: ByStr20)
+transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
