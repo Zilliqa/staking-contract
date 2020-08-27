@@ -23,7 +23,9 @@ field implementation: ByStr20 = init_implementation
 field gzil_contract: ByStr20 = init_gzil_contract
 field admin: ByStr20 = init_admin
 
-(* Transitions belong proxy itself *)
+(***************************************************)
+(*              Proxy Transition                   *)
+(***************************************************)
 transition UpgradeTo(newImplementation: ByStr20)
     currentAdmin <- admin;
     isAdmin = builtin eq currentAdmin _sender;
@@ -66,7 +68,19 @@ transition UpgradeGZILContract(newAddress: ByStr20)
     end
 end
 
-(* Transitions will be sent to ssnlist implemetion *)
+(* Transitions will be sent to gZIL implemetion *)
+transition ChangeMinter(new_minter: ByStr20)
+    gzil <- gzil_contract;
+    msg = {_tag: "ChangeMinter"; _recipient: gzil; _amount: zero; new_minter: new_minter; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+
 transition Pause()
     current_impl <- implementation;
     msg = {_tag: "Pause"; _recipient: current_impl; _amount: zero; initiator: _sender};
@@ -93,14 +107,6 @@ end
 transition UpdateVerifier(verif: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateVerifier"; _recipient: current_impl; _amount: zero; verif: verif; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Set the admin of contract. Used by current admin only. *)
-transition DrainContractBalance(amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "DrainContractBalance"; _recipient: current_impl; _amount: zero; initiator: _sender; amt: amt};
     msgs = one_msg msg;
     send msgs
 end
@@ -143,12 +149,100 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     send msgs
 end
 
+(***************************************************)
+(*             SSN operator transition             *)
+(***************************************************)
+
+(* @dev : To update the commision rate for a given SSN *)
+(* @param new_rate: The new commision rate *)
+transition UpdateComm(new_rate: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "UpdateComm"; _recipient: current_impl; _amount: zero; new_rate: new_rate; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition WithdrawComm(ssnaddr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev : To update the received address for a given SSN *)
+(* @param new_address: The new received address *)
+transition UpdateReceivedAddr(new_addr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "UpdateReceivedAddr"; _recipient: current_impl; _amount: zero; new_addr: new_addr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(***************************************************)
+(*                Delegator transition             *)
+(***************************************************)
+
+(* @dev : To delegate the stake to the contract. *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
+transition DelegateStake(ssnaddr: ByStr20)
+    current_impl <- implementation;
+    accept;
+    msg = {_tag: "DelegateStake"; _recipient: current_impl; _amount: _amount; ssnaddr: ssnaddr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: Withdraw stake reward. Can be called by a deleg. *)
+transition WithdrawStakeRewards(ssn_operator: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "WithdrawStakeRewards"; _recipient: current_impl; _amount: zero; ssn_operator: ssn_operator; deleg: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssn: ssn; initiator: _sender; amt: amt};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(***************************************************)
+(*                 Verifier transition             *)
+(***************************************************)
+
+(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
+(* @param ssnrewardlist: List of SsnRewardShare *)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; verifier_reward: verifier_reward; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(***************************************************)
+(*                  Generic transition             *)
+(***************************************************)
+
+(* @dev: Move token amount from _sender to recipient i.e. contract address. *)
+transition AddFunds()
+    current_impl <- implementation;
+    accept;
+    msg = {_tag: "AddFunds"; _recipient: current_impl; _amount: _amount; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "AddSSNAfterUpgrade"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; rec_addr: rec_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
+(***************************************************)
+(*         Contract upgrade transition             *)
+(***************************************************
 
 (* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
@@ -220,79 +314,10 @@ transition RemoveSSN(ssnaddr: ByStr20)
     send msgs
 end
 
-(* @dev : To update the commision rate for a given SSN *)
-(* @param new_rate: The new commision rate *)
-transition UpdateComm(new_rate: Uint128)
+(* @dev: Set the admin of contract. Used by current admin only. *)
+transition DrainContractBalance(amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "UpdateComm"; _recipient: current_impl; _amount: zero; new_rate: new_rate; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev : To update the received address for a given SSN *)
-(* @param new_address: The new received address *)
-transition UpdateReceivedAddr(new_addr: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "UpdateReceivedAddr"; _recipient: current_impl; _amount: zero; new_addr: new_addr; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev : To delegate the stake to the contract. *)
-(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
-transition DelegateStake(ssnaddr: ByStr20)
-    current_impl <- implementation;
-    accept;
-    msg = {_tag: "DelegateStake"; _recipient: current_impl; _amount: _amount; ssnaddr: ssnaddr; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; verifier_reward: verifier_reward; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition WithdrawComm(ssnaddr: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Withdraw stake reward. Can be called by a deleg. *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "WithdrawStakeRewards"; _recipient: current_impl; _amount: zero; ssn_operator: ssn_operator; deleg: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssn: ssn; initiator: _sender; amt: amt};
-    msgs = one_msg msg;
-    send msgs
-end
-
-(* @dev: Move token amount from _sender to recipient i.e. contract address. *)
-transition AddFunds()
-    current_impl <- implementation;
-    accept;
-    msg = {_tag: "AddFunds"; _recipient: current_impl; _amount: _amount; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-
-(* Transitions will be sent to gZIL implemetion *)
-transition ChangeMinter(new_minter: ByStr20)
-    gzil <- gzil_contract;
-    msg = {_tag: "ChangeMinter"; _recipient: gzil; _amount: zero; new_minter: new_minter; initiator: _sender};
+    msg = {_tag: "DrainContractBalance"; _recipient: current_impl; _amount: zero; initiator: _sender; amt: amt};
     msgs = one_msg msg;
     send msgs
 end
