@@ -17,10 +17,12 @@ contract SSNListProxy(
   init_gzil_contract: ByStr20,
   init_admin: ByStr20
 )
+
 (* Mutable fields *)
 field implementation: ByStr20 = init_implementation
 field gzil_contract: ByStr20 = init_gzil_contract
 field admin: ByStr20 = init_admin
+
 (* Transitions belong proxy itself *)
 transition UpgradeTo(newImplementation: ByStr20)
     currentAdmin <- admin;
@@ -35,6 +37,7 @@ transition UpgradeTo(newImplementation: ByStr20)
       event e
     end
 end
+
 transition ChangeProxyAdmin(newAdmin: ByStr20)
     currentAdmin <- admin;
     isAdmin = builtin eq currentAdmin _sender;
@@ -48,6 +51,7 @@ transition ChangeProxyAdmin(newAdmin: ByStr20)
       event e
     end
 end
+
 transition UpgradeGZILContract(newAddress: ByStr20)
     currentAdmin <- admin;
     isAdmin = builtin eq currentAdmin _sender;
@@ -61,6 +65,7 @@ transition UpgradeGZILContract(newAddress: ByStr20)
       event e
     end
 end
+
 (* Transitions will be sent to ssnlist implemetion *)
 transition Pause()
     current_impl <- implementation;
@@ -68,18 +73,21 @@ transition Pause()
     msgs = one_msg msg;
     send msgs
 end
+
 transition UnPause()
     current_impl <- implementation;
     msg = {_tag: "UnPause"; _recipient: current_impl; _amount: zero; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition UpdateAdmin(new_admin: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateAdmin"; _recipient: current_impl; _amount: zero; admin: new_admin; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Set the verifier of contract. Used by admin only. *)
 (* @param verif: New verifier value *)
 transition UpdateVerifier(verif: ByStr20)
@@ -88,6 +96,7 @@ transition UpdateVerifier(verif: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Set the admin of contract. Used by current admin only. *)
 transition DrainContractBalance(amt: Uint128)
     current_impl <- implementation;
@@ -95,6 +104,7 @@ transition DrainContractBalance(amt: Uint128)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Set the minstake, maxstake and contract maxstake of contract. Used by admin only. *)
 (* @param min_stake: New min_stake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
@@ -104,12 +114,14 @@ transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128,
     msgs = one_msg msg;
     send msgs
 end
+
 transition UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateContractAddr"; _recipient: current_impl; _amount: zero; proxy_addr: proxy_address; gzil_addr: gzil_address; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Adds new ssn to ssnlist. Used by admin only. *)
 (* @param ssnaddr: Address of the ssn to be added *)
 (* @param name: Name of the ssn to be added *)
@@ -123,18 +135,21 @@ transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String
     msgs = one_msg msg;
     send msgs
 end
+
 transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
     current_impl <- implementation;
     msg = {_tag: "UpdateSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "AddSSNAfterUpgrade"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; rec_addr: rec_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
 (* @param deleg: Address of the deleg *)
@@ -146,6 +161,7 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Remove a specific ssn from ssnlist. Used by verifier only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
 transition RemoveSSN(ssnaddr: ByStr20)
@@ -154,6 +170,7 @@ transition RemoveSSN(ssnaddr: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 transition UpdateComm(new_rate: Uint128)
@@ -162,6 +179,7 @@ transition UpdateComm(new_rate: Uint128)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev : To update the received address for a given SSN *)
 (* @param new_address: The new received address *)
 transition UpdateReceivedAddr(new_addr: ByStr20)
@@ -170,6 +188,7 @@ transition UpdateReceivedAddr(new_addr: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev : To delegate the stake to the contract. *)
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 transition DelegateStake(ssnaddr: ByStr20)
@@ -179,6 +198,7 @@ transition DelegateStake(ssnaddr: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
@@ -187,12 +207,14 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
     msgs = one_msg msg;
     send msgs
 end
+
 transition WithdrawComm()
     current_impl <- implementation;
     msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
 transition WithdrawStakeRewards(ssn_operator: ByStr20)
     current_impl <- implementation;
@@ -200,12 +222,14 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
 transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssn: ssn; initiator: _sender; amt: amt};
     msgs = one_msg msg;
     send msgs
 end
+
 (* @dev: Move token amount from _sender to recipient i.e. contract address. *)
 transition AddFunds()
     current_impl <- implementation;
@@ -214,54 +238,63 @@ transition AddFunds()
     msgs = one_msg msg;
     send msgs
 end
+
 transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128)
     current_impl <- implementation;
     msg = {_tag: "UpdateRewardCycleList"; _recipient: current_impl; _amount: zero; list: list; last_cycle: last_cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
     current_impl <- implementation;
     msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_address; cycle: cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateDepositAmtForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateDepositAmtForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
+
 transition PopulateTotalStakeAmt(amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
     msgs = one_msg msg;
 send msgs
 end
+
 (* Transitions will be sent to gZIL implemetion *)
 transition ChangeMinter(new_minter: ByStr20)
     gzil <- gzil_contract;
