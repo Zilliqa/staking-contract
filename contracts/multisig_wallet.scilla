@@ -121,14 +121,12 @@ type ProxyTransaction =
 (* PopulateDepositAmountFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128) *)
 | PopulateDepositAmountFordeleg of ByStr20 ByStr20 Uint128
 
-
 (* Type of (outstanding) transactions *)
 type Transaction =
 (* Transfer of native tokens *)
 | NativeTransaction of ByStr20 Uint128 String
 (* Custom token transactions *)
 | CustomTransaction of ByStr20 ProxyTransaction
-
 
 (* Make map of owners *)
 let mk_owners_map =
