@@ -1,6 +1,9 @@
 scilla_version 0
+
 import ListUtils IntUtils BoolUtils
+
 library SSNList
+
 (* A non-custodial staking contract with admin privileges *)
 (* SSN Data Type *)
 (* Each SSN has the following fields: *)
@@ -28,8 +31,10 @@ library SSNList
 (* ReceivedAddress   : ByStr20 *)
 (*                     Address will be used to receive comm. *)
 (* Invariant : ActiveStatus = (Minstake < StakeAmount)  *)
+
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+
 (* SSNRewardShare Data Type *)
 (* SSNRewardShare has the following fields: *)
 (* CycleReward is in Qa *)
@@ -972,7 +977,7 @@ end
 transition AddFunds(initiator: ByStr20)
   IsProxy;
   accept;
-  e = { _eventname : "Verifier deposit funds"; Funder : initiator };
+  e = { _eventname : "Verifier deposit funds"; funder : initiator };
   event e
 end
 
