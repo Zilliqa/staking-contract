@@ -168,6 +168,7 @@ type Error =
   | ExceedMaxCommRate
   | InvalidTotalAmt
   | InvalidRecvAddr
+  | VerifierNotSet
 
 let make_error =
   fun (result: Error) =>
@@ -193,6 +194,7 @@ let make_error =
       | ExceedMaxCommRate => Int32 -18
       | InvalidTotalAmt => Int32 -19
       | InvalidRecvAddr => Int32 -20
+      | VerifierNotSet => Int32 -21
       end
     in
     { _exception: "Error"; code: result_code }
@@ -965,7 +967,21 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
   lastrewardcycle := newLastRewardCycleNum;
   rcl <- reward_cycle_list;
   rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
-  reward_cycle_list := rcl_new
+  reward_cycle_list := rcl_new;
+  verifier_o <- verifier;
+  match verifier_o with
+  | Some v => 
+    is_zero = builtin eq verifier_reward uint128_zero;
+    match is_zero with
+    | True =>
+    | False =>
+      TransferFunds addfunds_tag verifier_reward v
+    end
+  | None =>
+    e = VerifierNotSet;
+    ThrowError e
+  end
+
 end
 
 (***************************************************)
