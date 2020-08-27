@@ -696,20 +696,6 @@ transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
-(* @dev: Drain the contract's balance. Used by current admin only in case of emergency. *)
-(* @param initiator: The original caller who called the proxy *)
-transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
-  IsProxy;
-  IsAdmin initiator;
-  bal <- _balance;
-  less_than = builtin lt bal amt;
-  match less_than with
-  | True => throw
-  | False =>
-    TransferFunds addfunds_tag amt initiator
-  end
-end
-
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
@@ -1116,4 +1102,18 @@ transition UpdateRewardCycleList(initiator: ByStr20, list: List Uint128, last_cy
   IsAdmin initiator;
   reward_cycle_list := list;
   lastrewardcycle := last_cycle
+end
+
+(* @dev: Drain the contract's balance. Used by current admin only in case of emergency. *)
+(* @param initiator: The original caller who called the proxy *)
+transition DrainContractBalance(initiator: ByStr20, amt: Uint128)
+  IsProxy;
+  IsAdmin initiator;
+  bal <- _balance;
+  less_than = builtin lt bal amt;
+  match less_than with
+  | True => throw
+  | False =>
+    TransferFunds addfunds_tag amt initiator
+  end
 end
