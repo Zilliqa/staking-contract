@@ -124,17 +124,6 @@ procedure IsNotSender(address: ByStr20)
   end
 end
 
-procedure CanMint()
-  current_block <- & BLOCKNUMBER;
-  is_over = builtin blt end_block current_block;
-  match is_over with
-  | False => 
-  | True =>
-    err = CodeNoMoreMinting;
-    ThrowError err
-  end
-end
-
 procedure AuthorizedMint(recipient: ByStr20, amount: Uint128) 
   some_bal <- balances[recipient];
   bal = get_val some_bal;
@@ -190,14 +179,19 @@ end
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
-  CanMint;
-  IsMinter;
-  AuthorizedMint recipient amount;
-  (* Prevent sending to a contract address that does not support transfers of token *)
-  msg_to_recipient = {_tag: "RecipientAcceptMint"; _recipient: recipient; _amount: zero; 
-                      minter: _sender; recipient: recipient; amount: amount};
-  msgs = one_msg msg_to_recipient;
-  send msgs
+  current_block <- & BLOCKNUMBER;
+  is_minting_over = builtin blt end_block current_block;
+  match is_minting_over with
+  | True =>
+  | False =>
+    IsMinter;
+    AuthorizedMint recipient amount;
+    (* Prevent sending to a contract address that does not support transfers of token *)
+    msg_to_recipient = {_tag: "RecipientAcceptMint"; _recipient: recipient; _amount: zero; 
+                        minter: _sender; recipient: recipient; amount: amount};
+    msgs = one_msg msg_to_recipient;
+    send msgs
+  end
 end
 
 (* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
