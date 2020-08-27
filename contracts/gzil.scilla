@@ -52,7 +52,7 @@ let get_val =
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
-contract HiveZIL
+contract GZIL
 (
   contract_owner: ByStr20,
   proxy_address: ByStr20,
