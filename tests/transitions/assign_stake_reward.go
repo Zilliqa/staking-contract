@@ -31,7 +31,7 @@ func (t *Testing) AssignStakeReward() {
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
 	t.AssertContain(state,"\"lastrewardcycle\":\"2\"")
-	t.AssertContain(state,"5200000000000")
+	t.AssertContain(state,"52000000")
 	t.AssertContain(state,"\"reward_cycle_list\":[\"2\"]")
 
 	// use addr1 (which is not verifier) to assign rewards

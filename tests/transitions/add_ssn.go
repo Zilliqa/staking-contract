@@ -23,7 +23,7 @@ func (t *Testing) AddSSN() {
 	txn,err1 := proxy.AddSSN("0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82","xiaohuo")
 	t.AssertError(err1)
 	receipt =  t.GetReceiptString(txn)
-	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -12))])")
+	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -11))])")
 	log.Println(receipt)
 	state = ssnlist.LogContractStateJson()
 

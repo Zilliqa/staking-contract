@@ -59,9 +59,9 @@ type DelegCycleInfo =
 
 (*   Each SSNCycleInfo has the following fields: *)
 (*    TotalStakeDuringTheCycle            : Uint128 *)
-(*                                          Represents the amount staked during this cycle for the given SSN. *)
+(*                                          Represents the amount staked during this cycle for all SSNs. *)
 (*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
-(*                                         Represents the amount staked during this cycle for the given SSN. *)
+(*                                         Represents the amount of cycle reward *)
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
@@ -397,19 +397,25 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
       match active_status with
       | False => throw
       | True  =>
-        total_stake_amt <- totalstakeamount;
-        new_reward_tmp = builtin mul stake_amt cycle_reward;
-        new_reward = builtin div new_reward_tmp total_stake_amt;
-        reward_comm_tmp = builtin mul new_reward comm;
+        (* To calculate commission *)
+        reward_comm_tmp = builtin mul cycle_reward comm;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
         total_reward_comm = builtin add reward_comm_tmp comm_rewards;
-        expected_reward = builtin sub new_reward total_reward_comm;
-        deleg_reward = builtin add expected_reward rewards;
-        new_stake_amt = builtin add stake_amt buffdeposit;
-        (* During this cylce, the SSN only earned expected_reward as rewards that could be given to delegs *)
-        p = SSNCycleInfo stake_amt expected_reward;
+
+        (* To calculate rewards can be distributed to delegators *)
+        delegate_reward = builtin sub cycle_reward reward_comm_tmp;
+
+        (* According to formula *)
+        (* delegator stake / all stake * reward of SSN j received = delegator reward *)
+        (* we record totalstakeamount and delegate reward here *)
+        total_stake_amt <- totalstakeamount;
+        p = SSNCycleInfo total_stake_amt delegate_reward;
         stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
+
+        (* Update ssn info *)
+        new_stake_amt = builtin add stake_amt buffdeposit;
+        deleg_reward = builtin add delegate_reward rewards;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
         IncreaseTotalStakeAmt buffdeposit;
