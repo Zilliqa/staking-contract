@@ -395,7 +395,9 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
       ThrowError e
     | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
       match active_status with
-      | False => throw
+      | False =>
+        e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
+        event e
       | True  =>
         (* To calculate rewards belong to this ssn operator *)
         total_stake_amt <- totalstakeamount;
@@ -419,7 +421,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         deleg_reward = builtin add delegate_reward rewards;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
-        IncreaseTotalStakeAmt buffdeposit;
+        IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
         e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
         event e
       end
@@ -651,7 +653,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   rcl_reverse_t = mapper f rcl_reverse;
   forall rcl_reverse_t CalcStakeDelegPerCycle;
 
-  (* Calculate and send rewards *)
+  (* Calculate rewards *)
   rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
@@ -1046,7 +1048,7 @@ end
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
 (* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
-(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg *)
+(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
 transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
