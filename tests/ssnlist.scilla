@@ -278,13 +278,15 @@ ThrowError e
 match active_status with
 | False => throw
 | True  =>
-reward_comm_tmp = builtin mul cycle_reward comm;
+total_stake_amt <- totalstakeamount;
+new_rewards_tmp = builtin mul stake_amt cycle_reward;
+new_rewards = builtin div new_rewards_tmp total_stake_amt;
+reward_comm_tmp = builtin mul new_rewards comm;
 reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
 reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
 total_reward_comm = builtin add reward_comm_tmp comm_rewards;
-delegate_reward = builtin sub cycle_reward reward_comm_tmp;
-total_stake_amt <- totalstakeamount;
-p = SSNCycleInfo total_stake_amt delegate_reward;
+delegate_reward = builtin sub new_rewards reward_comm_tmp;
+p = SSNCycleInfo stake_amt delegate_reward;
 stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
 new_stake_amt = builtin add stake_amt buffdeposit;
 deleg_reward = builtin add delegate_reward rewards;
