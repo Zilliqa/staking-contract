@@ -16,6 +16,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
 - [Overview](#overview)
 - [SSNList Contract Specification](#ssnlist-contract-specification)
   * [Roles and Privileges](#roles-and-privileges)
+  * [Data Types](#data-types)
   * [Immutable Parameters](#immutable-parameters)
   * [Mutable Fields](#mutable-fields)
   * [Transitions](#transitions)
@@ -68,6 +69,109 @@ The table below describes the roles and privileges that this contract defines:
 | `admin`         | The administrator of the contract.  `admin` is a multisig wallet contract (i.e., an instance of `Wallet`).    |
 | `initiator`     | The user who calls the `SSNListProxy` that in turns call the `SSNList` contract. |
 | `delegator`     | A token holder who wishes to delegate her tokens to an SSN for staking. The delegator earns a portion of the reward that the SSN receives. |
+
+## Data Types
+
+The contract defines and uses several custom ADTs that we describe below: 
+
+
+1. SSN Data Type: 
+
+```
+type Ssn =
+| Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+```
+
+```
+(* Each SSN has the following fields: *)
+
+(* ActiveStatus      : Bool *)
+(*                     Represents whether the SSN has the minimum stake amount and therefore ready to participate in staking and receive rewards. *)
+(* StakeAmount       : Uint128 *)
+(*                     Total stake that can be used for reward calculation. *)
+(* StakeRewards      : Uint128 *)
+(*                     (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegators. It does not include SSN's own commission. *)
+(* Name              : String *)
+(*                     A human-readable name for this SSN. *)
+(* URLRaw            : String *)
+(*                     Represents "ip:port" of the SSN serving raw API requests. *)
+(* URLApi            : String *)
+(*                     Representing URL exposed by SSN serving public API requests. *)
+(* BufferedDeposit   : Uint128 *)
+(*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered for the next one. *)
+(* Commission        : Uint128 *)
+(*                     Percentage of incoming rewards that the SSN takes. *)
+(* CommissionRewards : Uint128 *)
+(*                     Number of ZILs earned as commission by the SSN. *)
+(* ReceivingAddress   : ByStr20 *)
+(*                     Address to be used to receive commission. *)
+```
+
+2. SSNRewardShare Data Type:
+
+```
+type SsnRewardShare =
+| SsnRewardShare of ByStr20 Uint128
+``` 
+
+```
+(* SSNRewardShare has the following fields: *)
+
+(*  SSNAddress        : ByStr20 *)
+(*                      Address of the SSN. *)
+(*  RewardShare       : Uint128 *)
+(*                      This is the integer representation of the reward assigned by the verifier to this SSN based on the total number of tokens staked across all SSNs, the stake at the given SSN and the performance of the given SSN node. *)
+```
+
+3. DelegCycleInfo Data Type:
+
+```
+type DelegCycleInfo =
+| DelegCycleInfo of ByStr20 Uint128 ByStr20
+```
+```
+(*    Each DelegCycleInfo has the following fields: *)
+(*    SSNAddress          : ByStr20 *)
+(*                          Address of the SSN. *)
+(*    StakeDuringTheCycle : Uint128 *)
+(*                          Represents the amount staked during this cycle for the given SSN. *)
+(*    DelegAddress    : ByStr20 *)
+(*                      Address of Deleg. *)
+```
+4. SSNCycleInfo Data Type:
+
+```
+type SSNCycleInfo =
+| SSNCycleInfo of Uint128 Uint128
+```
+```
+(*   Each SSNCycleInfo has the following fields: *)
+(*   TotalStakeDuringTheCycle            : Uint128 *)
+(*                                          Represents the amount staked during this cycle for the given SSN. *)
+(*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
+(*                                         Represents the total reward earned during this cycle for the given SSN. *)
+```
+
+5. Error Data Type:
+
+```
+type Error =
+  | ContractFrozenFailure (* Contract is paused *)
+  | VerifierValidationFailed (* Initiator is not verifier *)
+  | AdminValidationFailed (* Initiator is not admin *)
+  | ProxyValidationFailed (* Caller is not proxy *)
+  | DelegDoesNotExistAtSSN (* Delegator does not exist at the given SSN *)
+  | UpdateStakingParamError (* Error in updating staking parameter *)
+  | DelegHasBufferedDeposit (* Delegator has some buffered deposit. *)
+  | ChangeCommError (* Commission could not be changed *)
+  | SSNNotExist (* SSN does not exist *)
+  | DelegNotExist (* Delegator does not exist *)
+  | SSNAlreadyExist (* SSN already exists *)
+  | DelegHasUnwithdrawnRewards (* Delegator has unwithdrawn Rewards *)
+  | DelegHasNoSufficientAmt (* Delegator does not have sufficient amount to withdraw *)
+  | SSNNoComm (* SSN has no commission left to withdraw *)
+  | DelegStakeNotEnough (* Delegator's stake is not above minimum *)
+```
 
 ## Immutable Parameters
 
