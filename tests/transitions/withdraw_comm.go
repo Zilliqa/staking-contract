@@ -17,18 +17,19 @@ func (t *Testing) WithdrawComm() {
 	proxy.UpdateStakingParameters(min,delegMin)
 	// update verifier to addr2
 	proxy.UpdateVerifier("0x" + addr1)
+	proxy.PopulateTotalStakeAmt("100000000000000")
 	// add ssn1
 	proxy.AddSSN("0x"+addr1, "ssn1")
 	// delegate stake
 	proxy.AddDelegator("0x"+addr1, "0x"+addr3, "100000000000000")
 	proxy.AssignStakeReward("0x"+addr1, "10000000")
-	proxy.UpdateComm("10")
+	proxy.UpdateComm("100000000")
 	// fund ssnlist
 	proxy.AddFunds("100000000000000")
 	proxy.AssignStakeReward("0x"+addr1, "10000000")
 	ssnlist.LogContractStateJson()
 
-	txn,err := proxy.WithdrawComm()
+	txn,err := proxy.WithdrawComm("0x"+addr1)
 	if err != nil {
 		t.LogError("WithdrawComm",err)
 	}
@@ -38,7 +39,7 @@ func (t *Testing) WithdrawComm() {
 	ssnlist.LogContractStateJson()
 
 	proxy.UpdateWallet(key2)
-	txn,err1 := proxy.WithdrawComm()
+	txn,err1 := proxy.WithdrawComm("0x"+addr1)
 	t.AssertError(err1)
 	ssnlist.LogContractStateJson()
 

@@ -21,7 +21,7 @@ func (t *Testing) WithdrawStakeReward3() {
 	// delegate stake
 	proxy.DelegateStake("0x"+addr1, "100000000000000")
 	proxy.AssignStakeReward("0x"+addr1, "52000000")
-	proxy.AddFunds("100000000000000000")
+	proxy.AddFunds("1000000000000")
 	ssnlist.LogContractStateJson()
 
 	// withdraw rewards

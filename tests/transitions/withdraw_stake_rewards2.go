@@ -16,7 +16,7 @@ func (t *Testing) WithdrawStakeReward2() {
 	proxy.UpdateVerifier("0x" + addr1)
 	// add ssn1
 	proxy.AddSSNAfterUpgrade("0x"+addr1,"0")
-	proxy.AddFunds("100000000000000000")
+	proxy.AddFunds("1000000000000")
 	// delegate stake
 	proxy.DelegateStake("0x"+addr1, "100000000000000")
 	proxy.AssignStakeReward("0x"+addr1, "52000000")

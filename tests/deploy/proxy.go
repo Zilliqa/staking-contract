@@ -109,7 +109,7 @@ func (p *Proxy) UpdateStakingParameters(min, delegmin string) (*transaction.Tran
 		{
 			"max_comm_change_rate",
 			"Uint128",
-			"2",
+			"20",
 		},
 	}
 	return p.Call("UpdateStakingParameters", args, "0")
@@ -357,8 +357,12 @@ func (p *Proxy) AddFunds(amount string) {
 	}
 }
 
-func (p *Proxy) WithdrawComm() (*transaction.Transaction, error) {
-	args := []core.ContractValue{}
+func (p *Proxy) WithdrawComm(ssnaddr string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		"ssnaddr",
+		"ByStr20",
+		ssnaddr,
+	}}
 	return p.Call("WithdrawComm", args, "0")
 }
 
