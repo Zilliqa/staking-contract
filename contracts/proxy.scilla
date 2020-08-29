@@ -125,6 +125,13 @@ transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128,
     send msgs
 end
 
+transition ChangeBNumReq(input_bnum_req: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "ChangeBNumReq"; _recipient: current_impl; _amount: zero; input_bnum_req: input_bnum_req; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 transition UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "UpdateContractAddr"; _recipient: current_impl; _amount: zero; proxy_addr: proxy_address; gzil_addr: gzil_address; initiator: _sender};
@@ -207,6 +214,13 @@ end
 transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssn: ssn; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition CompleteWithdrawal(input_bnum: BNum)
+    current_impl <- implementation;
+    msg = {_tag: "CompleteWithdrawal"; _recipient: current_impl; _amount: zero; input_bnum: input_bnum; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

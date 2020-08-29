@@ -234,6 +234,8 @@ field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20
 field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+field bnum_req: Uint128 = Uint128 1
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
@@ -562,7 +564,9 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       ssnlist[ssn] := ssn_option_tmp;
       (* If ssn becomes inactive, we need to decrease the rest ones also *)
       DecreaseTotalStakeAmtOnStatus new_amt status;
-      TransferFunds addfunds_tag withdraw_amount initiator;
+      withdrawal_bnum <- & BLOCKNUMBER;
+      withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amount;
+      (* TransferFunds addfunds_tag withdraw_amount initiator; *)
       e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
       event e
     | None =>
@@ -722,6 +726,12 @@ transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128,
   minstake := min_stake;
   mindelegstake := min_deleg_stake;
   maxcommchangerate := max_comm_change_rate
+end
+
+transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  bnum_req := input_bnum_req
 end
 
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
@@ -955,6 +965,25 @@ transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   WithdrawalStakeAmt initiator ssn amt
+end
+
+transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  current_bnum <- & BLOCKNUMBER;
+  current_bnum_req <- bnum_req;
+  withdraw_bnum = builtin badd input_bnum current_bnum_req;
+  can_withdraw = builtin blt withdraw_bnum current_bnum;
+  match can_withdraw with
+  | False =>
+  | True =>
+    get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
+    match get_withdrawal_amount with
+    | None =>
+    | Some withdraw_amount =>
+      TransferFunds addfunds_tag withdraw_amount initiator
+    end
+  end
 end
 
 (***************************************************)
