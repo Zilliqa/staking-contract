@@ -60,12 +60,15 @@ contract GZIL
   name: String,
   symbol: String,
   decimals: Uint32,
-  init_supply: Uint128
+  init_supply: Uint128,
+  end_block: BNum
 )
 
 (* Mutable fields *)
-field total_supply: Uint128 = init_supply
-field balances: Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field total_supply: Uint128 = Uint128 0
+field balances: Map ByStr20 Uint128
+  = let emp_map = Emp ByStr20 Uint128 in
+    builtin put emp_map contract_owner init_supply
 field allowances: Map ByStr20 (Map ByStr20 Uint128) 
   = Emp ByStr20 (Map ByStr20 Uint128)
 (* This will be set to the current implementation contract address *)
@@ -89,31 +92,6 @@ procedure IsOwner(address: ByStr20)
   end
 end
 
-procedure AuthorizedBurnIfSufficientBalance(from: ByStr20, amount: Uint128)
-  get_bal <- balances[from];
-  match get_bal with
-  | Some bal =>
-    can_burn = uint128_le amount bal;
-    match can_burn with
-    | True =>
-      (* Subtract amount from from *)
-      new_balance = builtin sub bal amount;
-      balances[from] := new_balance;
-      current_total_supply <- total_supply;
-      new_total_supply = builtin sub current_total_supply amount;
-      total_supply := new_total_supply;
-      e = {_eventname: "Burnt"; burner: _sender; burn_account: from; amount: amount};
-      event e  
-    | False =>
-      err = CodeInsufficientFunds;
-      ThrowError err
-    end
-  | None => 
-    err = CodeInsufficientFunds;
-    ThrowError err
-  end
-end
-
 (* Check is the caller is the proxy *)
 procedure IsProxy()
   is_proxy = builtin eq _sender proxy_address;
@@ -125,9 +103,9 @@ procedure IsProxy()
   end
 end
 
-procedure IsMinter(address: ByStr20)
+procedure IsMinter()
   current_minter <- minter;
-  is_minter = builtin eq current_minter address;
+  is_minter = builtin eq current_minter _sender;
   match is_minter with
   | True =>
   | False =>
@@ -201,25 +179,19 @@ end
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
-  IsMinter _sender;
-  AuthorizedMint recipient amount;
-  (* Prevent sending to a contract address that does not support transfers of token *)
-  msg_to_recipient = {_tag: "RecipientAcceptMint"; _recipient: recipient; _amount: zero; 
-                      minter: _sender; recipient: recipient; amount: amount};
-  msgs = one_msg msg_to_recipient;
-  send msgs
-end
-
-(* @dev: Burn existing tokens. Only contract_owner can burn.                      *)
-(* @param burn_account: Address of the token_owner whose balance is to decrease.  *)
-(* @param amount:       Number of tokens to be burned.                            *)
-transition Burn(burn_account: ByStr20, amount: Uint128)
-  IsMinter _sender;
-  AuthorizedBurnIfSufficientBalance burn_account amount;
-  msg_to_sender = {_tag: "BurnSuccessCallBack"; _recipient: _sender; _amount: zero; 
-                    burner: _sender; burn_account: burn_account; amount: amount};
-  msgs = one_msg msg_to_sender;
-  send msgs
+  current_block <- & BLOCKNUMBER;
+  is_minting_over = builtin blt end_block current_block;
+  match is_minting_over with
+  | True =>
+  | False =>
+    IsMinter;
+    AuthorizedMint recipient amount;
+    (* Prevent sending to a contract address that does not support transfers of token *)
+    msg_to_recipient = {_tag: "RecipientAcceptMint"; _recipient: recipient; _amount: zero; 
+                        minter: _sender; recipient: recipient; amount: amount};
+    msgs = one_msg msg_to_recipient;
+    send msgs
+  end
 end
 
 (* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
