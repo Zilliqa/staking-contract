@@ -72,6 +72,17 @@ func (p *Proxy) AddDelegator(ssnaddr, deleg string, stakeAmount string) (*transa
 	return p.Call("UpdateDeleg", args, "0")
 }
 
+func (p *Proxy) PopulateTotalStakeAmt(amt string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"amt",
+			"Uint128",
+			amt,
+		},
+	}
+	return p.Call("PopulateTotalStakeAmt", args, "0")
+}
+
 func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
@@ -83,7 +94,7 @@ func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Trans
 	return p.Call("DelegateStake", args, amount)
 }
 
-func (p *Proxy) UpdateStakingParameters(min,delegmin string) (*transaction.Transaction, error) {
+func (p *Proxy) UpdateStakingParameters(min, delegmin string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
 			"min_stake",
@@ -94,6 +105,11 @@ func (p *Proxy) UpdateStakingParameters(min,delegmin string) (*transaction.Trans
 			"min_deleg_stake",
 			"Uint128",
 			delegmin,
+		},
+		{
+			"max_comm_change_rate",
+			"Uint128",
+			"20",
 		},
 	}
 	return p.Call("UpdateStakingParameters", args, "0")
@@ -207,6 +223,11 @@ func (p *Proxy) AddSSN(addr string, name string) (*transaction.Transaction, erro
 			"String",
 			"fakeapi",
 		},
+		{
+			"comm",
+			"Uint128",
+			"0",
+		},
 	}
 
 	return p.Call("AddSSN", args, "0")
@@ -237,8 +258,36 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 				[]string{ssn, percent},
 			},
 		},
-	},
-	}
+	}, {
+		"verifier_reward",
+		"Uint128",
+		"0",
+	}}
+
+	return p.Call("AssignStakeReward", args, "0")
+}
+
+func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		VName: "ssnreward_list",
+		Type:  "List SsnRewardShare",
+		Value: []core.ParamConstructor{
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn1, percent1},
+			},
+			{
+				"SsnRewardShare",
+				make([]interface{}, 0),
+				[]string{ssn2, percent2},
+			},
+		},
+	}, {
+		"verifier_reward",
+		"Uint128",
+		"0",
+	}}
 
 	return p.Call("AssignStakeReward", args, "0")
 }
@@ -308,8 +357,12 @@ func (p *Proxy) AddFunds(amount string) {
 	}
 }
 
-func (p *Proxy) WithdrawComm() (*transaction.Transaction, error) {
-	args := []core.ContractValue{}
+func (p *Proxy) WithdrawComm(ssnaddr string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		"ssnaddr",
+		"ByStr20",
+		ssnaddr,
+	}}
 	return p.Call("WithdrawComm", args, "0")
 }
 
@@ -401,6 +454,11 @@ func NewProxy(key string) (*Proxy, error) {
 			VName: "init_implementation",
 			Type:  "ByStr20",
 			Value: "0x" + adminAddr,
+		},
+		{
+			"init_gzil_contract",
+			"ByStr20",
+			"0x" + adminAddr,
 		},
 	}
 

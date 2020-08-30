@@ -28,7 +28,7 @@ func (t *Testing) RemoveSSN() {
 	t.AssertError(err1)
 	receipt = t.GetReceiptString(txn)
 	log.Println(receipt)
-	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -10))])")
+	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -9))])")
 	ssnlist.LogContractStateJson()
 
 	// as non admin, remove ssn2

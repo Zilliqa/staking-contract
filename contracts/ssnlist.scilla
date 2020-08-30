@@ -169,6 +169,7 @@ type Error =
   | InvalidTotalAmt
   | InvalidRecvAddr
   | VerifierNotSet
+  | NotTimeYet
 
 let make_error =
   fun (result: Error) =>
@@ -195,6 +196,7 @@ let make_error =
       | InvalidTotalAmt => Int32 -19
       | InvalidRecvAddr => Int32 -20
       | VerifierNotSet => Int32 -21
+      | NotTimeYet => Int32 -22
       end
     in
     { _exception: "Error"; code: result_code }
@@ -234,6 +236,8 @@ field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20
 field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+field bnum_req: Uint128 = Uint128 10000
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
@@ -395,24 +399,33 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
       ThrowError e
     | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
       match active_status with
-      | False => throw
+      | False =>
+        e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
+        event e
       | True  =>
+        (* To calculate rewards belong to this ssn operator *)
         total_stake_amt <- totalstakeamount;
-        new_reward_tmp = builtin mul stake_amt cycle_reward;
-        new_reward = builtin div new_reward_tmp total_stake_amt;
-        reward_comm_tmp = builtin mul new_reward comm;
+        new_rewards_tmp = builtin mul stake_amt cycle_reward;
+        new_rewards = builtin div new_rewards_tmp total_stake_amt;
+
+        (* To calculate commission *)
+        reward_comm_tmp = builtin mul new_rewards comm;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
         total_reward_comm = builtin add reward_comm_tmp comm_rewards;
-        expected_reward = builtin sub new_reward total_reward_comm;
-        deleg_reward = builtin add expected_reward rewards;
-        new_stake_amt = builtin add stake_amt buffdeposit;
-        (* During this cylce, the SSN only earned expected_reward as rewards that could be given to delegs *)
-        p = SSNCycleInfo stake_amt expected_reward;
+
+        (* To calculate rewards can be distributed to delegators *)
+        delegate_reward = builtin sub new_rewards reward_comm_tmp;
+
+        p = SSNCycleInfo stake_amt delegate_reward;
         stake_ssn_per_cycle[ssnaddr][lastreward_blk] := p;
+
+        (* Update ssn info *)
+        new_stake_amt = builtin add stake_amt buffdeposit;
+        deleg_reward = builtin add delegate_reward rewards;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
-        IncreaseTotalStakeAmt buffdeposit;
+        IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
         e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
         event e
       end
@@ -553,7 +566,9 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       ssnlist[ssn] := ssn_option_tmp;
       (* If ssn becomes inactive, we need to decrease the rest ones also *)
       DecreaseTotalStakeAmtOnStatus new_amt status;
-      TransferFunds addfunds_tag withdraw_amount initiator;
+      withdrawal_bnum <- & BLOCKNUMBER;
+      withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amount;
+      (* TransferFunds addfunds_tag withdraw_amount initiator; *)
       e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
       event e
     | None =>
@@ -644,7 +659,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   rcl_reverse_t = mapper f rcl_reverse;
   forall rcl_reverse_t CalcStakeDelegPerCycle;
 
-  (* Calculate and send rewards *)
+  (* Calculate rewards *)
   rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
@@ -713,6 +728,14 @@ transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128,
   minstake := min_stake;
   mindelegstake := min_deleg_stake;
   maxcommchangerate := max_comm_change_rate
+end
+
+transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  bnum_req := input_bnum_req;
+  e = { _eventname: "ChangeBNumReqSuccess"; input_bnum_req: input_bnum_req};
+  event e
 end
 
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
@@ -785,7 +808,6 @@ end
 (* @dev : To update the commision rate for a given SSN *)
 (* @param new_rate: The new commision rate *)
 (* @param initiator: The original caller who called the proxy *)
-(* Notice that the commission rate is the same unit as rewarding RewardPercentage *)
 (* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
 (* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
 transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
@@ -949,6 +971,30 @@ transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
   WithdrawalStakeAmt initiator ssn amt
 end
 
+transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  current_bnum <- & BLOCKNUMBER;
+  current_bnum_req <- bnum_req;
+  withdraw_bnum = builtin badd input_bnum current_bnum_req;
+  can_withdraw = builtin blt withdraw_bnum current_bnum;
+  match can_withdraw with
+  | False =>
+    e = NotTimeYet;
+    ThrowError e
+  | True =>
+    get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
+    match get_withdrawal_amount with
+    | None =>
+    | Some withdraw_amount =>
+      delete withdrawal_pending[initiator][input_bnum];
+      e = { _eventname: "CompleteWithdrawalSuccess"; delegator: initiator; input_bnum: input_bnum };
+      event e;
+      TransferFunds addfunds_tag withdraw_amount initiator
+    end
+  end
+end
+
 (***************************************************)
 (*                 Verifier transition             *)
 (***************************************************)
@@ -1039,7 +1085,7 @@ end
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
 (* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
-(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg *)
+(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
 transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;

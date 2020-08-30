@@ -12,7 +12,7 @@ func (t *Testing) UpdateAdmin() {
 	// as admin, set new admin to addr2
 	ssnlist.LogContractStateJson()
 	args := []core.ContractValue{{
-		"admin",
+		"new_admin",
 		"ByStr20",
 		"0x" + addr2,
 	}}
@@ -27,7 +27,7 @@ func (t *Testing) UpdateAdmin() {
 
 	// as non admin, try to set new admin to addr1
 	args = []core.ContractValue{{
-		"admin",
+		"new_admin",
 		"ByStr20",
 		"0x" + addr1,
 	}}

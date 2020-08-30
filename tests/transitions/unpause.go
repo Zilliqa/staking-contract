@@ -28,4 +28,5 @@ func (t *Testing) Unpause() {
 	receipt = t.GetReceiptString(tnx)
 	log.Println(receipt)
 	ssnlist.LogContractStateJson()
+	t.LogEnd("Unpause")
 }

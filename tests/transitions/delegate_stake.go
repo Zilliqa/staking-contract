@@ -25,7 +25,7 @@ func (t *Testing) DelegateStake() {
 	t.AssertError(err0)
 	t.LogPrettyReceipt(txn)
 	receipt :=  t.GetReceiptString(txn)
-	t.AssertContain(receipt,"Int32 -16")
+	t.AssertContain(receipt,"Int32 -15")
 
 
 	// use addr1 to deposit (should enter direct deposit map)

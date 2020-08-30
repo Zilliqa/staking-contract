@@ -56,6 +56,11 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 			Type:  "ByStr20",
 			Value: "0x" + proxy,
 		},
+		{
+			VName: "gzil_address",
+			Type: "ByStr20",
+			Value: "0x" + adminAddr,
+		},
 	}
 
 	wallet := account.NewWallet()
