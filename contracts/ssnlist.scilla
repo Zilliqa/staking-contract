@@ -169,6 +169,7 @@ type Error =
   | InvalidTotalAmt
   | InvalidRecvAddr
   | VerifierNotSet
+  | CannotCompleteWithdrawal
 
 let make_error =
   fun (result: Error) =>
@@ -195,6 +196,7 @@ let make_error =
       | InvalidTotalAmt => Int32 -19
       | InvalidRecvAddr => Int32 -20
       | VerifierNotSet => Int32 -21
+      | CannotCompleteWithdrawal => Int32 -22
       end
     in
     { _exception: "Error"; code: result_code }
@@ -235,7 +237,7 @@ field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp BySt
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
-field bnum_req: Uint128 = Uint128 1
+field bnum_req: Uint128 = Uint128 10000
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
@@ -976,11 +978,15 @@ transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
   can_withdraw = builtin blt withdraw_bnum current_bnum;
   match can_withdraw with
   | False =>
+    e = CannotCompleteWithdrawal;
+    ThrowError e
   | True =>
     get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
     match get_withdrawal_amount with
     | None =>
     | Some withdraw_amount =>
+      delete withdrawal_pending[initiator][input_bnum];
+      e = { _eventname: "CompleteWithdrawal"; delegator: initiator; input_bnum: input_bnum };
       TransferFunds addfunds_tag withdraw_amount initiator
     end
   end
