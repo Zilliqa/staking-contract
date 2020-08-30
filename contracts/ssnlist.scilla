@@ -169,7 +169,7 @@ type Error =
   | InvalidTotalAmt
   | InvalidRecvAddr
   | VerifierNotSet
-  | CannotCompleteWithdrawal
+  | NotTimeYet
 
 let make_error =
   fun (result: Error) =>
