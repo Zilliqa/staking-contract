@@ -196,7 +196,7 @@ let make_error =
       | InvalidTotalAmt => Int32 -19
       | InvalidRecvAddr => Int32 -20
       | VerifierNotSet => Int32 -21
-      | CannotCompleteWithdrawal => Int32 -22
+      | NotTimeYet => Int32 -22
       end
     in
     { _exception: "Error"; code: result_code }
@@ -733,7 +733,9 @@ end
 transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  bnum_req := input_bnum_req
+  bnum_req := input_bnum_req;
+  e = { _eventname: "ChangeBNumReqSuccess"; input_bnum_req: input_bnum_req};
+  event e
 end
 
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
@@ -978,7 +980,7 @@ transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
   can_withdraw = builtin blt withdraw_bnum current_bnum;
   match can_withdraw with
   | False =>
-    e = CannotCompleteWithdrawal;
+    e = NotTimeYet;
     ThrowError e
   | True =>
     get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
@@ -986,7 +988,8 @@ transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
     | None =>
     | Some withdraw_amount =>
       delete withdrawal_pending[initiator][input_bnum];
-      e = { _eventname: "CompleteWithdrawal"; delegator: initiator; input_bnum: input_bnum };
+      e = { _eventname: "CompleteWithdrawalSuccess"; delegator: initiator; input_bnum: input_bnum };
+      event e;
       TransferFunds addfunds_tag withdraw_amount initiator
     end
   end
