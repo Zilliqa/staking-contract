@@ -77,12 +77,12 @@ The contract defines and uses several custom ADTs that we describe below:
 
 1. SSN Data Type: 
 
-```
+```ocaml
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 ```
 
-```
+```ocaml
 (* Each SSN has the following fields: *)
 
 (* ActiveStatus      : Bool *)
@@ -109,12 +109,12 @@ type Ssn =
 
 2. SSNRewardShare Data Type:
 
-```
+```ocaml
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 ``` 
 
-```
+```ocaml
 (* SSNRewardShare has the following fields: *)
 
 (*  SSNAddress        : ByStr20 *)
@@ -125,11 +125,11 @@ type SsnRewardShare =
 
 3. DelegCycleInfo Data Type:
 
-```
+```ocaml
 type DelegCycleInfo =
 | DelegCycleInfo of ByStr20 Uint128 ByStr20
 ```
-```
+```ocaml
 (*    Each DelegCycleInfo has the following fields: *)
 (*    SSNAddress          : ByStr20 *)
 (*                          Address of the SSN. *)
@@ -140,11 +140,11 @@ type DelegCycleInfo =
 ```
 4. SSNCycleInfo Data Type:
 
-```
+```ocaml
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 ```
-```
+```ocaml
 (*   Each SSNCycleInfo has the following fields: *)
 (*   TotalStakeDuringTheCycle            : Uint128 *)
 (*                                          Represents the amount staked during this cycle for the given SSN. *)
@@ -154,7 +154,7 @@ type SSNCycleInfo =
 
 5. Error Data Type:
 
-```
+```ocaml
 type Error =
   | ContractFrozenFailure (* Contract is paused *)
   | VerifierValidationFailed (* Initiator is not verifier *)
