@@ -538,9 +538,9 @@ procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   end
 end
 
-procedure IsDelegstakeSufficient()
+procedure IsDelegstakeSufficient(amount: Uint128)
   mindelegstake_l <- mindelegstake;
-  suffi =  uint128_le mindelegstake_l _amount;
+  suffi =  uint128_le mindelegstake_l amount;
   match suffi with
   | True =>
   | False =>
@@ -716,7 +716,7 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    IsDelegstakeSufficient;
+    IsDelegstakeSufficient amount;
     minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
