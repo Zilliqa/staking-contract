@@ -189,6 +189,15 @@ transition UpdateReceivedAddr(new_addr: ByStr20)
     send msgs
 end
 
+(* @dev: Set the verifier rewarding address of the contract. Used by admin only. *)
+(* @param addr: New verifier receiving address *)
+transition UpdateVerifierRewardAddr(addr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "UpdateVerifierRewardAddr"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (***************************************************)
 (*                Delegator transition             *)
 (***************************************************)

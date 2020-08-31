@@ -172,6 +172,7 @@ type Error =
   | NotTimeYet
   | NoPendingWithdrawal
   | InvalidWithdrawAmt
+  | VerifierRecvAddrNotSet
 
 let make_error =
   fun (result: Error) =>
@@ -201,6 +202,7 @@ let make_error =
       | NotTimeYet => Int32 -22
       | NoPendingWithdrawal => Int32 -23
       | InvalidWithdrawAmt => Int32 -24
+      | VerifierRecvAddrNotSet => Int32 -25
       end
     in
     { _exception: "Error"; code: result_code }
@@ -251,6 +253,7 @@ field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
 field reward_cycle_list: List Uint128   =  Nil {Uint128}
 field verifier: Option ByStr20 = None {ByStr20}
+field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 0
 (* 1 zil *)
 field mindelegstake: Uint128 = Uint128 1000000000000
@@ -801,6 +804,16 @@ transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
   verifier := newverifier
 end
 
+(* @dev: Set the verifier receiving address of the contract. Used by admin only. *)
+(* @param addr: New verifier receiving address *)
+(* @param initiator: The original caller who called the proxy *)
+transition UpdateVerifierRewardAddr(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  newAddr = Some {ByStr20} addr;
+  verifier_receiving_addr := newAddr
+end
+
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
 (* @param min_stake: New minstake value *)
 (* @param min_deleg_stake: New mindelegstake value *)
@@ -1057,7 +1070,7 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
   rcl <- reward_cycle_list;
   rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
   reward_cycle_list := rcl_new;
-  verifier_o <- verifier;
+  verifier_o <- verifier_receiving_addr;
   match verifier_o with
   | Some v => 
     is_zero = builtin eq verifier_reward uint128_zero;
@@ -1067,7 +1080,7 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
       TransferFunds addfunds_tag verifier_reward v
     end
   | None =>
-    e = VerifierNotSet;
+    e = VerifierRecvAddrNotSet;
     ThrowError e
   end
 
