@@ -225,9 +225,9 @@ transition CompleteWithdrawal()
     send msgs
 end
 
-transition ReDelegateStake(input_bnum: BNum, ssnaddr: ByStr20, amount: Uint128)
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "ReDelegateStake"; _recipient: current_impl; _amount: zero; input_bnum: input_bnum; ssnaddr: ssnaddr; amount: amount; initiator: _sender};
+    msg = {_tag: "ReDelegateStake"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; to_ssn: to_ssn; amount: amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
