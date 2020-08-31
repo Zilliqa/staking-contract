@@ -218,9 +218,16 @@ transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
     send msgs
 end
 
-transition CompleteWithdrawal(input_bnum: BNum)
+transition CompleteWithdrawal()
     current_impl <- implementation;
-    msg = {_tag: "CompleteWithdrawal"; _recipient: current_impl; _amount: zero; input_bnum: input_bnum; initiator: _sender};
+    msg = {_tag: "CompleteWithdrawal"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "ReDelegateStake"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; to_ssn: to_ssn; amount: amount; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
