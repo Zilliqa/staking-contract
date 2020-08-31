@@ -249,6 +249,8 @@ field bnum_req: Uint128 = Uint128 10000
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
 (* Used during CalcRewardsDelegPerCycle *)
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field avaiable_withdrawal: Uint128 = uint128_zero
+field current_deleg: Option ByStr20 = None {ByStr20}
 field reward_cycle_list: List Uint128   =  Nil {Uint128}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
@@ -394,6 +396,31 @@ procedure TransferFunds(tag: String, amt: Uint128, recipient: ByStr20)
     msgs = one_msg msg;
     send msgs
 end
+
+(* current_block > withdraw_number + bnum_req *)
+procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
+  current_deleg_o <- current_deleg;
+  match current_deleg_o with
+  | Some current_deleg =>
+    match withdraw with
+    | Pair withdraw_number amt =>
+      current_bnum <- & BLOCKNUMBER;
+      current_bnum_req <- bnum_req;
+      bnum = builtin badd withdraw_number current_bnum_req;
+      can_withdraw = builtin blt bnum current_bnum;
+      match can_withdraw with
+      | True =>
+          delete withdrawal_pending[current_deleg][withdraw_number];
+          current_amt <- avaiable_withdrawal;
+          current_amt = builtin add current_amt amt;
+          avaiable_withdrawal := current_amt
+      | False => 
+      end
+  end
+  | None => (* Won't reach *)
+  end
+end
+
 
 procedure UpdateStakeReward(entry: SsnRewardShare)
   lastreward_blk <- lastrewardcycle;
@@ -570,8 +597,12 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       (* If ssn becomes inactive, we need to decrease the rest ones also *)
       DecreaseTotalStakeAmtOnStatus new_amt status;
       withdrawal_bnum <- & BLOCKNUMBER;
-      withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amount;
-      (* TransferFunds addfunds_tag withdraw_amount initiator; *)
+      withdraw_amt_o <- withdrawal_pending[initiator][withdrawal_bnum];
+      withdraw_amt_pending = match withdraw_amt_o with
+      | Some v => builtin add v withdraw_amount
+      | None => withdraw_amount
+      end;
+      withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
       e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
       event e
     | None =>
@@ -989,29 +1020,26 @@ transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
   WithdrawalStakeAmt initiator ssn amt
 end
 
-transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
+transition CompleteWithdrawal(initiator: ByStr20)
   IsPaused;
   IsProxy;
-  current_bnum <- & BLOCKNUMBER;
-  current_bnum_req <- bnum_req;
-  withdraw_bnum = builtin badd input_bnum current_bnum_req;
-  can_withdraw = builtin blt withdraw_bnum current_bnum;
-  match can_withdraw with
-  | False =>
-    e = NotTimeYet;
-    ThrowError e
-  | True =>
-    get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
-    match get_withdrawal_amount with
-    | None =>
-      e = NoPendingWithdrawal;
-      ThrowError e
-    | Some withdraw_amount =>
-      delete withdrawal_pending[initiator][input_bnum];
-      e = { _eventname: "CompleteWithdrawalSuccess"; delegator: initiator; input_bnum: input_bnum; withdraw_amount: withdraw_amount };
-      event e;
-      TransferFunds addfunds_tag withdraw_amount initiator
-    end
+  withdraw_map_o <- withdrawal_pending[initiator];
+  match withdraw_map_o with
+  | Some withdraw_map =>
+    withdraw_list = builtin to_list withdraw_map;
+    (* To init tmp fileds *)
+    withdrawal_zero = uint128_zero;
+    avaiable_withdrawal := withdrawal_zero;
+    c = Some {ByStr20} initiator;
+    current_deleg := c;
+
+    (* Calculate withdrawal that can be transferred *)
+    forall withdraw_list CalculateTotalWithdrawal;
+    withdraw_amt <- avaiable_withdrawal;
+    e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
+    event e;
+    TransferFunds addfunds_tag withdraw_amt initiator
+  | None =>
   end
 end
 
