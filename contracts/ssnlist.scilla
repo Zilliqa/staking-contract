@@ -171,6 +171,7 @@ type Error =
   | VerifierNotSet
   | NotTimeYet
   | NoPendingWithdrawal
+  | InvalidWithdrawAmt
 
 let make_error =
   fun (result: Error) =>
@@ -199,6 +200,7 @@ let make_error =
       | VerifierNotSet => Int32 -21
       | NotTimeYet => Int32 -22
       | NoPendingWithdrawal => Int32 -23
+      | InvalidWithdrawAmt => Int32 -24
       end
     in
     { _exception: "Error"; code: result_code }
@@ -1004,7 +1006,7 @@ transition CompleteWithdrawal(input_bnum: BNum, initiator: ByStr20)
   end
 end
 
-transition ReDelegateStake(input_bnum: BNum, ssnaddr: ByStr20, initiator: ByStr20)
+transition ReDelegateStake(input_bnum: BNum, ssnaddr: ByStr20, amount: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
@@ -1013,9 +1015,23 @@ transition ReDelegateStake(input_bnum: BNum, ssnaddr: ByStr20, initiator: ByStr2
     e = NoPendingWithdrawal;
     ThrowError e
   | Some withdraw_amount =>
-    delete withdrawal_pending[initiator][input_bnum];
-    Delegate ssnaddr initiator withdraw_amount;
-    e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; delegator: initiator; input_bnum: input_bnum; delegate_amount: withdraw_amount };
+    valid_amount = uint128_le amount withdraw_amount;
+    match valid_amount with
+    | True =>
+      Delegate ssnaddr initiator withdraw_amount;
+      to_delete = builtin eq amount withdraw_amount;
+      match to_delete with
+      | True =>
+        delete withdrawal_pending[initiator][input_bnum]
+      | False =>
+        remaining_amount = builtin sub withdraw_amount amount;
+        withdrawal_pending[initiator][input_bnum] := remaining_amount
+      end
+    | False =>
+      e = InvalidWithdrawAmt;
+      ThrowError e
+    end;
+    e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; delegator: initiator; input_bnum: input_bnum; delegate_amount: amount };
     event e
   end
 end
