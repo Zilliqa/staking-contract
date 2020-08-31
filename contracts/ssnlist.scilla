@@ -484,10 +484,6 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
   end
 end
 
-procedure FillInDepositDeleg(ssnaddr: ByStr20, deleg: ByStr20)
-  FillInDepositDelegAmt ssnaddr deleg _amount
-end
-
 procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   lrcd = option_uint128_value lrcd_tmp;
