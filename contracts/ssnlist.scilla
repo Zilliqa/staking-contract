@@ -1043,34 +1043,13 @@ transition CompleteWithdrawal(initiator: ByStr20)
   end
 end
 
-transition ReDelegateStake(input_bnum: BNum, ssnaddr: ByStr20, amount: Uint128, initiator: ByStr20)
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  get_withdrawal_amount <- withdrawal_pending[initiator][input_bnum];
-  match get_withdrawal_amount with
-  | None =>
-    e = NoPendingWithdrawal;
-    ThrowError e
-  | Some withdraw_amount =>
-    valid_amount = uint128_le amount withdraw_amount;
-    match valid_amount with
-    | True =>
-      Delegate ssnaddr initiator withdraw_amount;
-      to_delete = builtin eq amount withdraw_amount;
-      match to_delete with
-      | True =>
-        delete withdrawal_pending[initiator][input_bnum]
-      | False =>
-        remaining_amount = builtin sub withdraw_amount amount;
-        withdrawal_pending[initiator][input_bnum] := remaining_amount
-      end
-    | False =>
-      e = InvalidWithdrawAmt;
-      ThrowError e
-    end;
-    e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; delegator: initiator; input_bnum: input_bnum; delegate_amount: amount };
-    event e
-  end
+  WithdrawalStakeAmt initiator ssnaddr amount;
+  Delegate to_ssn initiator amount;
+  e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
+  event e
 end
 
 (***************************************************)
