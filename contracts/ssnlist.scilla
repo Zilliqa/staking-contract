@@ -225,6 +225,8 @@ field comm_for_ssn: Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128
 (* Record deposit amount for every deleg for every ssn *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+(* AddressofSSN -> (AddressofDeleg -> StakeAmount) *)
+field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of buffered deposit for a deleg *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
@@ -271,6 +273,7 @@ field totalstakeamount: Uint128 = uint128_zero
 (* Internal functions, used like Solidity modifiers *)
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete deposit_amt_deleg[deleg][ssnaddr];
+  delete ssn_deleg_amt[ssnaddr][deleg];
   delete buff_deposit_deleg[deleg][ssnaddr];
   delete direct_deposit_deleg[deleg][ssnaddr];
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
@@ -505,9 +508,11 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
   match deposit_amt with
   | Some amt =>
     new_amt = builtin add amt amount;
-    deposit_amt_deleg[deleg][ssnaddr] := new_amt
+    deposit_amt_deleg[deleg][ssnaddr] := new_amt;
+    ssn_deleg_amt[ssnaddr][deleg] := new_amt
   | None =>
-    deposit_amt_deleg[deleg][ssnaddr] := amount
+    deposit_amt_deleg[deleg][ssnaddr] := amount;
+    ssn_deleg_amt[ssnaddr][deleg] := amount
   end
 end
 
@@ -566,6 +571,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       (* Refer to transition TruncateDeleg, here we don't use Fillin transition because we *)
       (* know they are all empty, and this can reduce some gasfee *)
       deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
+      ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
       direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
       last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
       last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
