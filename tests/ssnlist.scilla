@@ -143,6 +143,7 @@ gzil_address: ByStr20
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
 field comm_for_ssn: Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
@@ -169,6 +170,7 @@ field maxcommrate: Uint128 = Uint128 1000000000
 field totalstakeamount: Uint128 = uint128_zero
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
 delete deposit_amt_deleg[deleg][ssnaddr];
+delete ssn_deleg_amt[ssnaddr][deleg];
 delete buff_deposit_deleg[deleg][ssnaddr];
 delete direct_deposit_deleg[deleg][ssnaddr];
 delete last_withdraw_cycle_deleg[deleg][ssnaddr];
@@ -369,9 +371,11 @@ deposit_amt <- deposit_amt_deleg[deleg][ssnaddr];
 match deposit_amt with
 | Some amt =>
 new_amt = builtin add amt amount;
-deposit_amt_deleg[deleg][ssnaddr] := new_amt
+deposit_amt_deleg[deleg][ssnaddr] := new_amt;
+ssn_deleg_amt[ssnaddr][deleg] := new_amt
 | None =>
-deposit_amt_deleg[deleg][ssnaddr] := amount
+deposit_amt_deleg[deleg][ssnaddr] := amount;
+ssn_deleg_amt[ssnaddr][deleg] := amount
 end
 end
 procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
@@ -421,6 +425,7 @@ lrc <- lastrewardcycle;
 rest_deleg = builtin sub total_amount withdraw_amount;
 TruncateDeleg deleg ssnaddr;
 deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
+ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
 direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
 last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
 last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
