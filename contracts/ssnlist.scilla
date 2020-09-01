@@ -13,8 +13,8 @@ library SSNList
 (* StakeAmount       : Uint128 *)
 (*                     Total stake that can be used for reward calculation. *)
 (* StakeRewards      : Uint128 *)
-(*                     (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegs. *)
-(*                     It does not include SSN's own comm. *)
+(*                     (Unwithdrawn) Reward accumulated so far across all cycles. It only includes the reward that the SSN can distribute to its delegators. *)
+(*                     It does not include SSN's own commission. *)
 (* Name              : String *)
 (*                     A human-readable name for this SSN. *)
 (* URLRaw            : String *)
@@ -25,11 +25,11 @@ library SSNList
 (*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered *)
 (*                     for the next one. *)
 (* Commission        : Uint128 *)
-(*                     Percentage of incoming rewards that the SSN takes. *)
+(*                     Percentage of incoming rewards that the SSN takes as commission. *)
 (* CommissionRewards : Uint128 *)
-(*                     Number of ZILs earned as comm by the SSN. *)
-(* ReceivedAddress   : ByStr20 *)
-(*                     Address will be used to receive comm. *)
+(*                     Number of ZILs earned as commission by the SSN. *)
+(* ReceivingAddress   : ByStr20 *)
+(*                     Address that will be used to receive commission. *)
 (* Invariant : ActiveStatus = (Minstake < StakeAmount)  *)
 
 type Ssn =
@@ -42,8 +42,13 @@ type Ssn =
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. 
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed)
+(* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
+
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
+
 (* DelegCycleInfo Data Type *)
 
 (*    Each DelegCycleInfo has the following fields: *)
@@ -51,8 +56,9 @@ type SsnRewardShare =
 (*                          Address of the SSN. *)
 (*    StakeDuringTheCycle : Uint128 *)
 (*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress    : ByStr20 *)
-(*                      Address of Deleg. *)
+(*    DelegAddress        : ByStr20 *)
+(*                          Address of Delegator. *)
+
 type DelegCycleInfo =
 | DelegCycleInfo of ByStr20 Uint128 ByStr20
 (* SSNCycleInfo Data Type *)

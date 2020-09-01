@@ -55,7 +55,8 @@ broadly use:
 
 # SSNList Contract Specification
 
-The SSNList contract is the main contract that is central to the entire staking infrastructure. 
+The SSNList contract is the main contract that is central to the entire staking
+infrastructure. 
 
 
 ## Roles and Privileges
@@ -120,7 +121,8 @@ type SsnRewardShare =
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  RewardShare       : Uint128 *)
-(*                      This is the integer representation of the reward assigned by the verifier to this SSN based on the total number of tokens staked across all SSNs, the stake at the given SSN and the performance of the given SSN node. *)
+(*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
+                        It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 ```
 
 3. DelegCycleInfo Data Type:
@@ -129,15 +131,17 @@ type SsnRewardShare =
 type DelegCycleInfo =
 | DelegCycleInfo of ByStr20 Uint128 ByStr20
 ```
+
 ```ocaml
 (*    Each DelegCycleInfo has the following fields: *)
 (*    SSNAddress          : ByStr20 *)
 (*                          Address of the SSN. *)
 (*    StakeDuringTheCycle : Uint128 *)
 (*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress    : ByStr20 *)
-(*                      Address of Deleg. *)
+(*    DelegAddress        : ByStr20 *)
+(*                          Address of Delegator. *)
 ```
+
 4. SSNCycleInfo Data Type:
 
 ```ocaml
