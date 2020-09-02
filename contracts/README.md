@@ -1,6 +1,6 @@
 # Non-Custodial Seed Node Staking Contracts
 
-Non-Custodial Seed node staking in [Zilliqa](https://www.zilliqa.com) as
+Non-custodial seed node staking in [Zilliqa](https://www.zilliqa.com) as
 described in
 [ZIP-11](https://github.com/Zilliqa/ZIP/blob/zip-11/zips/zip-11.md) makes use
 of four contracts written in
