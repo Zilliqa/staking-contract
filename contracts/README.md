@@ -101,7 +101,7 @@ type Ssn =
 (* BufferedDeposit   : Uint128 *)
 (*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered for the next one. *)
 (* Commission        : Uint128 *)
-(*                     Percentage of incoming rewards that the SSN takes. *)
+(*                     Percentage of incoming rewards that the SSN takes. Represented as an integer. If the commission is 10.5%, then it is multiplied by 10^7 and then resulting integer is set as commission. The assumption is that the percentage is up to 7 decimal places. *)
 (* CommissionRewards : Uint128 *)
 (*                     Number of ZILs earned as commission by the SSN. *)
 (* ReceivingAddress   : ByStr20 *)
@@ -152,7 +152,7 @@ type SSNCycleInfo =
 (*   Each SSNCycleInfo has the following fields: *)
 (*   TotalStakeDuringTheCycle            : Uint128 *)
 (*                                         Represents the amount staked during this cycle for the given SSN. *)
-(*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
+(*   TotalRewardEarnedDuringTheCycle     : Uint128 *)
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
@@ -186,38 +186,42 @@ type Error =
 The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
 
 | Name | Type | Description |                                    
-| --------------- | ------------------------------------------------- |-|
-| `init_admin` | `ByStr20` | The initial admin of the contract.          |
-| `proxy_address` | `ByStr20` | Address of the `SSNListProxy` contract.  |
+| ---------------      | ----------|-                                         |
+| `init_admin`         | `ByStr20` | The initial admin of the contract.       |
+| `init_proxy_address` | `ByStr20` | The initial address of the `SSNListProxy` contract.  |
+| `gzil_address`       | `ByStr20` | Address of the `gZILToken` contract.  |
 
 ## Mutable Fields
 
-The contract defines and uses a custom ADT named `Ssn` as explained below: 
-
-```
-type Ssn = 
-| Ssn of Bool Uint128 Uint128 String String Uint128
-(* The first argument of type Bool represents the status of the SSN. An active SSN will have this field set to True.  *)
-(* The second argument of type Uint128 represents the amount staked by the SSN. *)
-(* The third argument of type Uint128 represents the rewards that this SSN can withdraw. *)
-(* The fourth argument of type String represents the raw URL for the SSN to fetch raw blockchain data. *)
-(* The fifth argument of type String represents the URL API endpoint for the SSN similar to api.zilliqa.com. *)
-(* The sixth and the last argument of type Uint128 represents the deposit made by the SSN that cannot be considered for reward calculations in the current reward cycle. *)
-```
 
 The table below presents the mutable fields of the contract and their initial values. 
 
 | Name        | Type       | Initial Value                           | Description                                        |
 | ----------- | --------------------|--------------- | -------------------------------------------------- |
 | `ssnlist`   | `Map ByStr20 Ssn` | `Emp ByStr20 Ssn` |Mapping between SSN addresses and the corresponding `Ssn` information. |
+| `comm_for_ssn`   | `Map ByStr20 (Map Uint128 Uint128)` | `Emp ByStr20 (Map Uint128 Uint128)` | `Map (SSNAddress -> Map (RewardCycleNum -> Commission))` |
+| `deposit_amt_deleg`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (DelegatorAddress -> Map (SSNAddress -> AmoutDelegated))` |
+| `ssn_deleg_amt`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (SSNAddress -> Map (DelegatorAddress -> AmountDelegated))` |
+| `buff_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> BufferedStakeAmount)))` |
+| `direct_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> UnBufferedStakeAmount)))` |
+| `last_withdraw_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint128))` | `Emp ByStr20 (Map ByStr20 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastWithdrawn))` |
+| `last_buf_deposit_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint128))` | `Emp ByStr20 (Map ByStr20 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastDeposited))` |
+| `stake_ssn_per_cycle`   | `Map ByStr20 (Map Uint128  SSNCycleInfo))` | `Emp ByStr20 (Map Uint128 SSNCycleInfo))` | `Map (SSNAddress -> Map (Uint128 -> SSNCycleInfo))`|
+|`withdrawal_pending` | `Map ByStr20 (Map BNum Uint128)` | `Emp ByStr20 (Map BNum Uint128)` | `Map (DelegatorAddress -> (BlockNumberWhenRewardWithdrawalRequested -> Amount ))` |
+| `bnum_req`  | `Uint128` | `Uin128 24000`       | Bonding period in terms of number of blocks. |
+|`reward_cycle_list` | `List Uint128` | `Nil {Uint128}` | List of all reward cycles. |
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
+| `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
 | `minstake`  | `Uint128` | `Uin128 0`       | Minimum stake required to activate an SSN (in `Qa`, where `1 Qa = 10^-12 ZIL`). |
-| `maxstake`  | `Uint128`  | `Uint128 0`.                       | Maximum stake (in `Qa`) allowed for each SSN. |
-| `contractmaxstake`  | `Uint128`  | `Uint128 0` | The maximum amount (in `Qa`) that can ever be staked across all SSNs. |
-| `totalstakeddeposit`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. |
+| `mindelegstake`  | `Uint128` | `Uin128 0`       | Minimum stake for a delegator (1000 ZIL). |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
+| `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
+| `gziladdr` | `ByStr20` |  `gzil_address` | Address of the gzil contract. |
+|`lastrewardcyle` | `Uint128` | `Uint128 1` | The block number when the last reward was distributed. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
-|`lastrewardblocknum` | `Uint32` | `Uint32 0` | The block number when the last reward was distributed. |
+| `maxcommchangerate`| `Uint128` | `Uint128 1` | The maximum rate change that an SSN is allowed to make across cycles. |
+| `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. |
+| `totalstakeamount`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. |
 
 ## Transitions 
 

@@ -25,7 +25,7 @@ library SSNList
 (*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered *)
 (*                     for the next one. *)
 (* Commission        : Uint128 *)
-(*                     Percentage of incoming rewards that the SSN takes as commission. *)
+(*                     Percentage of incoming rewards that the SSN takes as commission. If the commission is 10.5%, then it is multiplied by 10^7 and then the resulting integer is set as commission. The assumption is that the percentage is up to 7 decimal places. *)
 (* CommissionRewards : Uint128 *)
 (*                     Number of ZILs earned as commission by the SSN. *)
 (* ReceivingAddress   : ByStr20 *)
@@ -68,10 +68,12 @@ type DelegCycleInfo =
 (*                                          Represents the amount staked during this cycle for the given SSN. *)
 (*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
 (*                                         Represents the amount staked during this cycle for the given SSN. *)
+
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
 (* deleg, ssn_operator, reward_cycle *)
+
 type TmpArg =
 | TmpArg of ByStr20 ByStr20 Uint128
 
@@ -206,48 +208,60 @@ let make_error =
 (***************************************************)
 contract SSNList(
   init_admin: ByStr20,
-  proxy_address: ByStr20,
+  init_proxy_address: ByStr20,
   gzil_address: ByStr20
 )
+
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
-(* Record comm for ssn of every cycle*)
-(* AddressofSSN -> (Cycle -> comm ) *)
+
+(* Record commmission for SSN for each reward cycle *)
+(* AddressofSSN -> (RewardCycle -> commission ) *)
 field comm_for_ssn: Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
-(* Following data structs help to calculate rewards for delegators *)
+
+(* Following data structure helps to calculate rewards for delegators *)
 (* Keeps track of stakes deposited at SSNs *)
 (* Record deposit amount for every deleg for every ssn *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
 (* AddressofSSN -> (AddressofDeleg -> StakeAmount) *)
 field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
-(* Keeps track of buffered deposit for a deleg *)
+
+(* Keeps track of buffered deposit for a delegator *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
 field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
-(* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
+
+(* Keeps track of stake deposits for a delegator that can be considered for reward calcuation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
 field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+
 (* Keeps track of the cycle number when a deleg last withdrew its rewards *)
 (* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastWithdrawn) *)
 (* notice here, the last withdraw cycle also indicated the earlist deposit cycle this round *)
 (* this will help reduce some calculation for DistributeStakeRewards, also can avoid some corner cases *)
 field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
 (* Keeps track of the cycle number when a deleg last buffered deposit its delegate *)
 (* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastDeposit) *)
 field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
-field bnum_req: Uint128 = Uint128 10000
-(* Temporary storage map *)
+field bnum_req: Uint128 = Uint128 24000
+
+(* Temporary storage maps *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
 (* Used during CalcRewardsDelegPerCycle *)
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
+
 field reward_cycle_list: List Uint128   =  Nil {Uint128}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
@@ -255,7 +269,7 @@ field minstake: Uint128 = Uint128 0
 (* 1 zil *)
 field mindelegstake: Uint128 = Uint128 1000000000000
 field contractadmin: ByStr20  = init_admin
-field proxyaddr: ByStr20 = proxy_address
+field proxyaddr: ByStr20 = init_proxy_address
 field gziladdr: ByStr20 = gzil_address
 field lastrewardcycle: Uint128 = uint128_one
 field paused: Bool = True
