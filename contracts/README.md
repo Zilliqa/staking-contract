@@ -2,7 +2,7 @@
 
 Non-custodial seed node staking in [Zilliqa](https://www.zilliqa.com) as
 described in
-[ZIP-11](https://github.com/Zilliqa/ZIP/blob/zip-11/zips/zip-11.md) makes use
+[ZIP-11](https://github.com/Zilliqa/ZIP/blob/master/zips/zip-11.md) makes use
 of four contracts written in
 [Scilla](https://scilla.readthedocs.io/en/latest/).  This repository is the
 central portal that collates together the contracts, documentations around
