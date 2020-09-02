@@ -151,7 +151,7 @@ type SSNCycleInfo =
 ```ocaml
 (*   Each SSNCycleInfo has the following fields: *)
 (*   TotalStakeDuringTheCycle            : Uint128 *)
-(*                                          Represents the amount staked during this cycle for the given SSN. *)
+(*                                         Represents the amount staked during this cycle for the given SSN. *)
 (*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
@@ -165,16 +165,20 @@ type Error =
   | AdminValidationFailed (* Initiator is not admin *)
   | ProxyValidationFailed (* Caller is not proxy *)
   | DelegDoesNotExistAtSSN (* Delegator does not exist at the given SSN *)
-  | UpdateStakingParamError (* Error in updating staking parameter *)
   | DelegHasBufferedDeposit (* Delegator has some buffered deposit. *)
   | ChangeCommError (* Commission could not be changed *)
   | SSNNotExist (* SSN does not exist *)
-  | DelegNotExist (* Delegator does not exist *)
   | SSNAlreadyExist (* SSN already exists *)
   | DelegHasUnwithdrawnRewards (* Delegator has unwithdrawn Rewards *)
   | DelegHasNoSufficientAmt (* Delegator does not have sufficient amount to withdraw *)
   | SSNNoComm (* SSN has no commission left to withdraw *)
   | DelegStakeNotEnough (* Delegator's stake is not above minimum *)
+  | ExceedMaxChangeRate (* SSN is trying to modify the commission rate by over 1% *)
+  | ExceedMaxCommRate (* SSN is trying to set the commission rate greater than the allowed max *)
+  | InvalidTotalAmt (* Error when the total stake amount is being decreased by an illegal amount *)
+  | InvalidRecvAddr (* Commission is being withdrawn to an address different from that of the receiving address *)
+  | VerifierNotSet (* Verifier's address is not set in the field *)
+  | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
 ```
 
 ## Immutable Parameters
