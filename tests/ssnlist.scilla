@@ -3,6 +3,8 @@ import ListUtils IntUtils BoolUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle.
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 type DelegCycleInfo =
@@ -78,60 +80,49 @@ let uint128_10_power_7 = Uint128 10000000
 let uint128_100 = Uint128 100
 let addfunds_tag = "AddFunds"
 type Error =
-| ContractFreezedFailure
+| ContractFrozenFailure
 | VerifierValidationFailed
 | AdminValidationFailed
 | ProxyValidationFailed
 | DelegDoesNotExistAtSSN
-| DelegDepositBlowMin
 | DelegHasBufferedDeposit
 | ChangeCommError
 | SSNNotExist
-| DelegNotExist
 | SSNAlreadyExist
 | DelegHasUnwithdrawRewards
 | DelegHasNoSufficientAmt
 | SSNNoComm
 | DelegStakeNotEnough
-| GZILValidationFailed
 | ExceedMaxChangeRate
 | ExceedMaxCommRate
 | InvalidTotalAmt
 | InvalidRecvAddr
 | VerifierNotSet
 | NotTimeYet
-| NoPendingWithdrawal
-| InvalidWithdrawAmt
 | VerifierRecvAddrNotSet
 let make_error =
 fun (result: Error) =>
 let result_code =
 match result with
-| ContractFreezedFailure => Int32 -1
+| ContractFrozenFailure => Int32 -1
 | VerifierValidationFailed => Int32 -2
 | AdminValidationFailed => Int32 -3
 | ProxyValidationFailed => Int32 -4
 | DelegDoesNotExistAtSSN => Int32 -5
-| DelegDepositBlowMin => Int32 -6
-| DelegHasBufferedDeposit => Int32 -7
-| ChangeCommError => Int32 -8
-| SSNNotExist => Int32 -9
-| DelegNotExist => Int32 -10
-| SSNAlreadyExist => Int32 -11
-| DelegHasUnwithdrawRewards => Int32 -12
-| DelegHasNoSufficientAmt => Int32 -13
-| SSNNoComm => Int32 -14
-| DelegStakeNotEnough => Int32 -15
-| GZILValidationFailed => Int32 -16
-| ExceedMaxChangeRate => Int32 -17
-| ExceedMaxCommRate => Int32 -18
-| InvalidTotalAmt => Int32 -19
-| InvalidRecvAddr => Int32 -20
-| VerifierNotSet => Int32 -21
-| NotTimeYet => Int32 -22
-| NoPendingWithdrawal => Int32 -23
-| InvalidWithdrawAmt => Int32 -24
-| VerifierRecvAddrNotSet => Int32 -25
+| DelegHasBufferedDeposit => Int32 -6
+| ChangeCommError => Int32 -7
+| SSNNotExist => Int32 -8
+| SSNAlreadyExist => Int32 -9
+| DelegHasUnwithdrawRewards => Int32 -10
+| DelegHasNoSufficientAmt => Int32 -11
+| SSNNoComm => Int32 -12
+| DelegStakeNotEnough => Int32 -13
+| ExceedMaxChangeRate => Int32 -14
+| ExceedMaxCommRate => Int32 -15
+| InvalidTotalAmt => Int32 -16
+| InvalidRecvAddr => Int32 -17
+| VerifierNotSet => Int32 -18
+| VerifierRecvAddrNotSet => Int32 -19
 end
 in
 { _exception: "Error"; code: result_code }
@@ -243,7 +234,7 @@ e = VerifierValidationFailed;
 ThrowError e
 end
 | None =>
-e = VerifierValidationFailed;
+e = VerifierNotSet;
 ThrowError e
 end
 end
@@ -271,7 +262,7 @@ paused_tmp <- paused;
 match paused_tmp with
 | False =>
 | True  =>
-e = ContractFreezedFailure;
+e = ContractFrozenFailure;
 ThrowError e
 end
 end
