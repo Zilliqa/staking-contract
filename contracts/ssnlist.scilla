@@ -42,8 +42,8 @@ type Ssn =
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. 
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 (* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
 
 type SsnRewardShare =
@@ -704,6 +704,15 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   reward = option_uint128_value reward;
   SendDelegRewards deleg reward;
   MintCall deleg reward;
+  (* todo update ssn: sub reward *)
+  ssn_o <- ssnlist[ssn_operator];
+  match ssn_o with
+  | Some (Ssn active_status stake_amt total_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    rest_rewards = builtin sub total_rewards reward;
+    ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+    ssnlist[ssn_operator] := ssn
+  | None => (* won't reach *)
+  end;
   sdpc <- stake_deleg_per_cycle;
   sdpc_list = builtin to_list sdpc;
   e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
@@ -1002,24 +1011,25 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  DelegExists ssn_operator initiator;
-  amt_opt <- deposit_amt_deleg[initiator][ssn_operator];
+  DelegExists ssnaddr initiator;
+  amt_opt <- deposit_amt_deleg[initiator][ssnaddr];
   amt = option_uint128_value amt_opt;
-  WithdrawalStakeRewards initiator ssn_operator
+  WithdrawalStakeRewards initiator ssnaddr
 end
 
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
-(* @param ssn: Address of the SSN to which stake had been delegated. *)
+(* @param ssnaddr: Address of the SSN to which stake had been delegated. *)
 (* @param amt: The amount which the delegators wanr to withdraw*)
 (* @param initiator: The original caller who called the proxy. *)
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssn amt
+  WithdrawalStakeAmt initiator ssnaddr amt
 end
 
 transition CompleteWithdrawal(initiator: ByStr20)
@@ -1045,12 +1055,12 @@ transition CompleteWithdrawal(initiator: ByStr20)
   end
 end
 
-transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssnaddr amount;
-  Delegate to_ssn initiator amount;
-  e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
+  WithdrawalStakeAmt initiator ssnaddr amt;
+  Delegate to_ssn initiator amt;
+  e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amt };
   event e
 end
 
