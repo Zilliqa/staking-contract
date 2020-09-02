@@ -369,7 +369,8 @@ end
 
 (* Check if the caller is the proxy *)
 procedure IsProxy()
-  is_proxy = builtin eq _sender proxy_address;
+  proxyaddr_tmp <- proxyaddr;
+  is_proxy = builtin eq _sender proxyaddr_tmp;
   match is_proxy with
   | True  =>
   | False =>
