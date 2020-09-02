@@ -40,6 +40,9 @@ jobs:
       - run: opam install scilla
 
       - run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/gzil.scilla
-      - run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/multisig_wallet.scilla
-      - run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/proxy.scilla
-      - run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/ssnlist.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/multisig_wallet.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/proxy.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/ssnlist.scilla
