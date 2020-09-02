@@ -42,8 +42,8 @@ type Ssn =
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. 
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 (* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
 
 type SsnRewardShare =
@@ -714,6 +714,15 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   reward = option_uint128_value reward;
   SendDelegRewards deleg reward;
   MintCall deleg reward;
+  (* todo update ssn: sub reward *)
+  ssn_o <- ssnlist[ssn_operator];
+  match ssn_o with
+  | Some (Ssn active_status stake_amt total_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    rest_rewards = builtin sub total_rewards reward;
+    ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+    ssnlist[ssn_operator] := ssn
+  | None => (* won't reach *)
+  end;
   sdpc <- stake_deleg_per_cycle;
   sdpc_list = builtin to_list sdpc;
   e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
