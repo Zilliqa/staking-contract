@@ -3,8 +3,6 @@ import ListUtils IntUtils BoolUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle.
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed)
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 type DelegCycleInfo =
@@ -150,7 +148,7 @@ field reward_cycle_list: List Uint128   =  Nil {Uint128}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 0
-field mindelegstake: Uint128 = Uint128 1000000000000
+field mindelegstake: Uint128 = Uint128 0
 field contractadmin: ByStr20  = init_admin
 field proxyaddr: ByStr20 = proxy_address
 field gziladdr: ByStr20 = gzil_address
@@ -249,7 +247,8 @@ ThrowError e
 end
 end
 procedure IsProxy()
-is_proxy = builtin eq _sender proxy_address;
+proxyaddr_tmp <- proxyaddr;
+is_proxy = builtin eq _sender proxyaddr_tmp;
 match is_proxy with
 | True  =>
 | False =>
@@ -419,7 +418,6 @@ deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
 ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
 direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
 last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
-last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
 end
 | False =>
 e = DelegHasNoSufficientAmt;
@@ -533,6 +531,14 @@ reward <- rewards_amt_deleg[ssn_operator][deleg];
 reward = option_uint128_value reward;
 SendDelegRewards deleg reward;
 MintCall deleg reward;
+ssn_o <- ssnlist[ssn_operator];
+match ssn_o with
+| Some (Ssn active_status stake_amt total_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+rest_rewards = builtin sub total_rewards reward;
+ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+ssnlist[ssn_operator] := ssn
+| None =>
+end;
 sdpc <- stake_deleg_per_cycle;
 sdpc_list = builtin to_list sdpc;
 e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
@@ -754,18 +760,18 @@ accept;
 amount = _amount;
 Delegate ssnaddr initiator amount
 end
-transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
 IsPaused;
 IsProxy;
-DelegExists ssn_operator initiator;
-amt_opt <- deposit_amt_deleg[initiator][ssn_operator];
+DelegExists ssnaddr initiator;
+amt_opt <- deposit_amt_deleg[initiator][ssnaddr];
 amt = option_uint128_value amt_opt;
-WithdrawalStakeRewards initiator ssn_operator
+WithdrawalStakeRewards initiator ssnaddr
 end
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssn amt
+WithdrawalStakeAmt initiator ssnaddr amt
 end
 transition CompleteWithdrawal(initiator: ByStr20)
 IsPaused;
@@ -786,12 +792,12 @@ TransferFunds addfunds_tag withdraw_amt initiator
 | None =>
 end
 end
-transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssnaddr amount;
-Delegate to_ssn initiator amount;
-e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
+WithdrawalStakeAmt initiator ssnaddr amt;
+Delegate to_ssn initiator amt;
+e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amt };
 event e
 end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
