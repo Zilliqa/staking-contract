@@ -297,7 +297,7 @@ let custom_transaction_msg_as_list =
         (* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
       | UpdateDeleg ssnaddr deleg stake_amt =>
         {_recipient : proxyContract;
-         _tag: "AddSSNAfterUpgrade";
+         _tag: "UpdateDeleg";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
          deleg: deleg;
