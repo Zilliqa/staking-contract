@@ -263,13 +263,6 @@ Each of these category of transitions are presented in further detail below.
 | `WithdrawStakeAmt` | `ssnaddr : ByStr20, amt : Uint128, initiator : ByStr20` | To withdraw stake amount from a given SSN. `initiator` is the address of the delegator. No stake amount can be withdrawn if the delegator has unwithdrawn reward or buffered deposit. If the amount withdrawn is less than or equal to the stake deposited, then the withdrawal request is accepted and the field `withdrawal_pending` is updated accordingly. A delegator may request multiple withdrawals in the same cycle. Once this transition is called, the delegator enters into an unbonding period of 24,000 blocks. Only at the expiry of the unbonding period, the delegator can claim the funds. During the unbonding period, the delegator will not earn any reward. | <center>:x:</center> |
 | `CompleteWithdrawal` | `initiator : ByStr20` | This is to be called after the delegator has called `WithdrawStakeAmt`. `initiator` is the address of the delegator. The transition processing all the pending withdrawals as recorded in `withdrawal_pending`. Only those pending requests for which the bonding period has expired will be processed. Upon success, all the funds get transferred from the contract to the `initiator`. | <center>:x:</center> |
 
-| `update_maxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `max_stake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_contractmaxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `contractmaxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
-
-
-
-
 
 ### Pause Transitions
 
@@ -286,21 +279,10 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `add_ssn` | `ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20`| Add a new SSN with the passed values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> | 
-| `remove_ssn` | `ssnaddr : ByStr20, initiator : ByStr20`| Remove a given SSN with address `ssnaddr`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | <center>:x:</center> |
-| `stake_deposit` | `initiator : ByStr20` | Accept the deposit of ZILs from the `initiator` which should be a registered SSN in the contract. | <center>:x:</center> | 
-| `assign_stake_reward` | `ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator : ByStr20` | To assign rewards to the SSNs based on their performance. Performance checks happen off the chain. <br>  :warning: **Note:** `initiator` must be the current `verifier` of the contract. | <center>:x:</center> |
-| `withdraw_stake_rewards` | `initiator : ByStr20` | A registered SSN (`initiator`) can call this transition to withdraw its stake rewards. Stake rewards represent the rewards that an SSN has earned based on its performance. If the SSN has already withdrawn its deposit, then the SSN is removed. | <center>:x:</center> |
-| `withdraw_stake_amount` | `amount : Uint128, initiator : ByStr20` | A registered SSN (`initiator`) can call this transition to withdraw its deposit. The amount to be withdrawn is the input value `amount`. Stake amount represents the deposit that an SSN has made so far.   <br> :warning: **Note:** <ul><li> Any partial withdrawal should ensure that the remaining deposit is greater than `min_stake`. Partial withdrawals that push the deposit amount to be lower than `min_stake` are denied. </li> <li> In case there is a non-zero buffereddeposit, withdrawal is denied. </li> <li> If the withdrawal is for the entire deposit and if the rewards have also been withdrawn, then the SSN is removed. </li> </ul>  | <center>:x:</center> |
-| `deposit_funds` | `initiator : ByStr20` | Deposit ZILs to the contract.  | <center>:x:</center> |
+| `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | 
+| `WithdrawComm` | `ssnaddr : ByStr20, initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN's commission receiving address. In case the `initiator` is not the receiving address for the SSN or if the SSN does not exist or if the SSN hasn't earned any commission, then the transition throws error. On success, the contract transfer the commission to the `initiator`. | <center>:x:</center> | 
+| `UpdateReceivingAddr` | `newaddr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | 
 
->**Note:** Ssn custom ADT has a field status of type `Bool`: `True` representing an active SSN. Value of this field depends on whether or not the amount staked by this SSN and the rewards held by this SSN are zero. The table below presents the different possible configurations and the value of the status field for each configuration. Note that when both the staked amount is zero and the reward is zero, the SSN is removed. <br>
->| Staked Amount Value | Reward Amount Value | SSN Status |
->| -- | -- | -- |
->| Zero | Non-zero | `False`|
->| Non-zero | Zero | `True`|
->| Non-zero | Non-zero | `True`|
->| Zero | Zero | `Removed`|
 
 # SSNListProxy Contract Specification
 
