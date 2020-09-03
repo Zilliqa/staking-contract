@@ -23,7 +23,7 @@ type Error =
 | CodeInsufficientAllowance
 | CodeNotOwner
 | CodeNotMinter
-| CodeNotProxy
+
 let make_error =
   fun (result: Error) =>
     let result_code = 
@@ -33,7 +33,6 @@ let make_error =
       | CodeInsufficientAllowance => Int32 -3
       | CodeNotOwner              => Int32 -4
       | CodeNotMinter             => Int32 -5
-      | CodeNotProxy              => Int32 -6
       end
     in
     { _exception: "Error"; code: result_code }
@@ -55,7 +54,6 @@ let get_val =
 contract GZIL
 (
   contract_owner: ByStr20,
-  proxy_address: ByStr20,
   init_minter: ByStr20,
   name: String,
   symbol: String,
@@ -89,17 +87,6 @@ procedure IsOwner(address: ByStr20)
   | False =>
     err = CodeNotOwner;
     ThrowError err
-  end
-end
-
-(* Check is the caller is the proxy *)
-procedure IsProxy()
-  is_proxy = builtin eq _sender proxy_address;
-  match is_proxy with
-  | True  =>
-  | False =>
-    e = CodeNotProxy;
-    ThrowError e
   end
 end
 
@@ -167,9 +154,8 @@ end
 (***************************************)
 (*             Transitions             *)
 (***************************************)
-transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsOwner initiator;
+transition ChangeMinter(new_minter: ByStr20)
+  IsOwner _sender;
   minter := new_minter;
   e = {_eventname: "ChangedMinter"; new_minter: new_minter};
   event e  

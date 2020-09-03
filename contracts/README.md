@@ -33,7 +33,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Transitions](#transitions-1)
       + [Housekeeping Transitions](#housekeeping-transitions)
       + [Relay Transitions](#relay-transitions)
-- [gZIL Token Contract Specification](#gzil-token-contract-specification)
+- [gZILToken Contract Specification](#gziltoken-contract-specification)
 - [Multi-signature Wallet Contract Specification](#multi-signature-wallet-contract-specification)
   * [General Flow](#general-flow)
   * [Roles and Privileges](#roles-and-privileges-2)
@@ -315,17 +315,16 @@ The table below describes the roles and privileges that this contract defines:
 | --------------- | ------------------------------------------------- |
 | `init_admin`           | The initial admin of the contract which is usually the creator of the contract. `init_admin` is also the initial value of admin. |                                 |
 | `admin`    | Current `admin` of the contract initialized to `init_admin`. Certain critical actions can only be performed by the `admin`, e.g., changing the current implementation of the `SSNList` contract. |
-|`initiator` | The user who calls the `SSNListProxy` contract that in turns call the `SSNList` contract. |
+|`initiator` | The user who calls the `SSNListProxy` contract that in turn calls the `SSNList` contract. |
 
 ## Immutable Parameters
 
-The table below lists the parameters that are defined at the contrat deployment time and hence cannot be changed later on.
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
 
 | Name | Type | Description |
 |--|--|--|
 |`init_implementation`| `ByStr20` | The address of the `SSNList` contract. |
 |`init_admin`| `ByStr20` | The address of the admin. |
-|`init_gzil_contract`| `ByStr20` | The address of the gZILToken contract. |
 
 ## Mutable Fields
 
@@ -335,8 +334,6 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|--|
 |`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
 |`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
-|`gzil_contract`| `ByStr20` | `init_gzil_contract` | Current address of the gZIL contract. |
-
 
 ## Transitions
 
@@ -350,13 +347,15 @@ All the transitions in the contract can be categorized into two categories:
 |--|--|--|
 |`UpgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
 |`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
-|`UpgradeGZILContract`| `newAddress : ByStr20` |  Change the address of `gzil_contract`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
-|`ChangeMinter`| `new_minter : ByStr20` |  Change the address of minter in `gzil_contract` by calling `ChangeMinter`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 
 ### Relay Transitions
 
 
-These transitions are meant to redirect calls to the corresponding `SSNList` contract and hence their names have an added prefix `proxy`. While, redirecting the contract prepares the `initiator` value that is the address of the caller of the `SSNListProxy` contract. The signature of transitions in the two contracts is exactly the same expect the added last parameter `initiator` for the `SSNList` contract.
+These transitions are meant to redirect calls to the corresponding `SSNList`
+contract. While redirecting, the contract prepares the `initiator` value that
+is the address of the caller of the `SSNListProxy` contract. The signature of
+transitions in the two contracts is exactly the same expect the added last
+parameter `initiator` for the `SSNList` contract.
 
 | Transition signature in the `SSNListProxy` contract  | Target transition in the `SSNList` contract |
 |--|--|
@@ -364,51 +363,52 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`UnPause()` | `UnPause(initiator : ByStr20)` |
 |`UpdateAdmin(new_admin: ByStr20)` | `UpdateAdmin(admin: ByStr20, initiator : ByStr20)`|
 |`UpdateVerifier(verif : ByStr20)` | `UpdateVerifier (verif : ByStr20, initiator: ByStr20)`|
+|`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
 |`ChangeBNumReq(input_bnum_req: Uint128)` | ` ChangeBNumReq(input_bnum_req: Uint128, initiator : ByStr20)`|
 |`UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)` | `UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)` | `AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator : ByStr20)`|
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
+|`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
 |`WithdrawComm(ssnaddr: ByStr20)` | `WithdrawComm(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
-|`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`WithdrawStakeRewards(ssn_operator: ByStr20)` | `WithdrawStakeRewards(ssn_operator: ByStr20, initiator : ByStr20)`|
 |`WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator : ByStr20)`|
 |`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
+|`ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128)` | `ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128, initiator : ByStr20)`|
 |`AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator : ByStr20)`|
 |`AddFunds()` | `AddFunds(initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
 |`UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)` | `UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator : ByStr20)`|
-|`PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)` | `PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator : ByStr20)`|
-|`PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)` | `PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator : ByStr20)`|
-|`PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)` | `PopulateLastWithdrawCycleForDeleg(deleg_addr, ssn_addr: ByStr20, cycle: Uint128, initiator : ByStr20)`|
-|`PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
-|`PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
-|`PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
-|`PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
-|`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator : ByStr20)`|
-|`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator : ByStr20)`|
+|`PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)` | `PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator : ByStr20)`|
+|`PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)` | `PopulateLastWithdrawCycleForDeleg(deleg_addr : ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator : ByStr20)`|
+|`PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)` | `PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator : ByStr20)`|
+|`PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)` | `PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator : ByStr20)`|
+|`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator : ByStr20)`|
 |`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
-|`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
-|`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
-# gZIL Token Contract Specification
+> Note: Any transition in `SSNList` contract that accepts money will have the 
+corresponding transition in `SSNListProxy` accept the amount and then pass it 
+during the message call.
+
+# gZILToken Contract Specification
 
 `gZILToken` contract is a
 [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/reference/FungibleToken-Mintable.scilla)
-compliant token contract with a few minor modifications. The contract defines two
-extra immutable variables `init_minter` (of type `ByStr20`) and `end_block` (of
-type `BNum`). The former is the initial minter of the contract allowed to mint
-tokens, while the latter captures the block number until which minting is
-possible. It also introduces a mutable field `minter`(of type `ByStr20`)
+compliant token contract with a few minor modifications. The contract defines
+two extra immutable variables `init_minter` (of type `ByStr20`) and `end_block`
+(of type `BNum`). The former is the initial minter of the contract allowed to
+mint tokens, while the latter stores the block number until which minting is
+allowed. It also introduces a mutable field `minter`(of type `ByStr20`)
 initialized to `init_minter` and a transition `ChangeMinter(new_minter:
-ByStr20)` to update the address of the minter.  Since `gZILToken` won't require buring, the `Burn` transition from the ZRC-2 specification is removed.
+ByStr20)` to update the address of the minter.  Since `gZILToken` won't require
+buring, the `Burn` transition from the ZRC-2 specification is removed.
 
-1. The modified `Mint` transition to be called by the `minter`:
+The modified `Mint` transition to be called by the `minter`:
 
 ```ocaml
 transition Mint(recipient: ByStr20, amount: Uint128)
@@ -428,7 +428,7 @@ transition Mint(recipient: ByStr20, amount: Uint128)
 end
 ```
 
-2. The `ChangeMinter`transition to be called by the `minter`:
+The `ChangeMinter`transition to be called by the `minter`:
 
 ```ocaml
 transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
@@ -438,6 +438,11 @@ transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
   event e  
 end
 ```
+
+As tokens are rewarded when a delegator claims its staking rewards within the
+`SSNList` contract, the `minter` of the `gZILToken` contract will be the
+address of the `SSNList` contract. 
+
 
 
 
