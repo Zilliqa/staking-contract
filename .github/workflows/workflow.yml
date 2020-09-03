@@ -1,0 +1,48 @@
+name: Typecheck contracts
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+        ocaml-version:
+          - 4.08.1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Try to restore opam cache
+        if: runner.os != 'Windows'
+        id: opam-cache
+        uses: actions/cache@v2
+        with:
+          path: "~/.opam"
+          key: ${{ matrix.os }}-${{ matrix.ocaml-version }}
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam pin add scilla.dev git+https://github.com/Zilliqa/scilla\#master --no-action
+
+      - run: opam depext scilla --yes
+
+      - run: opam install scilla
+
+      - run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/gzil.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/multisig_wallet.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/proxy.scilla
+      - if: ${{ always() }}
+        run: opam exec -- scilla-checker -gaslimit 10000 -libdir "$(opam var scilla:lib)/stdlib" contracts/ssnlist.scilla
