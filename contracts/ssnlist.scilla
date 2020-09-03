@@ -253,7 +253,7 @@ field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 0
 (* 1 zil *)
-field mindelegstake: Uint128 = Uint128 1000000000000
+field mindelegstake: Uint128 = Uint128 0
 field contractadmin: ByStr20  = init_admin
 field proxyaddr: ByStr20 = proxy_address
 field gziladdr: ByStr20 = gzil_address
