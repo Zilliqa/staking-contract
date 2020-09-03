@@ -172,7 +172,6 @@ type Error =
   | InvalidTotalAmt
   | InvalidRecvAddr
   | VerifierNotSet
-  | NotTimeYet
   | VerifierRecvAddrNotSet
 
 let make_error =
@@ -569,7 +568,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
       ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
       direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
     end
   | False =>
     e = DelegHasNoSufficientAmt;
