@@ -734,7 +734,6 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     | True  =>
       last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
       new_buff_amt  = builtin add amount buffdeposit;
-      new_stake_amt = builtin add new_buff_amt stake_amt;
       (* The SSN is active so add the delegated stake to the buffer *)
       ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
