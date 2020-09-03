@@ -208,19 +208,19 @@ The table below presents the mutable fields of the contract and their initial va
 | `last_buf_deposit_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint128))` | `Emp ByStr20 (Map ByStr20 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastDeposited))` |
 | `stake_ssn_per_cycle`   | `Map ByStr20 (Map Uint128  SSNCycleInfo))` | `Emp ByStr20 (Map Uint128 SSNCycleInfo))` | `Map (SSNAddress -> Map (Uint128 -> SSNCycleInfo))`|
 |`withdrawal_pending` | `Map ByStr20 (Map BNum Uint128)` | `Emp ByStr20 (Map BNum Uint128)` | `Map (DelegatorAddress -> (BlockNumberWhenRewardWithdrawalRequested -> Amount ))` |
-| `bnum_req`  | `Uint128` | `Uin128 24000`       | Bonding period in terms of number of blocks. |
+| `bnum_req`  | `Uint128` | `Uin128 24000`       | Bonding period in terms of number of blocks. Set to be equivalent to 14 days. |
 |`reward_cycle_list` | `List Uint128` | `Nil {Uint128}` | List of all reward cycles. |
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
-| `minstake`  | `Uint128` | `Uin128 0`       | Minimum stake required to activate an SSN (in `Qa`, where `1 Qa = 10^-12 ZIL`). |
-| `mindelegstake`  | `Uint128` | `Uin128 0`       | Minimum stake for a delegator (1000 ZIL). |
+| `minstake`  | `Uint128` | `Uin128 10000000000000000000`       | Minimum stake required to activate an SSN (1 mil ZIL expressed in `Qa`, where `1 ZIL = 10^12 Qa`). |
+| `mindelegstake`  | `Uint128` | `Uin128 1000000000000000`       | Minimum stake for a delegator (1000 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 | `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
 | `gziladdr` | `ByStr20` |  `gzil_address` | Address of the gzil contract. |
 |`lastrewardcyle` | `Uint128` | `Uint128 1` | The block number when the last reward was distributed. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
 | `maxcommchangerate`| `Uint128` | `Uint128 1` | The maximum rate change that an SSN is allowed to make across cycles. |
-| `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. |
+| `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. Set to 100% but represented as an integer multiplied by 10^7. |
 | `totalstakeamount`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. |
 
 ## Transitions 
@@ -229,11 +229,13 @@ Note that each of the transitions in the `SSNList` contract takes `initiator` as
 
 > Note: No transition in the `SSNList` contract can be invoked directly. Any call to the `SSNList` contract must come from the `SSNListProxy` contract.
 
-All the transitions in the contract can be categorized into three categories:
+All the transitions in the contract can be categorized into five categories:
 
 * **Housekeeping Transitions:** Meant to facilitate basic admin-related tasks.
 * **Pause Transitions:** Meant to pause and un-pause the contract.
-* **SSN Operation Transitions:** The core transitions that the `verifier` and the SSNs will invoke as a part of the SSN operation.
+* **SSN Operation Transitions:** The core transitions that the SSNs will invoke as a part of the SSN operation.
+* **Verifier Operation Transitions:** The core transitions that the verifier will invoke as a part of the SSN operation.
+* **Delegator Operation Transitions:** The core transitions that the delegators will invoke as a part of the SSN operation.
 
 Each of these category of transitions are presented in further detail below.
 
@@ -241,20 +243,28 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `update_admin` | `admin : ByStr20, initiator : ByStr20` | Replace the current `contractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
-| `update_verifier` | `verif : ByStr20, initiator : ByStr20` | Replace the current `verifier` by `verif`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
-| `update_minstake` | `min_stake : Uint128, initiator : ByStr20` | Update the value of the field `min_stake` to the input value `min_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_maxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `max_stake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_contractmaxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `contractmaxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
+| `UpdateAdmin` | `admin : ByStr20, initiator : ByStr20` | Replace the current `contractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `UpdateVerifier` | `verif : ByStr20, initiator : ByStr20` | Replace the current `verifier` by `verif`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `UpdateVerifierRewardAddr` | `addr : ByStr20, initiator : ByStr20` | Replace the current reward receiving address (`verifier_receiving_addr`) for the `verifier` by `addr`. Since the verifier is currently run by Zilliqa Research, its receiving address is currently updated by the admin not the verifier itself. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `UpdateStakingParameters` | `min_stake: ByStr20, min_deleg_stake : Uint128, max_comm_change_rate : Uint128, initiator : ByStr20` | Replace the current values of the fields `minstake`, `mindelegstake`,  and `maxcommchangerate` to the input values.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `ChangeBNumReq` | `input_bnum_req : Uint128, initiator : ByStr20` | Replace the current value of the field `bnum_req`.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `UpdateContractAddr` | `proxy_addr : ByStr20, gzil_addr : ByStr20, initiator : ByStr20` | Replace the address of the proxy contract (`proxyaddr`) and the gZIL token contract (`gziladdr`) by the input values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `AddSSN` | `ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm : Uint128, initiator : ByStr20` | Add a new SSN to the list of available SSNs with the input values. The transition will create a value of type `ssn` using the input values and add it to the `ssnlist` map. Since, this SSN is new, the `status` field in `ssn` type will be `False`. Similarly, the fields `stake_amt`, `rewards`, `buff_deposit`, `comm_rewards` in the `ssn` type will be set to 0. The commission for this SSN for this reward cycle as recorded in the field `comm_for_ssn` will also be set to 0. The transition will emit a success event to signal the addition of the new SSN. The event will emit the address of the new SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `UpdateSSN` | `ssnaddr : ByStr20, new_name : String, new_urlraw : String, new_urlapi : String, initiator : ByStr20` | Update certain fields corresponding to a given SSN.  Other fields not covered by the input parameters should remain unchanged. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
+| `RemoveSSN` | `ssnaddr : ByStr20, initiator : ByStr20` | Remove a specific SSN from `ssnlist`. It should also remove the corresponding entry from all other fields.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
 
 
 ### Pause Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `pause` | `initiator : ByStr20`| Pause the contract temporarily to stop any critical transition from being invoked. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `unpause` | `initiator : ByStr20`| Un-pause the contract to re-allow the invocation of all transitions. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `Pause` | `initiator : ByStr20`| Pause the contract temporarily to stop any critical transition from being invoked. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `Unpause` | `initiator : ByStr20`| Un-pause the contract to re-allow the invocation of all transitions. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `update_minstake` | `min_stake : Uint128, initiator : ByStr20` | Update the value of the field `min_stake` to the input value `min_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
+| `update_maxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `max_stake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
+| `update_contractmaxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `contractmaxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
+| `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
+
 
 
 ### SSN Operation Transitions

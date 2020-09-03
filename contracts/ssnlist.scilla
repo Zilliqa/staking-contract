@@ -252,6 +252,7 @@ field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp BySt
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+
 field bnum_req: Uint128 = Uint128 24000
 
 (* Temporary storage maps *)
@@ -265,16 +266,23 @@ field current_deleg: Option ByStr20 = None {ByStr20}
 field reward_cycle_list: List Uint128   =  Nil {Uint128}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
-field minstake: Uint128 = Uint128 0
-(* 1 zil *)
-field mindelegstake: Uint128 = Uint128 1000000000000
+
+(* 10 mil ZIL expressed in Qa where 1 ZIL = 10^12 Qa *)
+field minstake: Uint128 = Uint128 10000000000000000000
+
+(* 1000 ZIL expresssed in Qa where 1 ZIL = 10^12 Qa *)
+field mindelegstake: Uint128 = Uint128 1000000000000000
+
 field contractadmin: ByStr20  = init_admin
 field proxyaddr: ByStr20 = init_proxy_address
 field gziladdr: ByStr20 = gzil_address
 field lastrewardcycle: Uint128 = uint128_one
 field paused: Bool = True
+
 (* 1% *)
 field maxcommchangerate: Uint128 = uint128_one
+
+(* 100% expressed as an integer multipled by 10^7 *)
 field maxcommrate: Uint128 = Uint128 1000000000
 field totalstakeamount: Uint128 = uint128_zero
 
@@ -383,7 +391,8 @@ end
 
 (* Check if the caller is the proxy *)
 procedure IsProxy()
-  is_proxy = builtin eq _sender proxy_address;
+  proxy_tmp <- proxyaddr;
+  is_proxy = builtin eq _sender proxy_tmp;
   match is_proxy with
   | True  =>
   | False =>
@@ -844,9 +853,7 @@ end
 transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  bnum_req := input_bnum_req;
-  e = { _eventname: "ChangeBNumReqSuccess"; input_bnum_req: input_bnum_req};
-  event e
+  bnum_req := input_bnum_req
 end
 
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
@@ -888,7 +895,7 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
     ssnlist[ssnaddr] := ssn
   | None =>
-    e = SSNAlreadyExist;
+    e = SSNNotExist;
     ThrowError e
   end
 end
