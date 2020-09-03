@@ -61,6 +61,7 @@ type SsnRewardShare =
 
 type DelegCycleInfo =
 | DelegCycleInfo of ByStr20 Uint128 ByStr20
+
 (* SSNCycleInfo Data Type *)
 
 (*   Each SSNCycleInfo has the following fields: *)
@@ -743,14 +744,14 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     IsDelegstakeSufficient amount;
     minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
-    (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
+    (*The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
     FillLastRewardCycle ssnaddr initiator;
+    (* It is buffered if the SSN is active if not it is added to the stake_amount. *)
     match active_status with
     | True  =>
       last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
       new_buff_amt  = builtin add amount buffdeposit;
-      new_stake_amt = builtin add new_buff_amt stake_amt;
       (* The SSN is active so add the delegated stake to the buffer *)
       ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
@@ -1016,7 +1017,7 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   IsProxy;
   (* Accept the deposit from SSN and add to contract balance. *)
   (* Transfer back to initiator if any of the validation failed *)
-  accept;
+  accept; 
   amount = _amount;
   Delegate ssnaddr initiator amount
 end
