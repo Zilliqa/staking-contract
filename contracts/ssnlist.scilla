@@ -240,7 +240,7 @@ field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp BySt
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
-field bnum_req: Uint128 = Uint128 10000
+field bnum_req: Uint128 = Uint128 24000
 (* Temporary storage map *)
 (* Used during CalcStakeDelegPerCycle *)
 field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
