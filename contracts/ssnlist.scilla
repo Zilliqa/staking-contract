@@ -991,7 +991,7 @@ end
 (* @dev : To update the received address for a given SSN *)
 (* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
-transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
+transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
