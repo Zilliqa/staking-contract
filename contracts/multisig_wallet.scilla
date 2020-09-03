@@ -106,6 +106,8 @@ type ProxyTransaction =
 | UpdateAdmin of ByStr20
 (* UpdateVerifier(verif: ByStr20)  *)
 | UpdateVerifier of ByStr20
+(* UpdateVerifierRewardAddr(addr: ByStr20) *)
+| UpdateVerifierRewardAddr of ByStr20
 (* UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128) *)
 | UpdateStakingParameters of Uint128 Uint128 Uint128
 (* ChangeBNumReq(input_bnum_req: Uint128) *)
@@ -231,6 +233,12 @@ let custom_transaction_msg_as_list =
          _tag: "UpdateVerifier";
          _amount: Uint128 0;
          verif: verif}
+        (* UpdateVerifierRewardAddr(addr: ByStr20) *)
+      | UpdateVerifierRewardAddr addr =>
+        {_recipient : proxyContract;
+         _tag: "UpdateVerifierRewardAddr";
+         _amount: Uint128 0;
+         addr: addr}
         (* UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128) *)
       | UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate =>
         {_recipient : proxyContract;
@@ -611,6 +619,12 @@ end
 (* Submit a new UpdateVerifier transaction for future signoff *)
 transition SubmitCustomUpdateVerifierTransaction(proxyContract: ByStr20, verif: ByStr20)
   transaction = UpdateVerifier verif;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateVerifierRewardAddr transaction for future signoff *)
+transition SubmitCustomUpdateVerifierRewardAddrTransaction(proxyContract: ByStr20, addr: ByStr20)
+  transaction = UpdateVerifierRewardAddr addr;
   SubmitCustomTransaction proxyContract transaction
 end
 
