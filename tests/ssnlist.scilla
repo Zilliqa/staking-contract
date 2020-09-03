@@ -96,7 +96,6 @@ type Error =
 | InvalidTotalAmt
 | InvalidRecvAddr
 | VerifierNotSet
-| NotTimeYet
 | VerifierRecvAddrNotSet
 let make_error =
 fun (result: Error) =>
@@ -417,7 +416,7 @@ TruncateDeleg deleg ssnaddr;
 deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
 ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
 direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
 end
 | False =>
 e = DelegHasNoSufficientAmt;
@@ -495,8 +494,7 @@ procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
 staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
-lrc = builtin sub reward_cycle uint128_one;
-staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][lrc];
+staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
 match staking_per_cycle_for_deleg_opt with
 | Some staking_of_deleg =>
 match staking_and_rewards_per_cycle_for_ssn_opt with
@@ -805,12 +803,12 @@ IsPaused;
 IsProxy;
 CallerIsVerifier initiator;
 lrc <- lastrewardcycle;
-forall ssnreward_list UpdateStakeReward;
 newLastRewardCycleNum = builtin add uint128_one lrc;
 lastrewardcycle := newLastRewardCycleNum;
 rcl <- reward_cycle_list;
 rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
 reward_cycle_list := rcl_new;
+forall ssnreward_list UpdateStakeReward;
 verifier_o <- verifier_receiving_addr;
 match verifier_o with
 | Some v =>
