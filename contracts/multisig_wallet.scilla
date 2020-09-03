@@ -321,7 +321,7 @@ let custom_transaction_msg_as_list =
         (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
       | PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
         {_recipient: proxyContract;
-         _tag: "PopulateBufferedDeposit";
+         _tag: "PopulateBuffDeposit";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
          ssn_addr: ssn_addr;
@@ -339,7 +339,7 @@ let custom_transaction_msg_as_list =
         (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128) *)
       | PopulateCommForSSN ssn_addr cycle comm =>
         {_recipient : proxyContract;
-         _tag: "PopulateCommissionForSSN";
+         _tag: "PopulateCommForSSN";
          _amount: Uint128 0;
          ssn_addr: ssn_addr;
          cycle: cycle;
@@ -347,13 +347,13 @@ let custom_transaction_msg_as_list =
         (* PopulateTotalStakeAmt(amt: Uint128) *)
       | PopulateTotalStakeAmt amt =>
         {_recipient: proxyContract;
-         _tag: "PopulateCommissionForSSN";
+         _tag: "PopulateTotalStakeAmt";
          _amount: Uint128 0;
          amt: amt}
         (* UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128) *)
       | UpdateRewardCycleList list last_cycle =>
         {_recipient : proxyContract;
-        _tag: "UpdateLastRewardCycle";
+        _tag: "UpdateRewardCycleList";
         _amount: Uint128 0;
         list: list;
         last_cycle: last_cycle}
