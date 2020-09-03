@@ -78,48 +78,74 @@ type SsnRewardShare =
 (* Type of Proxy transactions. *)
 (* All calls are made to the proxy contract *)
 type ProxyTransaction =
-(* UpgradeTo (newImplementation : ByStr20) *)
+(***************************************************)
+(*               Proxy Transition                  *)
+(***************************************************)
+(* UpgradeTo(newImplementation: ByStr20) *)
 | UpgradeTo of ByStr20
-(* ChangeProxyAdmin (newAdmin : ByStr20)  *)
+(* ChangeProxyAdmin(newAdmin: ByStr20) *)
 | ChangeProxyAdmin of ByStr20
-(* Pause () *)
+(* UpgradeGZILContract(newAddress: ByStr20) *)
+| UpgradeGZILContract of ByStr20
+(***************************************************)
+(*              gZIL Transitions                   *)
+(***************************************************)
+(* ChangeMinter(new_minter: ByStr20) *)
+| ChangeMinter of ByStr20
+(***************************************************)
+(*              SSNlist Transitions                *)
+(***************************************************)
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+(* Pause() *)
 | Pause
-(* UnPause () *)
+(* UnPause() *)
 | UnPause
-(* UpdateAdmin (admin : ByStr20) *)
+(* UpdateAdmin(new_admin: ByStr20) *)
 | UpdateAdmin of ByStr20
-(* UpdateVerifier (verif : ByStr20) *)
+(* UpdateVerifier(verif: ByStr20)  *)
 | UpdateVerifier of ByStr20
-(* DrainContractBalance () *)
-| DrainContractBalance
-(* UpdateStakingParameters (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
+(* UpdateVerifierRewardAddr(addr: ByStr20) *)
+| UpdateVerifierRewardAddr of ByStr20
+(* UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128) *)
 | UpdateStakingParameters of Uint128 Uint128 Uint128
-(* AddSSN (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
-| AddSSN of ByStr20 Uint128 Uint128 String String Uint128
-(* RemoveSSN (ssnaddr : ByStr20) *)
-| RemoveSSN of ByStr20
-(* Adddeleg(ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128) *)
-| Adddeleg of ByStr20 ByStr20 Uint128
-(* Removedeleg(ssnaddr : ByStr20, deleg : ByStr20) *)
-| Removedeleg of ByStr20 ByStr20
-(* AssignStakeReward(ssnreward_list : List SsnRewardShare) *)
-| AssignStakeReward of (List SsnRewardShare)
-(* UpdateLastRewardCycle(cycle : Uint128) *)
-| UpdateLastRewardCycle of Uint128
-(* UpdateRewardCycleList(list: List Uint128) *)
-| UpdateRewardCycleList of (List Uint128)
-(* PopulateCommissionForSSN(ssn_address : ByStr20, cycle : Uint128, comm : Uint128) *)
-| PopulateCommissionForSSN of ByStr20 Uint128 Uint128
-(* PopulateStakeSSNPerCycle(ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo) *)
-| PopulateStakeSSNPerCycle of ByStr20 Uint128 SSNCycleInfo
-(* PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128) *)
-| PopulateLastWithdrawCycleFordeleg of ByStr20 ByStr20 Uint128
-(* PopulateBufferedDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128) *)
-| PopulateBufferedDeposit of ByStr20 ByStr20 Uint128 Uint128
-(* PopulateDirectDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128) *)
+(* ChangeBNumReq(input_bnum_req: Uint128) *)
+| ChangeBNumReq of Uint128
+(* UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20) *)
+| UpdateContractAddr of ByStr20 ByStr20
+(* AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128) *)
+| AddSSN of ByStr20 String String String Uint128
+(* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
+| UpdateSSN of ByStr20 String String String
+(***************************************************)
+(*                  Generic transition             *)
+(***************************************************)
+(* AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20) *)
+| AddSSNAfterUpgrade of ByStr20 Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+(***************************************************)
+(*         Contract upgrade transition             *)
+(***************************************************)
+(* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
+| UpdateDeleg of ByStr20 ByStr20 Uint128
+(* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo) *)
+| PopulateStakeSSNPerCycle of ByStr20 Uint128 SSNCycleInfo 
+(* PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
+| PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint128
+(* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
+| PopulateBuffDeposit of ByStr20 ByStr20 Uint128 Uint128
+(* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
 | PopulateDirectDeposit of ByStr20 ByStr20 Uint128 Uint128
-(* PopulateDepositAmountFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128) *)
-| PopulateDepositAmountFordeleg of ByStr20 ByStr20 Uint128
+(* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128) *)
+| PopulateCommForSSN of ByStr20 Uint128 Uint128
+(* PopulateTotalStakeAmt(amt: Uint128) *)
+| PopulateTotalStakeAmt of Uint128
+(* UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128) *)
+| UpdateRewardCycleList of (List Uint128) Uint128
+(* RemoveSSN(ssnaddr: ByStr20) *)
+| RemoveSSN of ByStr20
+(* DrainContractBalance(amt: Uint128) *)
+| DrainContractBalance of Uint128
 
 (* Type of (outstanding) transactions *)
 type Transaction =
@@ -161,154 +187,188 @@ let custom_transaction_msg_as_list =
   fun (proxyTransaction : ProxyTransaction) =>
     let msg =
       match proxyTransaction with
+        (* UpgradeTo(newImplementation: ByStr20) *)
       | UpgradeTo newImplementation =>
-        (* UpgradeTo (newImplementation : ByStr20) *)
-        {_recipient : proxyContract ;
-         _tag : "UpgradeTo";
-         _amount : Uint128 0;
+        {_recipient: proxyContract ;
+         _tag: "UpgradeTo";
+         _amount: Uint128 0;
          newImplementation : newImplementation}
+        (* ChangeProxyAdmin(newAdmin: ByStr20) *)
       | ChangeProxyAdmin newAdmin =>
-        (* ChangeProxyAdmin (newAdmin : ByStr20)  *)
-        {_recipient : proxyContract ;
-         _tag : "ChangeProxyAdmin" ;
-         _amount : Uint128 0 ;
-         newAdmin : newAdmin}
+        {_recipient: proxyContract;
+         _tag: "ChangeProxyAdmin";
+         _amount: Uint128 0;
+         newAdmin: newAdmin}
+        (* UpgradeGZILContract(newAddress: ByStr20) *)
+      | UpgradeGZILContract newAddress =>
+        {_recipient: proxyContract;
+         _tag: "UpgradeGZILContract";
+         _amount: Uint128 0;
+         newAddress: newAddress}
+        (* ChangeMinter(new_minter: ByStr20) *)
+      | ChangeMinter new_minter =>
+        {_recipient: proxyContract;
+         _tag: "ChangeMinter";
+         _amount: Uint128 0;
+         new_minter: new_minter}
+        (* Pause() *)
       | Pause =>
-        (* Pause () *)
-        {_recipient : proxyContract;
-         _tag : "Pause";
-         _amount : Uint128 0}
+        {_recipient: proxyContract;
+         _tag: "Pause";
+         _amount: Uint128 0}
+        (* UnPause() *)
       | UnPause =>
-        (* UnPause () *)
-        {_recipient : proxyContract ;
-         _tag : "UnPause";
-         _amount : Uint128 0}
-      | UpdateAdmin admin =>
-        (* UpdateAdmin (admin : ByStr20)  *)
-        {_recipient : proxyContract;
-         _tag : "UpdateAdmin";
-         _amount : Uint128 0;
-         admin : admin}
+        {_recipient: proxyContract ;
+         _tag: "UnPause";
+         _amount: Uint128 0}
+        (* UpdateAdmin(new_admin: ByStr20) *)
+      | UpdateAdmin new_admin =>
+        {_recipient: proxyContract;
+         _tag: "UpdateAdmin";
+         _amount: Uint128 0;
+         new_admin: new_admin}
+        (* UpdateVerifier(verif: ByStr20)  *)
       | UpdateVerifier verif =>
-        (* UpdateVerifier (verif : ByStr20)  *)
+        {_recipient: proxyContract;
+         _tag: "UpdateVerifier";
+         _amount: Uint128 0;
+         verif: verif}
+        (* UpdateVerifierRewardAddr(addr: ByStr20) *)
+      | UpdateVerifierRewardAddr addr =>
         {_recipient : proxyContract;
-         _tag : "UpdateVerifier";
-         _amount : Uint128 0 ;
-         verif : verif}
-      | DrainContractBalance  =>
-        (* DrainContractBalance ()  *)
+         _tag: "UpdateVerifierRewardAddr";
+         _amount: Uint128 0;
+         addr: addr}
+        (* UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128) *)
+      | UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate =>
+        {_recipient : proxyContract;
+         _tag: "UpdateStakingParameters";
+         _amount: Uint128 0;
+         min_stake: min_stake;
+         min_deleg_stake: min_deleg_stake;
+         max_comm_change_rate: max_comm_change_rate}
+        (* ChangeBNumReq(input_bnum_req: Uint128) *)
+      | ChangeBNumReq input_bnum_req =>
+        {_recipient : proxyContract;
+         _tag: "ChangeBNumReq";
+         _amount: Uint128 0;
+         input_bnum_req: input_bnum_req}
+        (* UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20) *)
+      | UpdateContractAddr proxy_address gzil_address  =>
+        {_recipient : proxyContract;
+         _tag: "UpdateContractAddr";
+         _amount: Uint128 0;
+         proxy_address: proxy_address;
+         gzil_address: gzil_address}
+        (* AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128) *)
+      | AddSSN ssnaddr name urlraw urlapi comm =>
+        {_recipient : proxyContract;
+         _tag: "AddSSN";
+         _amount: Uint128 0;
+         ssnaddr: ssnaddr;
+         name: name;
+         urlraw: urlraw;
+         urlapi: urlapi;
+         comm: comm}
+        (* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
+      | UpdateSSN ssnaddr new_name new_urlraw new_urlapi =>
+        {_recipient : proxyContract;
+         _tag: "UpdateSSN";
+         _amount: Uint128 0;
+         ssnaddr: ssnaddr;
+         new_name: new_name;
+         new_urlraw: new_urlraw;
+         new_urlapi: new_urlapi}
+        (* AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20) *)
+      | AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr =>
+        {_recipient : proxyContract;
+         _tag: "AddSSNAfterUpgrade";
+         _amount: Uint128 0;
+         ssnaddr: ssnaddr;
+         stake_amt: stake_amt;
+         rewards: rewards;
+         name: name;
+         urlraw: urlraw;
+         urlapi: urlapi;
+         buff_deposit: buff_deposit;
+         comm: comm;
+         comm_rewards: comm_rewards;
+         rec_addr: rec_addr}
+        (* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
+      | UpdateDeleg ssnaddr deleg stake_amt =>
+        {_recipient : proxyContract;
+         _tag: "UpdateDeleg";
+         _amount: Uint128 0;
+         ssnaddr: ssnaddr;
+         deleg: deleg;
+         stake_amt: stake_amt}
+        (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo) *)
+      | PopulateStakeSSNPerCycle ssn_address cycle info =>
+        {_recipient: proxyContract;
+         _tag: "PopulateStakeSSNPerCycle";
+         _amount : Uint128 0;
+         ssn_address: ssn_address;
+         cycle: cycle;
+         info: info}
+        (* PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
+      | PopulateLastWithdrawCycleForDeleg deleg_address ssn_address cycle =>
+        {_recipient: proxyContract;
+         _tag: "PopulateLastWithdrawCycleFordeleg";
+         _amount: Uint128 0;
+         deleg_address: deleg_address;
+         ssn_address: ssn_address;
+         cycle: cycle}
+        (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
+      | PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
+        {_recipient: proxyContract;
+         _tag: "PopulateBuffDeposit";
+         _amount: Uint128 0;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
+         cycle: cycle;
+         amt: amt}
+        (* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
+      | PopulateDirectDeposit deleg_addr ssn_addr cycle amt =>
+        {_recipient: proxyContract;
+         _tag: "PopulateDirectDeposit";
+         _amount: Uint128 0;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
+         cycle: cycle;
+         amt: amt}
+        (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128) *)
+      | PopulateCommForSSN ssn_addr cycle comm =>
+        {_recipient : proxyContract;
+         _tag: "PopulateCommForSSN";
+         _amount: Uint128 0;
+         ssn_addr: ssn_addr;
+         cycle: cycle;
+         comm: comm}
+        (* PopulateTotalStakeAmt(amt: Uint128) *)
+      | PopulateTotalStakeAmt amt =>
+        {_recipient: proxyContract;
+         _tag: "PopulateTotalStakeAmt";
+         _amount: Uint128 0;
+         amt: amt}
+        (* UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128) *)
+      | UpdateRewardCycleList list last_cycle =>
+        {_recipient : proxyContract;
+        _tag: "UpdateRewardCycleList";
+        _amount: Uint128 0;
+        list: list;
+        last_cycle: last_cycle}
+        (* RemoveSSN(ssnaddr: ByStr20) *)
+      | RemoveSSN ssnaddr =>
+        {_recipient: proxyContract ;
+         _tag: "RemoveSSN";
+         _amount: Uint128 0;
+         ssnaddr: ssnaddr}
+        (* DrainContractBalance(amt: Uint128) *)
+      | DrainContractBalance amt =>
         {_recipient : proxyContract;
          _tag : "DrainContractBalance";
-         _amount : Uint128 0}
-      | UpdateStakingParameters min_stake max_stake contract_max_stake =>
-        (* UpdateStakingParameter (min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128) *)
-        {_recipient : proxyContract ;
-          _tag : "UpdateStakingParameters";
-          _amount : zeroUint128;
-          min_stake : min_stake;
-          max_stake : max_stake;
-          contract_max_stake : contract_max_stake}
-      | AddSSN ssnaddr stake_amt rewards name urlraw urlapi buffered_deposit =>
-        (* AddSSN (ssnaddr : ByStr20, stake_amt : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "AddSSN";
          _amount : Uint128 0;
-         ssnaddr : ssnaddr;
-         stake_amt : stake_amt;
-         rewards : rewards;
-         name : name;
-         urlraw : urlraw;
-         urlapi : urlapi;
-         buffered_deposit : buffered_deposit}
-      | RemoveSSN ssnaddr =>
-        (* RemoveSSN (ssnaddr : ByStr20) *)
-        {_recipient : proxyContract ;
-         _tag : "RemoveSSN";
-         _amount : Uint128 0;
-         ssnaddr : ssnaddr}
-      | Adddeleg ssnaddr deleg stake_amount =>
-        (* Adddeleg (ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128) *)
-        {_recipient : proxyContract ;
-         _tag : "Adddeleg";
-         _amount : Uint128 0;
-         ssnaddr : ssnaddr;
-         deleg : deleg;
-         stake_amount : stake_amount}
-      | Removedeleg ssnaddr deleg =>
-        (* Removedeleg (ssnaddr : ByStr20, deleg : ByStr20) *)
-        {_recipient : proxyContract;
-         _tag : "Removedeleg";
-         _amount : Uint128 0;
-         ssnaddr : ssnaddr;
-         deleg : deleg}
-      | AssignStakeReward ssnreward_list =>
-        (* AssignStakeReward (ssnreward_list : List SsnRewardShare) *)
-        {_recipient : proxyContract;
-         _tag : "AssignStakeReward";
-         _amount : Uint128 0;
-         ssnreward_list : ssnreward_list}
-      | UpdateLastRewardCycle cycle =>
-        (* UpdateLastRewardCycle (cycle : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "UpdateLastRewardCycle";
-         _amount : Uint128 0;
-         cycle : cycle}
-      | UpdateRewardCycleList list =>
-        (* UpdateRewardCycleList (list: List Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "UpdateLastRewardCycle";
-         _amount : Uint128 0;
-         list : list}
-      | PopulateCommissionForSSN ssn_address cycle comm =>
-        (* PopulateCommissionForSSN (ssn_address : ByStr20, cycle : Uint128, comm : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "PopulateCommissionForSSN";
-         _amount : Uint128 0;
-         ssn_address : ssn_address;
-         cycle : cycle;
-         comm : comm}
-      | PopulateStakeSSNPerCycle ssn_address cycle info =>
-        (* PopulateStakeSSNPerCycle(ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo) *)
-        {_recipient : proxyContract;
-         _tag : "PopulateStakeSSNPerCycle";
-         _amount : Uint128 0;
-         ssn_address : ssn_address;
-         cycle : cycle;
-         info : info}
-      | PopulateLastWithdrawCycleFordeleg deleg_address ssn_address cycle =>
-        (* PopulateLastWithdrawCycleFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "PopulateLastWithdrawCycleFordeleg";
-         _amount : Uint128 0;
-         deleg_address : deleg_address;
-         ssn_address : ssn_address;
-         cycle : cycle}
-      | PopulateBufferedDeposit deleg_address ssn_address cycle amount =>
-        (* PopulateBufferedDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "PopulateBufferedDeposit";
-         _amount : Uint128 0;
-         deleg_address : deleg_address;
-         ssn_address : ssn_address;
-         cycle : cycle;
-         amount : amount}
-      | PopulateDirectDeposit deleg_address ssn_address cycle amount =>
-        (* PopulateDirectDeposit(deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128) *)
-        {_recipient : proxyContract;
-        _tag : "PopulateDirectDeposit";
-        _amount : Uint128 0;
-        deleg_address : deleg_address;
-        ssn_address : ssn_address;
-        cycle : cycle;
-        amount : amount}
-      | PopulateDepositAmountFordeleg deleg_address ssn_address amount =>
-        (* PopulateDepositAmountFordeleg(deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128) *)
-        {_recipient : proxyContract;
-         _tag : "PopulateDepositAmountFordeleg";
-         _amount : Uint128 0;
-         deleg_address : deleg_address;
-         ssn_address : ssn_address;
-         amount : amount}
+         amt: amt}
       end
     in
     one_msg msg
@@ -499,6 +559,10 @@ procedure SubmitCustomTransaction (proxyContract : ByStr20, proxyTransaction : P
   SubmitTransaction transaction
 end
 
+(***************************************************)
+(*               Proxy Transition                  *)
+(***************************************************)
+
 (* Submit a new UpgradeTo transaction for future signoff *)
 transition SubmitCustomUpgradeToTransaction (proxyContract : ByStr20, newImplementation : ByStr20)
   transaction = UpgradeTo newImplementation;
@@ -511,117 +575,157 @@ transition SubmitCustomChangeProxyAdminTransaction (proxyContract : ByStr20, new
   SubmitCustomTransaction proxyContract transaction
 end
 
+transition SubmitCustomUpgradeGZILContractTransaction (proxyContract : ByStr20, newAddress : ByStr20)
+  transaction = UpgradeGZILContract newAddress;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(***************************************************)
+(*              gZIL Transitions                   *)
+(***************************************************)
+
+transition SubmitCustomChangeMinterTransaction (proxyContract : ByStr20, new_minter : ByStr20)
+  transaction = ChangeMinter new_minter;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(***************************************************)
+(*              SSNlist Transitions                *)
+(***************************************************)
+
+
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+
 (* Submit a new pause transaction for future signoff *)
-transition SubmitCustomPauseTransaction (proxyContract : ByStr20)
+transition SubmitCustomPauseTransaction(proxyContract: ByStr20)
   transaction = Pause;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new unpause transaction for future signoff *)
-transition SubmitCustomUnpauseTransaction (proxyContract : ByStr20)
+transition SubmitCustomUnpauseTransaction(proxyContract: ByStr20)
   transaction = UnPause;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new UpdateAdmin transaction for future signoff *)
-transition SubmitCustomUpdateAdminTransaction (proxyContract : ByStr20, admin : ByStr20)
-  transaction = UpdateAdmin admin;
+transition SubmitCustomUpdateAdminTransaction(proxyContract: ByStr20, new_admin: ByStr20)
+  transaction = UpdateAdmin new_admin;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new UpdateVerifier transaction for future signoff *)
-transition SubmitCustomUpdateVerifierTransaction (proxyContract : ByStr20, verif : ByStr20)
+transition SubmitCustomUpdateVerifierTransaction(proxyContract: ByStr20, verif: ByStr20)
   transaction = UpdateVerifier verif;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new DrainContractBalance transaction for future signoff *)
-transition SubmitCustomDrainContractBalanceTransaction (proxyContract : ByStr20)
-  transaction = DrainContractBalance;
+(* Submit a new UpdateVerifierRewardAddr transaction for future signoff *)
+transition SubmitCustomUpdateVerifierRewardAddrTransaction(proxyContract: ByStr20, addr: ByStr20)
+  transaction = UpdateVerifierRewardAddr addr;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new ContractStakingParameter transaction for future signoff *)
-transition SubmitCustomUpdateStakingParametersTransaction (proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128)
-  transaction = UpdateStakingParameters min_stake max_stake contract_max_stake;
+transition SubmitCustomUpdateStakingParametersTransaction(proxyContract: ByStr20, min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
+  transaction = UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new ChangeBNumReq transaction for future signoff *)
+transition SubmitCustomChangeBNumReqTransaction(proxyContract: ByStr20, input_bnum_req: Uint128)
+  transaction = ChangeBNumReq input_bnum_req;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateContractAddr transaction for future signoff *)
+transition SubmitCustomUpdateContractAddrTransaction(proxyContract: ByStr20, proxy_address: ByStr20, gzil_address: ByStr20)
+  transaction = UpdateContractAddr proxy_address gzil_address;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new AddSSN transaction for future signoff *)
-transition SubmitCustomAddSSNTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)
-  transaction = AddSSN ssnaddr stake_amount rewards urlraw urlapi buffered_deposit;
+transition SubmitCustomAddSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
+  transaction = AddSSN ssnaddr name urlraw urlapi comm;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new AddSSN transaction for future signoff *)
-transition SubmitCustomRemoveSSNTransaction (proxyContract : ByStr20, ssnaddr : ByStr20)
-  transaction = RemoveSSN ssnaddr;
+(* Submit a new UpdateSSN transaction for future signoff *)
+transition SubmitCustomUpdateSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
+  transaction = UpdateSSN ssnaddr new_name new_urlraw new_urlapi;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new Adddeleg transaction for future signoff *)
-transition SubmitAdddelegTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, deleg : ByStr20, stake_amount : Uint128)
-  transaction = Adddeleg ssnaddr deleg stake_amount;
+(* Submit a new AddSSNAfterUpgrade transaction for future signoff *)
+transition SubmitCustomAddSSNAfterUpgradeTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
+  transaction = AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new Removedeleg transaction for future signoff *)
-transition SubmitRemovedelegTransaction (proxyContract : ByStr20, ssnaddr : ByStr20, deleg : ByStr20)
-  transaction = Removedeleg ssnaddr deleg;
-  SubmitCustomTransaction proxyContract transaction
-end
+(***************************************************)
+(*         Contract upgrade transition             *)
+(***************************************************)
 
-(* Submit a new AssignStakeReward transaction for future signoff *)
-transition SubmitAssignStakeRewardTransaction (proxyContract : ByStr20, ssnreward_list : List SsnRewardShare)
-  transaction = AssignStakeReward ssnreward_list;
-  SubmitCustomTransaction proxyContract transaction
-end
 
-(* Submit a new UpdateLastRewardCycle transaction for future signoff *)
-transition SubmitUpdateLastRewardCycleTransaction (proxyContract : ByStr20, cycle : Uint128)
-  transaction = UpdateLastRewardCycle cycle;
-  SubmitCustomTransaction proxyContract transaction
-end
-
-(* Submit a new UpdateRewardCycleList transaction for future signoff *)
-transition SubmitUpdateRewardCycleListTransaction (proxyContract : ByStr20, list: List Uint128)
-  transaction = UpdateRewardCycleList list;
-  SubmitCustomTransaction proxyContract transaction
-end
-
-(* Submit a new PopulateCommissionForSSN transaction for future signoff *)
-transition SubmitPopulateCommissionForSSNTransaction (proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint128, comm : Uint128)
-  transaction = PopulateCommissionForSSN ssn_address cycle comm;
+(* Submit a new UpdateDeleg transaction for future signoff *)
+transition SubmitUpdateDelegTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
+  transaction = UpdateDeleg ssnaddr deleg stake_amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateStakeSSNPerCycle transaction for future signoff *)
-transition SubmitPopulateStakeSSNPerCycleTransaction (proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo)
-  transaction = PopulateStakeSSNPerCycle ssn_address cycle info;
+transition SubmitPopulateStakeSSNPerCycleTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)
+  transaction = PopulateStakeSSNPerCycle ssn_addr cycle info;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction (proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128)
-  transaction = PopulateLastWithdrawCycleFordeleg deleg_address ssn_address cycle;
+transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
+  transaction = PopulateLastWithdrawCycleForDeleg deleg_address ssn_addr cycle;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new PopulateBufferedDeposit transaction for future signoff *)
-transition SubmitPopulateBufferedDepositTransaction (proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
-  transaction = PopulateBufferedDeposit deleg_address ssn_address cycle amount;
+(* Submit a new PopulateBuffDeposit transaction for future signoff *)
+transition SubmitPopulateBuffDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+  transaction = PopulateBuffDeposit deleg_addr ssn_addr cycle amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateDirectDeposit transaction for future signoff *)
-transition SubmitPopulateDirectDepositTransaction (proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128)
-  transaction = PopulateDirectDeposit deleg_address ssn_address cycle amount;
+transition SubmitPopulateDirectDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)
+  transaction = PopulateDirectDeposit deleg_addr ssn_addr cycle amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new PopulateDepositAmountFordeleg transaction for future signoff *)
-transition SubmitPopulateDepositAmountFordelegTransaction (proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128)
-  transaction = PopulateDepositAmountFordeleg deleg_address ssn_address amount;
+(* Submit a new PopulateCommForSSN transaction for future signoff *)
+transition SubmitPopulateCommForSSNTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
+  transaction = PopulateCommForSSN ssn_addr cycle comm;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new PopulateTotalStakeAmt transaction for future signoff *)
+transition SubmitPopulateTotalStakeAmtTransaction(proxyContract: ByStr20, amt: Uint128)
+  transaction = PopulateTotalStakeAmt amt;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new UpdateRewardCycleList transaction for future signoff *)
+transition SubmitUpdateRewardCycleListTransaction(proxyContract: ByStr20, list: List Uint128, last_cycle: Uint128)
+  transaction = UpdateRewardCycleList list last_cycle;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new AddSSN transaction for future signoff *)
+transition SubmitCustomRemoveSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20)
+  transaction = RemoveSSN ssnaddr;
+  SubmitCustomTransaction proxyContract transaction
+end
+
+(* Submit a new DrainContractBalance transaction for future signoff *)
+transition SubmitCustomDrainContractBalanceTransaction(proxyContract : ByStr20, amt: Uint128)
+  transaction = DrainContractBalance amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
