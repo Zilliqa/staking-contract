@@ -241,12 +241,14 @@ let custom_transaction_msg_as_list =
          _amount : Uint128 0;
          ssnaddr : ssnaddr;
          deleg : deleg}
-      | AssignStakeReward ssnreward_list =>
-        (* AssignStakeReward (ssnreward_list : List SsnRewardShare) *)
+      | AssignStakeReward ssnreward_list verifier_reward =>
+        (* AssignStakeReward (ssnreward_list : List SsnRewardShare, verifier_reward: Uint128) *)
         {_recipient : proxyContract;
          _tag : "AssignStakeReward";
          _amount : Uint128 0;
-         ssnreward_list : ssnreward_list}
+         ssnreward_list : ssnreward_list;
+         verifier_reward : verifier_reward
+        }
       | UpdateLastRewardCycle cycle =>
         (* UpdateLastRewardCycle (cycle : Uint128) *)
         {_recipient : proxyContract;
@@ -572,8 +574,8 @@ transition SubmitRemovedelegTransaction (proxyContract : ByStr20, ssnaddr : BySt
 end
 
 (* Submit a new AssignStakeReward transaction for future signoff *)
-transition SubmitAssignStakeRewardTransaction (proxyContract : ByStr20, ssnreward_list : List SsnRewardShare)
-  transaction = AssignStakeReward ssnreward_list;
+transition SubmitAssignStakeRewardTransaction (proxyContract : ByStr20, ssnreward_list : List SsnRewardShare, verifier_reward : Uint128)
+  transaction = AssignStakeReward ssnreward_list verifier_reward;
   SubmitCustomTransaction proxyContract transaction
 end
 
