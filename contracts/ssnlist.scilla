@@ -149,7 +149,7 @@ let change_rate =
 
 let iota : Uint32 -> Uint32 -> List Uint32 =
   fun (m : Uint32) => fun (n : Uint32) =>
-    let m_lt_n = uint32_le m n in
+    let m_lt_n = builtin lt m n in
     match m_lt_n with
     | True =>
         let delta = builtin sub n m in
@@ -724,15 +724,16 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint32_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
-  list_need_compute_rewards = iota last_withdraw_cycle lrc;
+
+  m = builtin add last_withdraw_cycle uint32_one;
+  n = builtin add lrc uint32_one;
+  list_need_compute_rewards = iota m n;
   
-  list_reverse_uint32 = @list_reverse Uint32;
-  list_need_compute_rewards_reverse = list_reverse_uint32 list_need_compute_rewards;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint32 TmpArg;
   f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
 
-  list_need_compute_rewards_t = mapper f list_need_compute_rewards_reverse;
+  list_need_compute_rewards_t = mapper f list_need_compute_rewards;
   forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
