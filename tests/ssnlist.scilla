@@ -200,6 +200,9 @@ current_amt <- totalstakeamount;
 valid = uint128_le amt current_amt;
 match valid with
 | True =>
+current_amt <- totalstakeamount;
+new_amt = builtin sub current_amt amt;
+totalstakeamount := new_amt
 | False =>
 e = InvalidTotalAmt;
 ThrowError e
