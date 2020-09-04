@@ -20,9 +20,12 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Immutable Parameters](#immutable-parameters)
   * [Mutable Fields](#mutable-fields)
   * [Transitions](#transitions)
-    + [Housekeeping Transitions:](#housekeeping-transitions-)
-    + [Pause Transitions](#pause-transitions)
+    + [Housekeeping Transitions](#housekeeping-transitions)
+    + [Delegator Transitions](#housekeeping-transitions)
     + [SSN Operation Transitions](#ssn-operation-transitions)
+    + [Verifier Operation Transitions](#verifier-operation-transitions)
+    + [Contract Upgrade Transitions](#contract-upgrade-transitions)
+    + [Other Transitions](#other-transitions)
 - [SSNListProxy Contract Specification](#ssnlistproxy-contract-specification)
   * [Roles and Privileges](#roles-and-privileges-1)
   * [Immutable Parameters](#immutable-parameters-1)
@@ -30,6 +33,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Transitions](#transitions-1)
       + [Housekeeping Transitions](#housekeeping-transitions)
       + [Relay Transitions](#relay-transitions)
+- [gZIL Token Contract Specification](#gzil-token-contract-specification)
 - [Multi-signature Wallet Contract Specification](#multi-signature-wallet-contract-specification)
   * [General Flow](#general-flow)
   * [Roles and Privileges](#roles-and-privileges-2)
@@ -238,7 +242,7 @@ All the transitions in the contract can be categorized into four categories:
 
 Each of these category of transitions are presented in further detail below.
 
-### Housekeeping Transitions:
+### Housekeeping Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
@@ -264,17 +268,6 @@ Each of these category of transitions are presented in further detail below.
 | `CompleteWithdrawal` | `initiator : ByStr20` | This is to be called after the delegator has called `WithdrawStakeAmt`. `initiator` is the address of the delegator. The transition processing all the pending withdrawals as recorded in `withdrawal_pending`. Only those pending requests for which the bonding period has expired will be processed. Upon success, all the funds get transferred from the contract to the `initiator`. | <center>:x:</center> |
 
 
-### Pause Transitions
-
-| Name        | Params     | Description | Callable when paused?|
-| ----------- | -----------|-------------|:--------------------------:|
- `update_minstake` | `min_stake : Uint128, initiator : ByStr20` | Update the value of the field `min_stake` to the input value `min_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_maxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `max_stake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `update_contractmaxstake` | `max_stake : Uint128, initiator : ByStr20` | Update the value of the field `contractmaxstake` to the input value `max_stake`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| <center>:x:</center> |
-| `drain_contract_balance` | `initiator : ByStr20` | Allows the admin to withdraw the entire balance of the contract. It should only be invoked in case of emergency. The withdrawn ZILs go to a multsig wallet contract that represents the `admin`. :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | :heavy_check_mark:|
-
-
-
 ### SSN Operation Transitions
 
 | Name        | Params     | Description | Callable when paused?|
@@ -289,12 +282,6 @@ Each of these category of transitions are presented in further detail below.
 | ----------- | -----------|-------------|:--------------------------:|
 | `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, verifier_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. c`initiator` is the verifier. The `verifier_reward` earned for this cycle is transferred to the verifier` receiving address. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | 
 
-### Generic Transitions
-
-| Name        | Params     | Description | Callable when paused?|
-| ----------- | -----------|-------------|:--------------------------:|
-| `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | 
-
 ### Contract Upgrade Transitions
 
 | Name        | Params     | Description | Callable when paused?|
@@ -307,6 +294,13 @@ Each of these category of transitions are presented in further detail below.
 | `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20 | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
 | `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20 | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
 | `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20 | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+
+### Other Transitions
+
+| Name        | Params     | Description | Callable when paused?|
+| ----------- | -----------|-------------|:--------------------------:|
+| `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | 
+
 
 
 # SSNListProxy Contract Specification
