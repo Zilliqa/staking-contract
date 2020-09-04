@@ -402,20 +402,43 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
+# gZIL Token Contract Specification
+
+gZIL Token contract is a
+[ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/reference/FungibleToken-Mintable.scilla)
+compliant token contract with two minor modifications. The contract defines two
+extra immutable variables `init_minter` (of type `ByStr20`) and `end_block` (of
+type `BNum`). The former is the initial minter of the contract allowed to mint
+tokens, while the latter captures the block number until which minting is
+possible. It also introduces a mutable field `minter` of type `ByStr20`
+initialized to `init_minter` and a transition `ChangeMinter(new_minter:
+ByStr20)` to update the address of the minter. 
 
 # Multi-signature Wallet Contract Specification
 
-This contract has two main roles. First, it holds funds that can be paid out to arbitrary users, provided that enough people from a pre-defined set of owners have signed off on the payout.
+This contract has two main roles. First, it holds funds that can be paid out to
+arbitrary users, provided that enough people from a pre-defined set of owners
+have signed off on the payout.
 
-Second, and more generally, it also represents a group of users that can invoke a transition in another contract only if enough people in that group have signed off on it. In the staking context, it represents the `admin` in the `SSNList` contract. This provides added security for the privileged `admin` role.
+Second, and more generally, it also represents a group of users that can invoke
+a transition in another contract only if enough people in that group have
+signed off on it. In the staking context, it represents the `admin` in the
+`SSNList` contract. This provides added security for the privileged `admin`
+role.
 
 ## General Flow
 
-Any transaction request (whether transfer of payments or invocation of a foreign transition) must be added to the contract before signatures can be collected. Once enough signatures are collected, the recipient (in case of payments) and/or any of the owners (in the general case) can ask for the transaction to be executed.
+Any transaction request (whether transfer of payments or invocation of a
+foreign transition) must be added to the contract before signatures can be
+collected. Once enough signatures are collected, the recipient (in case of
+payments) and/or any of the owners (in the general case) can ask for the
+transaction to be executed.
 
-If an owner changes his mind about a transaction, the signature can be revoked until the transaction is executed.
+If an owner changes his mind about a transaction, the signature can be revoked
+until the transaction is executed.
 
-This wallet does not allow adding or removing owners, or changing the number of required signatures. To do any of those, perform the following steps:
+This wallet does not allow adding or removing owners, or changing the number of
+required signatures. To do any of those, perform the following steps:
 
 1. Deploy a new wallet with `owners` and `required_signatures` set to the new values. `MAKE SURE THAT THE NEW WALLET HAS BEEN SUCCESFULLY DEPLOYED WITH THE CORRECT PARAMETERS BEFORE CONTINUING!`
 2. Invoke the `SubmitTransaction` transition on the old wallet with the following parameters:
