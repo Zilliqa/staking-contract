@@ -238,11 +238,11 @@ field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20
 field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+(* AddressOfDeleg -> AddressOfSSN -> EffectCycleNum -> Deposit *)
+field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 field bnum_req: Uint128 = Uint128 24000
 (* Temporary storage map *)
-(* Used during CalcStakeDelegPerCycle *)
-field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
 (* Used during CalcRewardsDelegPerCycle *)
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field avaiable_withdrawal: Uint128 = uint128_zero
@@ -618,20 +618,21 @@ end
 procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
-    (* Combine buffered and direct - this replaces combine_buffered_and_direct *)
     last_reward_cycle = builtin sub reward_cycle uint128_one;
     last2_reward_cycle = sub_one_to_zero last_reward_cycle;
     cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
     buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
     comb_opt = option_add cur_opt buf_opt;
-    (* Calculate final staking per cycle for delegs - this replaces calculate_all_stake_pr_cycle *)
-    result_map_opt <- stake_deleg_per_cycle[last_reward_cycle];
-    stake_opt = option_add comb_opt result_map_opt;
-    match stake_opt with
+
+    last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+    last_amt = option_uint128_value last_amt_o;
+    
+    match comb_opt with
     | Some stake =>
-      stake_deleg_per_cycle[reward_cycle] := stake
+      total_stake = builtin add last_amt stake;
+      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
     | None =>
-      stake_deleg_per_cycle[reward_cycle] := uint128_zero
+      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
     end
   end
 end
@@ -655,7 +656,7 @@ procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
     (* Calculate staking rewards per cycle for deleg *)
-    staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
+    staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
     staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
     match staking_per_cycle_for_deleg_opt with
     | Some staking_of_deleg =>
@@ -680,17 +681,16 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   rcl_reverse = list_reverse_uint128 rcl;
   (* those are the cycles that we want to compute for computing rewards *)
   list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
+  
+  list_reverse_uint128 = @list_reverse Uint128;
+  list_need_compute_rewards_reverse = list_reverse_uint128 list_need_compute_rewards;
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint128 TmpArg;
   f = fun (cycle: Uint128) => TmpArg deleg ssn_operator cycle;
   combined_args_list = mapper f list_need_compute_rewards;
 
-
-  (* calculate stake_deleg_per_cycle *)
-  emp_map = Emp Uint128 Uint128;
-  stake_deleg_per_cycle := emp_map;
-  rcl_reverse_t = mapper f rcl_reverse;
-  forall rcl_reverse_t CalcStakeDelegPerCycle;
+  list_need_compute_rewards_t = mapper f list_need_compute_rewards_reverse;
+  forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
   rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
@@ -710,9 +710,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     ssnlist[ssn_operator] := ssn
   | None => (* won't reach *)
   end;
-  sdpc <- stake_deleg_per_cycle;
-  sdpc_list = builtin to_list sdpc;
-  e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
+  e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end

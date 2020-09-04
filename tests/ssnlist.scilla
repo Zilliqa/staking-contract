@@ -137,9 +137,9 @@ field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Em
 field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 field bnum_req: Uint128 = Uint128 24000
-field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
@@ -467,13 +467,14 @@ last2_reward_cycle = sub_one_to_zero last_reward_cycle;
 cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
 buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 comb_opt = option_add cur_opt buf_opt;
-result_map_opt <- stake_deleg_per_cycle[last_reward_cycle];
-stake_opt = option_add comb_opt result_map_opt;
-match stake_opt with
+last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+last_amt = option_uint128_value last_amt_o;
+match comb_opt with
 | Some stake =>
-stake_deleg_per_cycle[reward_cycle] := stake
+total_stake = builtin add last_amt stake;
+deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
 | None =>
-stake_deleg_per_cycle[reward_cycle] := uint128_zero
+deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
 end
 end
 end
@@ -493,7 +494,7 @@ end
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
-staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
+staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
 staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
 match staking_per_cycle_for_deleg_opt with
 | Some staking_of_deleg =>
@@ -516,13 +517,13 @@ rcl <- reward_cycle_list;
 list_reverse_uint128 = @list_reverse Uint128;
 rcl_reverse = list_reverse_uint128 rcl;
 list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
+list_reverse_uint128 = @list_reverse Uint128;
+list_need_compute_rewards_reverse = list_reverse_uint128 list_need_compute_rewards;
 mapper = @list_map Uint128 TmpArg;
 f = fun (cycle: Uint128) => TmpArg deleg ssn_operator cycle;
 combined_args_list = mapper f list_need_compute_rewards;
-emp_map = Emp Uint128 Uint128;
-stake_deleg_per_cycle := emp_map;
-rcl_reverse_t = mapper f rcl_reverse;
-forall rcl_reverse_t CalcStakeDelegPerCycle;
+list_need_compute_rewards_t = mapper f list_need_compute_rewards_reverse;
+forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
 forall combined_args_list CalcRewardsDelegPerCycle;
 reward <- rewards_amt_deleg[ssn_operator][deleg];
@@ -537,9 +538,7 @@ ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit co
 ssnlist[ssn_operator] := ssn
 | None =>
 end;
-sdpc <- stake_deleg_per_cycle;
-sdpc_list = builtin to_list sdpc;
-e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
+e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
 event e;
 last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
@@ -559,7 +558,6 @@ match active_status with
 | True  =>
 last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
 new_buff_amt  = builtin add amount buffdeposit;
-new_stake_amt = builtin add new_buff_amt stake_amt;
 ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
 ssnlist[ssnaddr] := ssn;
 stake_amt_for_deleg_option  <- buff_deposit_deleg[initiator][ssnaddr][lrc];
