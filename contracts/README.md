@@ -283,6 +283,32 @@ Each of these category of transitions are presented in further detail below.
 | `WithdrawComm` | `ssnaddr : ByStr20, initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN's commission receiving address. In case the `initiator` is not the receiving address for the SSN or if the SSN does not exist or if the SSN hasn't earned any commission, then the transition throws error. On success, the contract transfer the commission to the `initiator`. | <center>:x:</center> | 
 | `UpdateReceivingAddr` | `newaddr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | 
 
+### Verifier Operation Transitions
+
+| Name        | Params     | Description | Callable when paused?|
+| ----------- | -----------|-------------|:--------------------------:|
+| `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, verifier_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs)
+)` to compute the reward earned by each SSN. c`initiator` is the verifier. The `verifier_reward` earned for this cycle is transferred to the verifier` receiving address. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | 
+
+### Generic Transitions
+
+| Name        | Params     | Description | Callable when paused?|
+| ----------- | -----------|-------------|:--------------------------:|
+| `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | 
+
+### Contract Upgrade Transitions
+
+| Name        | Params     | Description | Callable when paused?|
+| ----------- | -----------|-------------|:--------------------------:|
+| `AddSSNAfterUpgrade` | `ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator: ByStr20`| To add a new SSN to the contract. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `UpdateDeleg` | `ssnaddr: ByStr20, deleg : ByStr20, stake_amt: Uint128, initiator: ByStr20`| To add or remove a delegator for an SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateStakeSSNPerCycle` | `ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20`| To populate `stake_ssn_per_cycle` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateLastWithdrawCycleForDeleg` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, initiator: ByStr20`| To populate `last_withdraw_cycle_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateBuffDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20 | To populate `buff_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20 | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20 | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20 | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+
 
 # SSNListProxy Contract Specification
 
@@ -306,6 +332,7 @@ The table below lists the parameters that are defined at the contrat deployment 
 |--|--|--|
 |`init_implementation`| `ByStr20` | The address of the `SSNList` contract. |
 |`init_admin`| `ByStr20` | The address of the admin. |
+|`init_gzil_contract`| `ByStr20` | The address of the gZILToken contract. |
 
 ## Mutable Fields
 
@@ -315,6 +342,7 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|--|
 |`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
 |`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
+|`gzil_contract`| `ByStr20` | `init_gzil_contract` | Current address of the gZIL contract. |
 
 
 ## Transitions
@@ -327,8 +355,10 @@ All the transitions in the contract can be categorized into two categories:
 
 | Name | Params | Description |
 |--|--|--|
-|`upgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
-|`changeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`UpgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
+|`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`UpgradeGZILContract`| `newAddress : ByStr20` |  Change the address of `gzil_contract`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`ChangeMinter`| `new_minter : ByStr20` |  Change the address of minter in `gzil_contract` by calling `ChangeMinter`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 
 ### Relay Transitions
 
@@ -337,21 +367,42 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 
 | Transition signature in the `SSNListProxy` contract  | Target transition in the `SSNList` contract |
 |--|--|
-|`pause()` | `pause(initiator : ByStr20)` |
-|`unpause()` | `unpause(initiator : ByStr20)` |
-|`update_admin(admin: ByStr20)` | `update_admin(admin: ByStr20, initiator : ByStr20)`|
-|`update_verifier(verif : ByStr20)` | `update_verifier (verif : ByStr20, initiator: ByStr20)`|
-|`drain_contract_balance()` | `drain_contract_balance(initiator : ByStr20)`|
-|`update_minstake (min_stake : Uint128)` | `update_minstake (min_stake : Uint128, initiator : ByStr20)`|
-|`update_maxstake (min_stake : Uint128)` | `update_maxstake (max_stake : Uint128, initiator : ByStr20)`|
-|`update_contractmaxstake (max_stake : Uint128)` | `update_contractmaxstake (max_stake : Uint128, initiator : ByStr20)`|
-|`add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128)` | `add_ssn (ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128, initiator : ByStr20)`|
-|`remove_ssn (ssnaddr : ByStr20)` | `remove_ssn (ssnaddr : ByStr20, initiator: ByStr20)`|
-|`stake_deposit()` | `stake_deposit (initiator: ByStr20)`|
-|`assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32)` | `assign_stake_reward (ssnreward_list : List SsnRewardShare, reward_blocknum : Uint32, initiator: ByStr20)`|
-|`withdraw_stake_rewards()` | `withdraw_stake_rewards (initiator : ByStr20)`|
-|`withdraw_stake_amount (amount : Uint128)` | `withdraw_stake_amount (amount : Uint128, initiator: ByStr20)`|
-|`deposit_funds()` | `deposit_funds (initiator : ByStr20)`|
+|`Pause()` | `Pause(initiator : ByStr20)` |
+|`UnPause()` | `UnPause(initiator : ByStr20)` |
+|`UpdateAdmin(new_admin: ByStr20)` | `UpdateAdmin(admin: ByStr20, initiator : ByStr20)`|
+|`UpdateVerifier(verif : ByStr20)` | `UpdateVerifier (verif : ByStr20, initiator: ByStr20)`|
+|`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
+|`ChangeBNumReq(input_bnum_req: Uint128)` | ` ChangeBNumReq(input_bnum_req: Uint128, initiator : ByStr20)`|
+|`UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)` | `UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator : ByStr20)`|
+|`AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)` | `AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator : ByStr20)`|
+|`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
+|`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
+|`WithdrawComm(ssnaddr: ByStr20)` | `WithdrawComm(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
+|`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
+|`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`WithdrawStakeRewards(ssn_operator: ByStr20)` | `WithdrawStakeRewards(ssn_operator: ByStr20, initiator : ByStr20)`|
+|`WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator : ByStr20)`|
+|`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
+|`AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator : ByStr20)`|
+|`AddFunds()` | `AddFunds(initiator : ByStr20)`|
+|`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
+|`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
+|`UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)` | `UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator : ByStr20)`|
+|`PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)` | `PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator : ByStr20)`|
+|`PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo)` | `PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator : ByStr20)`|
+|`PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)` | `PopulateLastWithdrawCycleForDeleg(deleg_addr, ssn_addr: ByStr20, cycle: Uint128, initiator : ByStr20)`|
+|`PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
+|`PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
+|`PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
+|`PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128)` | `PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator : ByStr20)`|
+|`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator : ByStr20)`|
+|`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator : ByStr20)`|
+|`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
+|`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
+|`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
+
 
 # Multi-signature Wallet Contract Specification
 
@@ -413,25 +464,6 @@ All the transitions in the contract can be categorized into three categories:
 - **Submit Transitions:** Create transactions for future signoff.
 - **Action Transitions:** Let owners sign, revoke or execute submitted transactions.
 - The `_balance` field keeps the amount of funds held by the contract and can be freely read within the implementation. `AddFunds transition` are used for adding native funds(ZIL) to the wallet from incoming messages by using `accept` keyword.
-
-### Submit Transitions
-
-The first transition is meant to submit request for transfer of native ZILs while the other are meant to submit a request to invoke transitions in the `SSNListProxy` contract.
-
-| Name | Params | Description |
-|--|--|--|
-|`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transafer of native tokens for future signoffs. |
-|`SubmitCustomUpgradeToTransaction`| `proxyContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `upgradeTo` transition in the `SSNListProxy` contract. |
-|`SubmitCustomChangeProxyAdminTransaction`| `proxyContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `changeProxyAdmin` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateAdminTransaction`| `proxyContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `update_admin` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `update_verifier` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateMinStakeTransaction`| `proxyContract : ByStr20, min_stake : Uint128` | Submit a request to invoke the `update_minstake` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_maxstake` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateContractMaxStakeTransaction`| `proxyContract : ByStr20, max_stake : Uint128` | Submit a request to invoke the `update_contractmaxstake` transition in the `SSNListProxy` contract. |
-|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `drain_contract_balance` transition in the `SSNListProxy` contract. |
-|`SubmitCustomAddSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `add_ssn` transition in the `SSNListProxy` contract. |
-|`SubmitCustomRemoveSsnTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `remove_ssn` transition in the `SSNListProxy` contract. |
-
 
 
 ### Action Transitions
