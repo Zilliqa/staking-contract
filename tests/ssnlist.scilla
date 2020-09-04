@@ -96,7 +96,6 @@ type Error =
 | InvalidTotalAmt
 | InvalidRecvAddr
 | VerifierNotSet
-| NotTimeYet
 | VerifierRecvAddrNotSet
 let make_error =
 fun (result: Error) =>
@@ -201,6 +200,9 @@ current_amt <- totalstakeamount;
 valid = uint128_le amt current_amt;
 match valid with
 | True =>
+current_amt <- totalstakeamount;
+new_amt = builtin sub current_amt amt;
+totalstakeamount := new_amt
 | False =>
 e = InvalidTotalAmt;
 ThrowError e
@@ -417,7 +419,7 @@ TruncateDeleg deleg ssnaddr;
 deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
 ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
 direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
 end
 | False =>
 e = DelegHasNoSufficientAmt;
