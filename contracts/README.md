@@ -21,7 +21,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Mutable Fields](#mutable-fields)
   * [Transitions](#transitions)
     + [Housekeeping Transitions](#housekeeping-transitions)
-    + [Delegator Transitions](#housekeeping-transitions)
+    + [Delegator Transitions](#delegator-transitions)
     + [SSN Operation Transitions](#ssn-operation-transitions)
     + [Verifier Operation Transitions](#verifier-operation-transitions)
     + [Contract Upgrade Transitions](#contract-upgrade-transitions)
