@@ -409,11 +409,7 @@ initialized to `init_minter` and a transition `ChangeMinter(new_minter:
 ByStr20)` to update the address of the minter.  Since `gZILToken` won't require
 buring, the `Burn` transition from the ZRC-2 specification is removed.
 
-As tokens are rewarded when a delegator claims its staking rewards within the
-`SSNList` contract, the `minter` of the `gZILToken` contract will be the
-address of the `SSNList` contract. 
-
-1. The modified `Mint` transition to be called by the `minter`:
+The modified `Mint` transition to be called by the `minter`:
 
 ```ocaml
 transition Mint(recipient: ByStr20, amount: Uint128)
@@ -433,7 +429,7 @@ transition Mint(recipient: ByStr20, amount: Uint128)
 end
 ```
 
-2. The `ChangeMinter`transition to be called by the `minter`:
+The `ChangeMinter`transition to be called by the `minter`:
 
 ```ocaml
 transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
@@ -443,6 +439,11 @@ transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
   event e  
 end
 ```
+
+As tokens are rewarded when a delegator claims its staking rewards within the
+`SSNList` contract, the `minter` of the `gZILToken` contract will be the
+address of the `SSNList` contract. 
+
 
 
 
