@@ -329,15 +329,9 @@ transition PopulateTotalStakeAmt(amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
     msgs = one_msg msg;
-send msgs
-end
-
-transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128)
-    current_impl <- implementation;
-    msg = {_tag: "UpdateRewardCycleList"; _recipient: current_impl; _amount: zero; list: list; last_cycle: last_cycle; initiator: _sender};
-    msgs = one_msg msg;
     send msgs
 end
+
 
 (* @dev: Remove a specific ssn from ssnlist. Used by Admin only. *)
 (* @param ssnaddr: Address of the ssn to be removed *)
