@@ -33,7 +33,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Transitions](#transitions-1)
       + [Housekeeping Transitions](#housekeeping-transitions)
       + [Relay Transitions](#relay-transitions)
-- [gZIL Token Contract Specification](#gzil-token-contract-specification)
+- [gZIL Token Contract Specification](#gziltoken-contract-specification)
 - [Multi-signature Wallet Contract Specification](#multi-signature-wallet-contract-specification)
   * [General Flow](#general-flow)
   * [Roles and Privileges](#roles-and-privileges-2)
@@ -396,7 +396,7 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
-# gZIL Token Contract Specification
+# gZILToken Contract Specification
 
 `gZILToken` contract is a
 [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/reference/FungibleToken-Mintable.scilla)
