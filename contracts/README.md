@@ -409,7 +409,8 @@ initialized to `init_minter` and a transition `ChangeMinter(new_minter:
 ByStr20)` to update the address of the minter.  Since `gZILToken` won't require buring, the `Burn` transition from the ZRC-2 specification is removed.
 
 1. The modified `Mint` transition to be called by the `minter`:
-````ocaml
+
+```ocaml
 transition Mint(recipient: ByStr20, amount: Uint128)
   current_block <- & BLOCKNUMBER;
   is_minting_over = builtin blt end_block current_block;
@@ -429,7 +430,7 @@ end
 
 2. The `ChangeMinter`transition to be called by the `minter`:
 
-````ocaml
+```ocaml
 transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
   IsOwner initiator;
   minter := new_minter;
