@@ -446,6 +446,35 @@ e = DelegHasNoSufficientAmt;
 ThrowError e
 end
 end
+procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+ssn_o <- ssnlist[ssn];
+deleg <- deposit_amt_deleg[initiator][ssn];
+lrc <- lastrewardcycle;
+match ssn_o with
+| Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+match deleg with
+| Some amt =>
+HasRewardToWithdraw ssn initiator;
+HasBufferedDeposit ssn initiator;
+AdjustDeleg ssn initiator amt redeleg_amt;
+DecreaseTotalStakeAmt redeleg_amt;
+new_amt = builtin sub stake_amt redeleg_amt;
+minstake_tmp <- minstake;
+status = uint128_le minstake_tmp new_amt;
+ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+ssnlist[ssn] := ssn_option_tmp;
+DecreaseTotalStakeAmtOnStatus new_amt status;
+e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
+event e
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+| None =>
+e = SSNNotExist;
+ThrowError e
+end
+end
 procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
@@ -807,7 +836,7 @@ end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssnaddr amount;
+ReDelegStakeAmt initiator ssnaddr amount;
 Delegate to_ssn initiator amount;
 e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
 event e
