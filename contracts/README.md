@@ -33,7 +33,7 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
   * [Transitions](#transitions-1)
       + [Housekeeping Transitions](#housekeeping-transitions)
       + [Relay Transitions](#relay-transitions)
-- [gZIL Token Contract Specification](#gziltoken-contract-specification)
+- [gZILToken Contract Specification](#gziltoken-contract-specification)
 - [Multi-signature Wallet Contract Specification](#multi-signature-wallet-contract-specification)
   * [General Flow](#general-flow)
   * [Roles and Privileges](#roles-and-privileges-2)
@@ -400,13 +400,18 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 
 `gZILToken` contract is a
 [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/reference/FungibleToken-Mintable.scilla)
-compliant token contract with a few minor modifications. The contract defines two
-extra immutable variables `init_minter` (of type `ByStr20`) and `end_block` (of
-type `BNum`). The former is the initial minter of the contract allowed to mint
-tokens, while the latter captures the block number until which minting is
-possible. It also introduces a mutable field `minter`(of type `ByStr20`)
+compliant token contract with a few minor modifications. The contract defines
+two extra immutable variables `init_minter` (of type `ByStr20`) and `end_block`
+(of type `BNum`). The former is the initial minter of the contract allowed to
+mint tokens, while the latter stores the block number until which minting is
+allowed. It also introduces a mutable field `minter`(of type `ByStr20`)
 initialized to `init_minter` and a transition `ChangeMinter(new_minter:
-ByStr20)` to update the address of the minter.  Since `gZILToken` won't require buring, the `Burn` transition from the ZRC-2 specification is removed.
+ByStr20)` to update the address of the minter.  Since `gZILToken` won't require
+buring, the `Burn` transition from the ZRC-2 specification is removed.
+
+As tokens are rewarded when a delegator claims its staking rewards within the
+`SSNList` contract, the `minter` of the `gZILToken` contract will be the
+address of the `SSNList` contract. 
 
 1. The modified `Mint` transition to be called by the `minter`:
 
