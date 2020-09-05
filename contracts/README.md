@@ -319,13 +319,12 @@ The table below describes the roles and privileges that this contract defines:
 
 ## Immutable Parameters
 
-The table below lists the parameters that are defined at the contrat deployment time and hence cannot be changed later on.
+The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
 
 | Name | Type | Description |
 |--|--|--|
 |`init_implementation`| `ByStr20` | The address of the `SSNList` contract. |
 |`init_admin`| `ByStr20` | The address of the admin. |
-|`init_gzil_contract`| `ByStr20` | The address of the gZILToken contract. |
 
 ## Mutable Fields
 
@@ -335,8 +334,6 @@ The table below presents the mutable fields of the contract and their initial va
 |--|--|--|--|
 |`implementation`| `ByStr20` | `init_implementation` | Address of the current implementation of the `SSNList` contract. |
 |`admin`| `ByStr20` | `init_owner` | Current `admin` of the contract. |
-|`gzil_contract`| `ByStr20` | `init_gzil_contract` | Current address of the gZIL contract. |
-
 
 ## Transitions
 
@@ -350,8 +347,6 @@ All the transitions in the contract can be categorized into two categories:
 |--|--|--|
 |`UpgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
 |`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
-|`UpgradeGZILContract`| `newAddress : ByStr20` |  Change the address of `gzil_contract`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
-|`ChangeMinter`| `new_minter : ByStr20` |  Change the address of minter in `gzil_contract` by calling `ChangeMinter`. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 
 ### Relay Transitions
 
