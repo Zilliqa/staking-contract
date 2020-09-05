@@ -51,15 +51,15 @@ broadly use:
 
 | Contract Name | File and Location | Description |
 |--|--| --|
-|SSNList| [`ssnlist.scilla`](./contracts/ssnlist.scilla)  | The main contract that keeps track of Staked Seed Nodes _aka_ SSNs, the delegators, the amount staked by a delegator with an SSN, and available rewards, etc.|
-|SSNListProxy| [`proxy.scilla`](./contracts/proxy.scilla)  | A proxy contract that sits on top of the SSNList contract. Any call to the `SSNList` contract must come from `SSNListProxy`. This contracts facilitates upgradeability of the `SSNList` contract in case a bug is found.|
-|Wallet| [`multisig_wallet.scilla`](./contracts/multisig_wallet.scilla)  | A multisig wallet contract tailored to work with the `SSNListproxy` contract. Certain transitions in the `SSNListProxy` contract can only be invoked when k-out-of-n users have agreed to do so. This logic is handled using the `Wallet` contract. |
-|gZILToken| [`gzil.scilla`](./contracts/gzil.scilla)  | A [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/zrcs/zrc-2.md) compliant fungible token contract. gZIL tokens represent governance tokens. They are issued alongside staking rewards whenever a delegator withdraws her staking rewards. |
+|SSNList| [`ssnlist.scilla`](./ssnlist.scilla)  | The main contract that keeps track of Staked Seed Nodes _aka_ SSNs, the delegators, the amount staked by a delegator with an SSN, and available rewards, etc.|
+|SSNListProxy| [`proxy.scilla`](./proxy.scilla)  | A proxy contract that sits on top of the SSNList contract. Any call to the `SSNList` contract must come from `SSNListProxy`. This contract facilitates upgradeability of the `SSNList` contract in case a bug is found.|
+|Wallet| [`multisig_wallet.scilla`](./multisig_wallet.scilla)  | A multisig wallet contract tailored to work with the `SSNListproxy` contract. Certain transitions in the `SSNListProxy` contract can only be invoked when k-out-of-n users have agreed to do so. This logic is handled using the `Wallet` contract. |
+|gZILToken| [`gzil.scilla`](./gzil.scilla)  | A [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/zrcs/zrc-2.md) compliant fungible token contract. gZIL tokens represent governance tokens. They are issued alongside staking rewards whenever a delegator withdraws her staking rewards. |
 
 
 # SSNList Contract Specification
 
-The SSNList contract is the main contract that is central to the entire staking
+The `SSNList` contract is the main contract that is central to the entire staking
 infrastructure. 
 
 
@@ -69,7 +69,7 @@ The table below describes the roles and privileges that this contract defines:
 
 | Role | Description & Privileges|                                    
 | --------------- | ------------------------------------------------- |
-| `ssn`           | A registered SSN that provides the seed node service and gets rewarded for the service. |
+| `ssn`           | A registered SSN that provides the seed node service and gets rewarded for the service. An SSN can only be registered by the  `admin`. |
 | `verifier`      | An entity that checks the health of SSNs and rewards them accordingly for their service.                                 |
 | `admin`         | The administrator of the contract.  `admin` is a multisig wallet contract (i.e., an instance of `Wallet`).    |
 | `initiator`     | The user who calls the `SSNListProxy` that in turns call the `SSNList` contract. |
@@ -398,15 +398,47 @@ These transitions are meant to redirect calls to the corresponding `SSNList` con
 
 # gZIL Token Contract Specification
 
-gZIL Token contract is a
+`gZILToken` contract is a
 [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/reference/FungibleToken-Mintable.scilla)
-compliant token contract with two minor modifications. The contract defines two
+compliant token contract with a few minor modifications. The contract defines two
 extra immutable variables `init_minter` (of type `ByStr20`) and `end_block` (of
 type `BNum`). The former is the initial minter of the contract allowed to mint
 tokens, while the latter captures the block number until which minting is
-possible. It also introduces a mutable field `minter` of type `ByStr20`
+possible. It also introduces a mutable field `minter`(of type `ByStr20`)
 initialized to `init_minter` and a transition `ChangeMinter(new_minter:
-ByStr20)` to update the address of the minter. 
+ByStr20)` to update the address of the minter.  Since `gZILToken` won't require buring, the `Burn` transition from the ZRC-2 specification is removed.
+
+1. The modified `Mint` transition to be called by the `minter`:
+````ocaml
+transition Mint(recipient: ByStr20, amount: Uint128)
+  current_block <- & BLOCKNUMBER;
+  is_minting_over = builtin blt end_block current_block;
+  match is_minting_over with
+  | True =>
+  | False =>
+    IsMinter;
+    AuthorizedMint recipient amount;
+    (* Prevent sending to a contract address that does not support transfers of token *)
+    msg_to_recipient = {_tag: "RecipientAcceptMint"; _recipient: recipient; _amount: zero; 
+                        minter: _sender; recipient: recipient; amount: amount};
+    msgs = one_msg msg_to_recipient;
+    send msgs
+  end
+end
+```
+
+2. The `ChangeMinter`transition to be called by the `minter`:
+
+````ocaml
+transition ChangeMinter(new_minter: ByStr20, initiator: ByStr20)
+  IsOwner initiator;
+  minter := new_minter;
+  e = {_eventname: "ChangedMinter"; new_minter: new_minter};
+  event e  
+end
+```
+
+
 
 # Multi-signature Wallet Contract Specification
 
