@@ -358,7 +358,6 @@ procedure DecreaseTotalStakeAmt(amt: Uint128)
   valid = uint128_le amt current_amt;
   match valid with
   | True =>
-    current_amt <- totalstakeamount;
     new_amt = builtin sub current_amt amt;
     totalstakeamount := new_amt
   | False =>
@@ -952,7 +951,9 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   match ssn_o with
   | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
-    ssnlist[ssnaddr] := ssn
+    ssnlist[ssnaddr] := ssn;
+    e = { _eventname: "UpdateSSN"; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: initiator };
+    event e
   | None =>
     e = SSNNotExist;
     ThrowError e
@@ -1004,7 +1005,9 @@ transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
       ValidateChangeRate comm new_rate;
       comm_for_ssn[initiator][lrc] := new_rate;
       ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
-      ssnlist[initiator] := ssn
+      ssnlist[initiator] := ssn;
+      e = { _eventname: "UpdateComm"; ssn_addr: initiator; new_rate: new_rate };
+      event e
     end
   | None =>
     e = SSNNotExist;
@@ -1056,7 +1059,9 @@ transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
   match curval with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-    ssnlist[initiator] := ssn
+    ssnlist[initiator] := ssn;
+    e = { _eventname: "UpdateReceivingAddr"; ssn_addr: initiator; new_addr: new_addr };
+    event e
   | None =>
     e = SSNNotExist;
     ThrowError e
@@ -1077,7 +1082,9 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   (* Transfer back to initiator if any of the validation failed *)
   accept; 
   amount = _amount;
-  Delegate ssnaddr initiator amount
+  Delegate ssnaddr initiator amount;
+  e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
+  event e
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
@@ -1238,7 +1245,8 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
         ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
         ssnlist[ssnaddr] := ssn;
         e = { _eventname: "Deleg deleted"; ssn_addr: ssnaddr; deleg_address: deleg };
-        event e
+        event e;
+        TransferFunds addfunds_tag alr_deleg deleg 
       | None =>
       end
     | False =>
