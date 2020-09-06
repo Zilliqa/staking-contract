@@ -84,7 +84,7 @@ let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
 
 (* left < element <= right *)
-(* This function is used for filting out those cycles that need to compute rewards for delegs *)
+(* This function is used for filtering out those cycles that need to compute rewards for delegs *)
 let list_filter_between =
   fun (left: Uint128) =>
   fun (right: Uint128) =>
@@ -207,24 +207,24 @@ contract SSNList(
   proxy_address: ByStr20,
   gzil_address: ByStr20
 )
-(* Keeps track of SSNS *)
+(* Keeps track of SSNs *)
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
-(* Record comm for ssn of every cycle*)
+(* Record comm for SSN of every cycle*)
 (* AddressofSSN -> (Cycle -> comm ) *)
 field comm_for_ssn: Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
 (* Following data structs help to calculate rewards for delegators *)
 (* Keeps track of stakes deposited at SSNs *)
-(* Record deposit amount for every deleg for every ssn *)
+(* Record deposit amount for every deleg for every SSN *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* AddressofSSN -> (AddressofDeleg -> StakeAmount) *)
 field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* Keeps track of buffered deposit for a deleg *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
-(* The BufferedStakeAmount will only be truely delegated at next cycle *)
+(* The BufferedStakeAmount will only be truly delegated at next cycle *)
 field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
-(* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
+(* Keeps track of stake deposits for a delegator that can be considered for reward calculation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
 field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
 (* Keeps track of the cycle number when a deleg last withdrew its rewards *)
