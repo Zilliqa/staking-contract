@@ -121,8 +121,7 @@ let sub_one_to_zero =
   | True =>
     uint128_zero
   | False =>
-    let res = builtin sub x uint128_one in
-    res
+    builtin sub x uint128_one
   end
 
 let option_add =
