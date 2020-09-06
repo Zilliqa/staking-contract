@@ -23,7 +23,7 @@ type Error =
 | CodeInsufficientAllowance
 | CodeNotOwner
 | CodeNotMinter
-| CodeNotProxy
+
 let make_error =
   fun (result: Error) =>
     let result_code = 
@@ -33,7 +33,6 @@ let make_error =
       | CodeInsufficientAllowance => Int32 -3
       | CodeNotOwner              => Int32 -4
       | CodeNotMinter             => Int32 -5
-      | CodeNotProxy              => Int32 -6
       end
     in
     { _exception: "Error"; code: result_code }
