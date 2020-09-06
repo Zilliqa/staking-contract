@@ -291,11 +291,7 @@ end
 
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
     current_impl <- implementation;
-<<<<<<< HEAD
-    msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; deleg_addr: deleg_addr; cycle: cycle; initiator: _sender};
-=======
     msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_address; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
->>>>>>> fix: remaining issues
     msgs = one_msg msg;
     send msgs
 end
