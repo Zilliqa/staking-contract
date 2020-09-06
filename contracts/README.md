@@ -391,6 +391,10 @@ parameter `initiator` for the `SSNList` contract.
 |`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
+> Note: Any transition in `SSNList` contract that accepts money will have the 
+corresponding transition in `SSNListProxy` accept the amount and then pass it 
+during the message call.
+
 # gZILToken Contract Specification
 
 `gZILToken` contract is a
