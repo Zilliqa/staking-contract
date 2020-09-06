@@ -310,7 +310,7 @@ transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: 
     send msgs
 end
 
-transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128)
+transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
     msgs = one_msg msg;
