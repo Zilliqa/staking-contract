@@ -219,7 +219,7 @@ let make_error =
 contract SSNList(
   init_admin: ByStr20,
   init_proxy_address: ByStr20,
-  gzil_address: ByStr20
+  init_gzil_address: ByStr20
 )
 
 (* Keeps track of SSNS *)
@@ -285,7 +285,7 @@ field mindelegstake: Uint128 = Uint128 1000000000000000
 
 field contractadmin: ByStr20  = init_admin
 field proxyaddr: ByStr20 = init_proxy_address
-field gziladdr: ByStr20 = gzil_address
+field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
 

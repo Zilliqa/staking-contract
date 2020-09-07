@@ -175,7 +175,7 @@ The table below lists the parameters that are defined at the contract deployment
 | ---------------      | ----------|-                                         |
 | `init_admin`         | `ByStr20` | The initial admin of the contract.       |
 | `init_proxy_address` | `ByStr20` | The initial address of the `SSNListProxy` contract.  |
-| `gzil_address`       | `ByStr20` | Address of the `gZILToken` contract.  |
+| `init_gzil_address`  | `ByStr20` | Address of the `gZILToken` contract.  |
 
 ## Mutable Fields
 
@@ -201,7 +201,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `mindelegstake`  | `Uint128` | `Uin128 1000000000000000`       | Minimum stake for a delegator (1000 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 | `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
-| `gziladdr` | `ByStr20` |  `gzil_address` | Address of the gzil contract. |
+| `gziladdr` | `ByStr20` |  `init_gzil_address` | Address of the gzil contract. |
 |`lastrewardcyle` | `Uint128` | `Uint128 1` | The block number when the last reward was distributed. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
 | `maxcommchangerate`| `Uint128` | `Uint128 1` | The maximum rate change that an SSN is allowed to make across cycles. Set to 1%. |
