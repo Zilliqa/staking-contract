@@ -503,23 +503,27 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
 |`SubmitCustomUpgradeToTransaction`| `proxyContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `UpgradeTo` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeProxyAdminTransaction`| `proxyContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `ChangeProxyAdmin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomChangeMinterTransaction`| `proxyContract : ByStr20, new_minter : ByStr20` | Submit a request to invoke the `ChangeMinter` transition in the `gZILToken` contract. |
 |`SubmitCustomPauseTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUnpauseTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateAdminTransaction`| `proxyContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `UpdateAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `UpdateVerifier` transition in the `SSNListProxy` contract. |
-|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateStakingParametersTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128 | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateStakingParametersTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128 | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateStakingParametersTransaction`| `proxyContract : ByStr20, min_stake : Uint128, max_stake : Uint128, contract_max_stake : Uint128` | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
+|`SubmitCustomChangeBNumReqTransaction`| `proxyContract : ByStr20, input_bnum_req : Uint128` | Submit a request to invoke the `ChangeBNumReq` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateContractAddrTransaction`| `proxyContract : ByStr20, proxy_address : ByStr20, gzil_address: ByStr20` | Submit a request to invoke the `UpdateContractAddr` transition in the `SSNListProxy` contract. |
 |`SubmitCustomAddSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `AddSSN` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, new_name : String, new_urlraw : String, new_urlapi : String` | Submit a request to invoke the `UpdateSSN` transition in the `SSNListProxy` contract. |
+|`SubmitCustomAddSSNAfterUpgradeTransaction` | `proxyContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20` | Submit a request to invoke the `AddSSNAfterUpgrade` transition in the `SSNListProxy` contract. |
+|`SubmitUpdateDelegTransaction` | `proxyContract: ByStr20, ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128` | Submit a request to invoke the `UpdateDeleg` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateStakeSSNPerCycleTransaction`| `proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint32, info : SSNCycleInfo` | Submit a request to invoke the `PopulateStakeSSNPerCycle` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateLastWithdrawCycleFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint32` | Submit a request to invoke the `PopulateLastWithdrawCycleFordeleg` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateBufferedDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint32, amount : Uint128` | Submit a request to invoke the `PopulateBufferedDeposit` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateDirectDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint32, amount : Uint128` | Submit a request to invoke the `PopulateDirectDeposit` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateCommForSSNTransaction`| `proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint32, comm : Uint128` | Submit a request to invoke the `PopulateCommForSSN` transition in the `SSNListProxy` contract. |
+|`SubmitPopulateTotalStakeAmtTransaction`| `proxyContract : ByStr20, amt : Uint128` | Submit a request to invoke the `PopulateTotalStakeAmt` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `RemoveSSN` transition in the `SSNListProxy` contract. |
-|`SubmitAssignStakeRewardTransaction`| `proxyContract : ByStr20, ssnreward_list : List SsnRewardShare, verifier_reward : Uint128` | Submit a request to invoke the `AssignStakeReward` transition in the `SSNListProxy` contract. |
-|`SubmitUpdateLastRewardCycleTransaction`| `proxyContract : ByStr20, cycle : Uint128` | Submit a request to invoke the `UpdateLastRewardCycle` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateCommissionForSSNTransaction`| `proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint128, comm : Uint128` | Submit a request to invoke the `PopulateCommissionForSSN` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateStakeSSNPerCycleTransaction`| `proxyContract : ByStr20, ssn_address : ByStr20, cycle : Uint128, info : SSNCycleInfo` | Submit a request to invoke the `PopulateStakeSSNPerCycle` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateLastWithdrawCycleFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128` | Submit a request to invoke the `PopulateLastWithdrawCycleFordeleg` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateBufferedDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateBufferedDeposit` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateDirectDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateDirectDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDepositAmountFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
+|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
 
 ### Action Transitions
 
