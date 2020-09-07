@@ -185,7 +185,7 @@ The table below presents the mutable fields of the contract and their initial va
 | ----------- | --------------------|--------------- | -------------------------------------------------- |
 | `ssnlist`   | `Map ByStr20 Ssn` | `Emp ByStr20 Ssn` | Mapping between SSN addresses and the corresponding `Ssn` information. |
 | `comm_for_ssn`   | `Map ByStr20 (Map Uint128 Uint128)` | `Emp ByStr20 (Map Uint128 Uint128)` | `Map (SSNAddress -> Map (RewardCycleNum -> Commission))` |
-| `deposit_amt_deleg`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (DelegatorAddress -> Map (SSNAddress -> AmoutDelegated))` This map does not affect any of the contract operation. It is introduced so that wallet developers can easily query the deposit amount given a delegator |
+| `deposit_amt_deleg`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (DelegatorAddress -> Map (SSNAddress -> AmoutDelegated))`. This map does not affect any of the contract operation. It is introduced so that wallet developers can easily query the deposit amount given by a delegator. |
 | `ssn_deleg_amt`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (SSNAddress -> Map (DelegatorAddress -> AmountDelegated))` |
 | `buff_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> BufferedStakeAmount)))` |
 | `direct_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> UnBufferedStakeAmount)))` |
