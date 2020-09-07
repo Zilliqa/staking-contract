@@ -49,19 +49,6 @@ type Ssn =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
-(* DelegCycleInfo Data Type *)
-
-(*    Each DelegCycleInfo has the following fields: *)
-(*    SSNAddress          : ByStr20 *)
-(*                          Address of the SSN. *)
-(*    StakeDuringTheCycle : Uint128 *)
-(*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress        : ByStr20 *)
-(*                          Address of Delegator. *)
-
-type DelegCycleInfo =
-| DelegCycleInfo of ByStr20 Uint128 ByStr20
-
 (* SSNCycleInfo Data Type *)
 
 (*   Each SSNCycleInfo has the following fields: *)

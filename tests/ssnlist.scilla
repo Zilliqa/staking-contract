@@ -5,8 +5,6 @@ type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
-type DelegCycleInfo =
-| DelegCycleInfo of ByStr20 Uint128 ByStr20
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 type TmpArg =

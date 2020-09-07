@@ -128,25 +128,7 @@ type SsnRewardShare =
 (*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
                         It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 ```
-
-3. DelegCycleInfo Data Type:
-
-```ocaml
-type DelegCycleInfo =
-| DelegCycleInfo of ByStr20 Uint128 ByStr20
-```
-
-```ocaml
-(*    Each DelegCycleInfo has the following fields: *)
-(*    SSNAddress          : ByStr20 *)
-(*                          Address of the SSN. *)
-(*    StakeDuringTheCycle : Uint128 *)
-(*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress        : ByStr20 *)
-(*                          Address of Delegator. *)
-```
-
-4. SSNCycleInfo Data Type:
+3. SSNCycleInfo Data Type:
 
 ```ocaml
 type SSNCycleInfo =
@@ -160,7 +142,7 @@ type SSNCycleInfo =
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
-5. Error Data Type:
+4. Error Data Type:
 
 ```ocaml
 type Error =
