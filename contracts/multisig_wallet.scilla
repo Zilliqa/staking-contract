@@ -85,8 +85,6 @@ type ProxyTransaction =
 | UpgradeTo of ByStr20
 (* ChangeProxyAdmin(newAdmin: ByStr20) *)
 | ChangeProxyAdmin of ByStr20
-(* UpgradeGZILContract(newAddress: ByStr20) *)
-| UpgradeGZILContract of ByStr20
 (***************************************************)
 (*              gZIL Transitions                   *)
 (***************************************************)
@@ -197,12 +195,6 @@ let custom_transaction_msg_as_list =
          _tag: "ChangeProxyAdmin";
          _amount: Uint128 0;
          newAdmin: newAdmin}
-        (* UpgradeGZILContract(newAddress: ByStr20) *)
-      | UpgradeGZILContract newAddress =>
-        {_recipient: proxyContract;
-         _tag: "UpgradeGZILContract";
-         _amount: Uint128 0;
-         newAddress: newAddress}
         (* ChangeMinter(new_minter: ByStr20) *)
       | ChangeMinter new_minter =>
         {_recipient: proxyContract;
@@ -563,11 +555,6 @@ end
 (* Submit a new ChangeProxyAdmin transaction for future signoff *)
 transition SubmitCustomChangeProxyAdminTransaction (proxyContract : ByStr20, newAdmin : ByStr20)
   transaction = ChangeProxyAdmin newAdmin;
-  SubmitCustomTransaction proxyContract transaction
-end
-
-transition SubmitCustomUpgradeGZILContractTransaction (proxyContract : ByStr20, newAddress : ByStr20)
-  transaction = UpgradeGZILContract newAddress;
   SubmitCustomTransaction proxyContract transaction
 end
 
