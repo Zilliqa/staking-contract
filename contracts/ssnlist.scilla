@@ -449,7 +449,7 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
           avaiable_withdrawal := current_amt
       | False => 
       end
-  end
+    end
   | None => (* Won't reach *)
   end
 end
