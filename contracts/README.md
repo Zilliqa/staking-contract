@@ -180,6 +180,7 @@ type Error =
   | InvalidRecvAddr (* Commission is being withdrawn to an address different from that of the receiving address *)
   | VerifierNotSet (* Verifier's address is not set in the field *)
   | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
+  | ReDelegInvalidSSNAddr (* Delegator cannot redelegate to same SSN address *)
 ```
 ## Immutable Parameters
 
