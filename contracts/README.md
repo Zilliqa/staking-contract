@@ -205,7 +205,7 @@ The table below presents the mutable fields of the contract and their initial va
 |`lastrewardcyle` | `Uint128` | `Uint128 1` | The reward cycle number when the last reward was distributed. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
 | `maxcommchangerate`| `Uint128` | `Uint128 1` | The maximum rate change that an SSN is allowed to make across cycles. Set to 1%. |
-| `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. Set to 100% but represented as an integer multiplied by 10^7. |
+| `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. Set to 100% but represented as an integer multiplied by 10^7. This prevent SSN from setting commission beyond 100%. |
 | `totalstakeamount`  | `Uint128`  | `Uint128 0` | The total amount (in `Qa`) that is currently staked in the contract. It only corresponds to the stake with active SSNs that is unbuffered and therefore can be taken into account for reward calculation. |
 
 ## Transitions 
