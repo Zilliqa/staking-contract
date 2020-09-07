@@ -374,9 +374,10 @@ parameter `initiator` for the `SSNList` contract.
 |`WithdrawComm(ssnaddr: ByStr20)` | `WithdrawComm(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
 |`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
-|`WithdrawStakeRewards(ssn_operator: ByStr20)` | `WithdrawStakeRewards(ssn_operator: ByStr20, initiator : ByStr20)`|
-|`WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator : ByStr20)`|
+|`WithdrawStakeRewards(ssnaddr: ByStr20)` | `WithdrawStakeRewards(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator : ByStr20)`|
 |`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
+|`ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)` | `ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)`|
 |`ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128)` | `ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128, initiator : ByStr20)`|
 |`AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator : ByStr20)`|
 |`AddFunds()` | `AddFunds(initiator : ByStr20)`|
