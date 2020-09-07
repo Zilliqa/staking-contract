@@ -267,14 +267,14 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `AddSSNAfterUpgrade` | `ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator: ByStr20`| To add a new SSN to the contract. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `UpdateDeleg` | `ssnaddr: ByStr20, deleg : ByStr20, stake_amt: Uint128, initiator: ByStr20`| To add or remove a delegator for an SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `AddSSNAfterUpgrade` | `ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator: ByStr20`| To add a new SSN to the contract. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `UpdateDeleg` | `ssnaddr: ByStr20, deleg : ByStr20, stake_amt: Uint128, initiator: ByStr20`| To add or remove a delegator for an SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
 | `PopulateStakeSSNPerCycle` | `ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20`| To populate `stake_ssn_per_cycle` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
 | `PopulateLastWithdrawCycleForDeleg` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, initiator: ByStr20`| To populate `last_withdraw_cycle_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `PopulateBuffDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20 | To populate `buff_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20 | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20 | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
-| `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20 | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | 
+| `PopulateBuffDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20` | To populate `buff_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20` | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
+| `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20` | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: |
 
 ### Other Transitions
 
