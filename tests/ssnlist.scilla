@@ -765,9 +765,6 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-is_valid_addr = builtin eq initiator rec_addr;
-match is_valid_addr with
-| True =>
 has_comm = uint128_gt comm_rewards uint128_zero;
 match has_comm with
 | True =>
@@ -778,10 +775,6 @@ ssnlist[initiator] := ssn;
 TransferFunds addfunds_tag comm_rewards rec_addr
 | False =>
 e = SSNNoComm;
-ThrowError e
-end
-| False =>
-e = InvalidRecvAddr;
 ThrowError e
 end
 end
@@ -813,13 +806,13 @@ end
 transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
 IsPaused;
 IsProxy;
-DelegExists ssn_operator initiator;
-WithdrawalStakeRewards initiator ssn_operator
+DelegExists ssnaddr initiator;
+WithdrawalStakeRewards initiator ssnaddr
 end
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssn amt
+WithdrawalStakeAmt initiator ssnaddr amt
 end
 transition CompleteWithdrawal(initiator: ByStr20)
 IsPaused;
