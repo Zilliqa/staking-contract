@@ -367,7 +367,7 @@ parameter `initiator` for the `SSNList` contract.
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
-|`WithdrawComm(ssnaddr: ByStr20)` | `WithdrawComm(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`WithdrawComm()` | `WithdrawComm(initiator : ByStr20)`|
 |`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
 |`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`WithdrawStakeRewards(ssnaddr: ByStr20)` | `WithdrawStakeRewards(ssnaddr: ByStr20, initiator : ByStr20)`|
