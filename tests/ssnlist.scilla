@@ -117,6 +117,7 @@ type Error =
 | InvalidRecvAddr
 | VerifierNotSet
 | VerifierRecvAddrNotSet
+| ReDelegInvalidSSNAddr
 let make_error =
 fun (result: Error) =>
 let result_code =
@@ -140,6 +141,7 @@ match result with
 | InvalidRecvAddr => Int32 -17
 | VerifierNotSet => Int32 -18
 | VerifierRecvAddrNotSet => Int32 -19
+| ReDelegInvalidSSNAddr => Int32 -20
 end
 in
 { _exception: "Error"; code: result_code }
@@ -836,10 +838,17 @@ end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
+same_ssn = builtin eq ssnaddr to_ssn;
+match same_ssn with
+| True =>
+e = ReDelegInvalidSSNAddr;
+ThrowError e
+| False =>
 ReDelegStakeAmt initiator ssnaddr amount;
 Delegate to_ssn initiator amount;
 e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
 event e
+end
 end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
 IsPaused;
