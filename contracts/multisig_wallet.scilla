@@ -674,7 +674,7 @@ end
 
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
 transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
-  transaction = PopulateLastWithdrawCycleForDeleg deleg_address ssn_addr cycle;
+  transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
   SubmitCustomTransaction proxyContract transaction
 end
 
