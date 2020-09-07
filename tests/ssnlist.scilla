@@ -756,10 +756,10 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
+transition WithdrawComm(initiator: ByStr20)
 IsPaused;
 IsProxy;
-curval <- ssnlist[ssnaddr];
+curval <- ssnlist[initiator];
 match curval with
 | None =>
 e = SSNNotExist;

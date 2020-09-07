@@ -1016,12 +1016,11 @@ transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
 end
 
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
-(* @param ssnaddr: The ssn operator address *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
+transition WithdrawComm(initiator: ByStr20)
   IsPaused;
   IsProxy;
-  curval <- ssnlist[ssnaddr];
+  curval <- ssnlist[initiator];
   match curval with
   | None =>
     e = SSNNotExist;
