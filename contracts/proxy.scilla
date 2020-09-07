@@ -180,10 +180,10 @@ transition WithdrawComm()
 end
 
 (* @dev : To update the received address for a given SSN *)
-(* @param new_address: The new received address *)
-transition UpdateReceivingAddr(new_addr: ByStr20)
+(* @param newaddr: The new received address *)
+transition UpdateReceivingAddr(newaddr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "UpdateReceivingAddr"; _recipient: current_impl; _amount: zero; new_addr: new_addr; initiator: _sender};
+    msg = {_tag: "UpdateReceivingAddr"; _recipient: current_impl; _amount: zero; newaddr: newaddr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -272,47 +272,47 @@ end
 
 (* @dev: Adds a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
-(* @param deleg: Address of the deleg *)
+(* @param delegaddr: Address of the deleg *)
 (* @param stake_amount: Stake amount *)
 (* @param rewards: Rewards of the ssn to be added *)
-transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
+transition UpdateDeleg(ssnaddr: ByStr20, delegaddr: ByStr20, stake_amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "UpdateDeleg"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
+    msg = {_tag: "UpdateDeleg"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; delegaddr: delegaddr; stake_amt: stake_amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
+transition PopulateStakeSSNPerCycle(ssnaddr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
     current_impl <- implementation;
-    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
+    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; cycle: cycle; info: info; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+transition PopulateLastWithdrawCycleForDeleg(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
     current_impl <- implementation;
-    msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
+    msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; delegaddr: delegaddr; ssnaddr: ssnaddr; cycle: cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transition PopulateBuffDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+    msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; delegaddr: delegaddr; ssnaddr: ssnaddr; cycle: cycle; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transition PopulateDirectDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+    msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; delegaddr: delegaddr; ssnaddr: ssnaddr; cycle: cycle; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
+transition PopulateCommForSSN(ssnaddr: ByStr20, cycle: Uint32, comm: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
+    msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; cycle: cycle; comm: comm; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

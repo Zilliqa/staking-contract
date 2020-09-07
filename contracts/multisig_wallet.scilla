@@ -126,17 +126,17 @@ type ProxyTransaction =
 (***************************************************)
 (*         Contract upgrade transition             *)
 (***************************************************)
-(* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
+(* UpdateDeleg(ssnaddr: ByStr20, delegaddr: ByStr20, stake_amt: Uint128) *)
 | UpdateDeleg of ByStr20 ByStr20 Uint128
-(* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
+(* PopulateStakeSSNPerCycle(ssnaddr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
 | PopulateStakeSSNPerCycle of ByStr20 Uint32 SSNCycleInfo 
-(* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
+(* PopulateLastWithdrawCycleForDeleg(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32) *)
 | PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint32
-(* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
+(* PopulateBuffDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128) *)
 | PopulateBuffDeposit of ByStr20 ByStr20 Uint32 Uint128
-(* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
+(* PopulateDirectDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128) *)
 | PopulateDirectDeposit of ByStr20 ByStr20 Uint32 Uint128
-(* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128) *)
+(* PopulateCommForSSN(ssnaddr: ByStr20, cycle: Uint32, comm: Uint128) *)
 | PopulateCommForSSN of ByStr20 Uint32 Uint128
 (* PopulateTotalStakeAmt(amt: Uint128) *)
 | PopulateTotalStakeAmt of Uint128
@@ -290,54 +290,54 @@ let custom_transaction_msg_as_list =
          comm: comm;
          comm_rewards: comm_rewards;
          rec_addr: rec_addr}
-        (* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
-      | UpdateDeleg ssnaddr deleg stake_amt =>
+        (* UpdateDeleg(ssnaddr: ByStr20, delegaddr: ByStr20, stake_amt: Uint128) *)
+      | UpdateDeleg ssnaddr delegaddr stake_amt =>
         {_recipient : proxyContract;
          _tag: "UpdateDeleg";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
-         deleg: deleg;
+         delegaddr: delegaddr;
          stake_amt: stake_amt}
-        (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
-      | PopulateStakeSSNPerCycle ssn_address cycle info =>
+        (* PopulateStakeSSNPerCycle(ssnaddr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
+      | PopulateStakeSSNPerCycle ssnaddr cycle info =>
         {_recipient: proxyContract;
          _tag: "PopulateStakeSSNPerCycle";
          _amount : Uint128 0;
-         ssn_address: ssn_address;
+         ssnaddr: ssnaddr;
          cycle: cycle;
          info: info}
-        (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
-      | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
+        (* PopulateLastWithdrawCycleForDeleg(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32) *)
+      | PopulateLastWithdrawCycleForDeleg delegaddr ssnaddr cycle =>
         {_recipient: proxyContract;
          _tag: "PopulateLastWithdrawCycleFordeleg";
          _amount: Uint128 0;
-         deleg_addr: deleg_addr;
-         ssn_addr: ssn_addr;
+         delegaddr: delegaddr;
+         ssnaddr: ssnaddr;
          cycle: cycle}
-        (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
-      | PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
+        (* PopulateBuffDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128) *)
+      | PopulateBuffDeposit delegaddr ssnaddr cycle amt =>
         {_recipient: proxyContract;
          _tag: "PopulateBuffDeposit";
          _amount: Uint128 0;
-         deleg_addr: deleg_addr;
-         ssn_addr: ssn_addr;
+         delegaddr: delegaddr;
+         ssnaddr: ssnaddr;
          cycle: cycle;
          amt: amt}
-        (* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
-      | PopulateDirectDeposit deleg_addr ssn_addr cycle amt =>
+        (* PopulateDirectDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128) *)
+      | PopulateDirectDeposit delegaddr ssnaddr cycle amt =>
         {_recipient: proxyContract;
          _tag: "PopulateDirectDeposit";
          _amount: Uint128 0;
-         deleg_addr: deleg_addr;
-         ssn_addr: ssn_addr;
+         delegaddr: delegaddr;
+         ssnaddr: ssnaddr;
          cycle: cycle;
          amt: amt}
-        (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128) *)
-      | PopulateCommForSSN ssn_addr cycle comm =>
+        (* PopulateCommForSSN(ssnaddr: ByStr20, cycle: Uint32, comm: Uint128) *)
+      | PopulateCommForSSN ssnaddr cycle comm =>
         {_recipient : proxyContract;
          _tag: "PopulateCommForSSN";
          _amount: Uint128 0;
-         ssn_addr: ssn_addr;
+         ssnaddr: ssnaddr;
          cycle: cycle;
          comm: comm}
         (* PopulateTotalStakeAmt(amt: Uint128) *)
@@ -654,32 +654,32 @@ transition SubmitUpdateDelegTransaction(proxyContract: ByStr20, ssnaddr: ByStr20
 end
 
 (* Submit a new PopulateStakeSSNPerCycle transaction for future signoff *)
-transition SubmitPopulateStakeSSNPerCycleTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
-  transaction = PopulateStakeSSNPerCycle ssn_addr cycle info;
+transition SubmitPopulateStakeSSNPerCycleTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
+  transaction = PopulateStakeSSNPerCycle ssnaddr cycle info;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
-  transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
+transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  transaction = PopulateLastWithdrawCycleForDeleg delegaddr ssnaddr cycle;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateBuffDeposit transaction for future signoff *)
-transition SubmitPopulateBuffDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
-  transaction = PopulateBuffDeposit deleg_addr ssn_addr cycle amt;
+transition SubmitPopulateBuffDepositTransaction(proxyContract: ByStr20, delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128)
+  transaction = PopulateBuffDeposit delegaddr ssnaddr cycle amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateDirectDeposit transaction for future signoff *)
-transition SubmitPopulateDirectDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
-  transaction = PopulateDirectDeposit deleg_addr ssn_addr cycle amt;
+transition SubmitPopulateDirectDepositTransaction(proxyContract: ByStr20, delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128)
+  transaction = PopulateDirectDeposit delegaddr ssnaddr cycle amt;
   SubmitCustomTransaction proxyContract transaction
 end
 
 (* Submit a new PopulateCommForSSN transaction for future signoff *)
-transition SubmitPopulateCommForSSNTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
-  transaction = PopulateCommForSSN ssn_addr cycle comm;
+transition SubmitPopulateCommForSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, cycle: Uint32, comm: Uint128)
+  transaction = PopulateCommForSSN ssnaddr cycle comm;
   SubmitCustomTransaction proxyContract transaction
 end
 

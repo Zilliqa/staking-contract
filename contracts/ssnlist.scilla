@@ -60,7 +60,7 @@ type SsnRewardShare =
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
-(* deleg, ssn_operator, reward_cycle *)
+(* delegaddr, ssnaddr, reward_cycle *)
 
 type TmpArg =
 | TmpArg of ByStr20 ByStr20 Uint32
@@ -467,7 +467,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
     | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
       match active_status with
       | False =>
-        e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
+        e = { _eventname: "SSN inactive"; ssnaddr: ssnaddr};
         event e
       | True  =>
         (* To calculate rewards belong to this ssn operator *)
@@ -493,7 +493,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
         IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
-        e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
+        e = { _eventname: "SSN assign reward"; ssnaddr: ssnaddr; total_reward: total_reward_comm };
         event e
       end
     end
@@ -533,21 +533,21 @@ procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
   end
 end
 
-procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint128)
-  deposit_amt <- deposit_amt_deleg[deleg][ssnaddr];
+procedure FillInDepositDelegAmt(ssnaddr: ByStr20, delegaddr: ByStr20, amount: Uint128)
+  deposit_amt <- deposit_amt_deleg[delegaddr][ssnaddr];
   match deposit_amt with
   | Some amt =>
     new_amt = builtin add amt amount;
-    deposit_amt_deleg[deleg][ssnaddr] := new_amt;
-    ssn_deleg_amt[ssnaddr][deleg] := new_amt
+    deposit_amt_deleg[delegaddr][ssnaddr] := new_amt;
+    ssn_deleg_amt[ssnaddr][delegaddr] := new_amt
   | None =>
-    deposit_amt_deleg[deleg][ssnaddr] := amount;
-    ssn_deleg_amt[ssnaddr][deleg] := amount
+    deposit_amt_deleg[delegaddr][ssnaddr] := amount;
+    ssn_deleg_amt[ssnaddr][delegaddr] := amount
   end
 end
 
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
-  lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
+procedure HasRewardToWithdraw(ssnaddr: ByStr20, delegaddr: ByStr20)
+  lrcd_tmp <- last_withdraw_cycle_deleg[delegaddr][ssnaddr];
   lrcd = option_uint32_value lrcd_tmp;
   lrc <- lastrewardcycle;
   has_reward = builtin lt lrcd lrc;
@@ -559,8 +559,8 @@ procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
   end
 end
 
-procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
-  ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
+procedure HasBufferedDeposit(ssnaddr: ByStr20, delegaddr: ByStr20)
+  ldcd_o <- last_buf_deposit_cycle_deleg[delegaddr][ssnaddr];
   ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
   (* in fact, lrc will only more than or equal to ldcd, equal means he delegates this around and withdraw this around as well *)
@@ -584,7 +584,7 @@ procedure IsDelegstakeSufficient(amount: Uint128)
   end
 end
 
-procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
+procedure AdjustDeleg(ssnaddr: ByStr20, delegaddr: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
   suffient = uint128_le withdraw_amount total_amount;
   match suffient with
   | True =>
@@ -592,19 +592,19 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
     match need_truncate with
     | True =>
       (* Remove all info map recorded for this deleg *)
-      TruncateDeleg deleg ssnaddr
+      TruncateDeleg delegaddr ssnaddr
     | False =>
       (* Readjust all rest deleg to this cycle *)
       lrc <- lastrewardcycle;
       rest_deleg = builtin sub total_amount withdraw_amount;
-      TruncateDeleg deleg ssnaddr;
+      TruncateDeleg delegaddr ssnaddr;
       (* Refer to transition TruncateDeleg, here we don't use Fillin transition because we *)
       (* know they are all empty, and this can reduce some gasfee *)
-      deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
-      ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
-      direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
-      last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
+      deposit_amt_deleg[delegaddr][ssnaddr] := rest_deleg;
+      ssn_deleg_amt[ssnaddr][delegaddr] := rest_deleg;
+      direct_deposit_deleg[delegaddr][ssnaddr][lrc] := rest_deleg;
+      last_withdraw_cycle_deleg[delegaddr][ssnaddr] := lrc;
+      last_buf_deposit_cycle_deleg[delegaddr][ssnaddr] := lrc
     end
   | False =>
     e = DelegHasNoSufficientAmt;
@@ -612,27 +612,27 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
   end
 end
 
-procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
-  ssn_o <- ssnlist[ssn];
-  deleg <- deposit_amt_deleg[initiator][ssn];
+procedure ReDelegStakeAmt(initiator: ByStr20, ssnaddr: ByStr20, redeleg_amt: Uint128)
+  ssn_o <- ssnlist[ssnaddr];
+  deleg <- deposit_amt_deleg[initiator][ssnaddr];
   lrc <- lastrewardcycle;
   match ssn_o with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator;
-      HasBufferedDeposit ssn initiator;
-      AdjustDeleg ssn initiator amt redeleg_amt;
+      HasRewardToWithdraw ssnaddr initiator;
+      HasBufferedDeposit ssnaddr initiator;
+      AdjustDeleg ssnaddr initiator amt redeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
       DecreaseTotalStakeAmt redeleg_amt;
       new_amt = builtin sub stake_amt redeleg_amt;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
-      ssnlist[ssn] := ssn_option_tmp;
+      ssnlist[ssnaddr] := ssn_option_tmp;
       (* If ssn becomes inactive, we need to decrease the rest ones also *)
       DecreaseTotalStakeAmtOnStatus new_amt status;
-      e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
+      e = { _eventname: "Remove delegate from SSN"; ssnaddr: ssnaddr; delegaddr: initiator; amt: redeleg_amt };
       event e
     | None =>
       e = DelegDoesNotExistAtSSN;
@@ -644,24 +644,24 @@ procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128
   end
 end
 
-procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
-  ssn_o <- ssnlist[ssn];
-  deleg <- deposit_amt_deleg[initiator][ssn];
+procedure WithdrawalStakeAmt(initiator: ByStr20, ssnaddr: ByStr20, withdraw_amount: Uint128)
+  ssn_o <- ssnlist[ssnaddr];
+  deleg <- deposit_amt_deleg[initiator][ssnaddr];
   lrc <- lastrewardcycle;
   match ssn_o with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator;
-      HasBufferedDeposit ssn initiator;
-      AdjustDeleg ssn initiator amt withdraw_amount;
+      HasRewardToWithdraw ssnaddr initiator;
+      HasBufferedDeposit ssnaddr initiator;
+      AdjustDeleg ssnaddr initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
       DecreaseTotalStakeAmt withdraw_amount;
       new_amt = builtin sub stake_amt withdraw_amount;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
-      ssnlist[ssn] := ssn_option_tmp;
+      ssnlist[ssnaddr] := ssn_option_tmp;
       (* If ssn becomes inactive, we need to decrease the rest ones also *)
       DecreaseTotalStakeAmtOnStatus new_amt status;
       withdrawal_bnum <- & BLOCKNUMBER;
@@ -671,7 +671,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       | None => withdraw_amount
       end;
       withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
-      e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
+      e = { _eventname: "Deleg withdraw deposit"; ssnaddr: ssnaddr; delegaddr: initiator; amt: amt };
       event e
     | None =>
       e = DelegDoesNotExistAtSSN;
@@ -685,22 +685,22 @@ end
 
 procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
-  | TmpArg deleg ssn_operator reward_cycle =>
+  | TmpArg delegaddr ssnaddr reward_cycle =>
     last_reward_cycle = builtin sub reward_cycle uint32_one;
     last2_reward_cycle = sub_one_to_zero last_reward_cycle;
-    cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-    buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+    cur_opt <- direct_deposit_deleg[delegaddr][ssnaddr][last_reward_cycle];
+    buf_opt <- buff_deposit_deleg[delegaddr][ssnaddr][last2_reward_cycle];
     comb_opt = option_add cur_opt buf_opt;
 
-    last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+    last_amt_o <- deleg_stake_per_cycle[delegaddr][ssnaddr][last_reward_cycle];
     last_amt = option_uint128_value last_amt_o;
     
     match comb_opt with
     | Some stake =>
       total_stake = builtin add last_amt stake;
-      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
+      deleg_stake_per_cycle[delegaddr][ssnaddr][reward_cycle] := total_stake
     | None =>
-      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
+      deleg_stake_per_cycle[delegaddr][ssnaddr][reward_cycle] := last_amt
     end
   end
 end
@@ -713,26 +713,26 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
   send msgs
 end
 
-procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-  exist_reward_o <- rewards_amt_deleg[ssn][deleg];
+procedure IncreaseReward(ssnaddr: ByStr20, delegaddr: ByStr20, reward: Uint128)
+  exist_reward_o <- rewards_amt_deleg[ssnaddr][delegaddr];
   exist_reward = option_uint128_value exist_reward_o;
   new_reward = builtin add exist_reward reward;
-  rewards_amt_deleg[ssn][deleg] := new_reward
+  rewards_amt_deleg[ssnaddr][delegaddr] := new_reward
 end
 
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
-  | TmpArg deleg ssn_operator reward_cycle =>
+  | TmpArg delegaddr ssnaddr reward_cycle =>
     (* Calculate staking rewards per cycle for deleg *)
-    staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
-    staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+    staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[delegaddr][ssnaddr][reward_cycle];
+    staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssnaddr][reward_cycle];
     match staking_per_cycle_for_deleg_opt with
     | Some staking_of_deleg =>
       match staking_and_rewards_per_cycle_for_ssn_opt with
       | Some (SSNCycleInfo total_staking total_rewards) =>
         reward_tmp = builtin mul total_rewards staking_of_deleg;
         reward = builtin div reward_tmp total_staking;
-        IncreaseReward ssn_operator deleg reward
+        IncreaseReward ssnaddr delegaddr reward
       | None =>
       end
     | None =>
@@ -740,8 +740,8 @@ procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
   end
 end
 
-procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
-  last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
+procedure WithdrawalStakeRewards(delegaddr: ByStr20, ssnaddr: ByStr20)
+  last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[delegaddr][ssnaddr];
   last_withdraw_cycle = option_uint32_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
 
@@ -749,35 +749,35 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   n = builtin add lrc uint32_one;
   list_need_compute_rewards = iota m n;
   
-  (* Combine deleg and ssn_operator with list_need_compute_rewards *)
+  (* Combine delegaddr and ssnaddr with list_need_compute_rewards *)
   mapper = @list_map Uint32 TmpArg;
-  f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
+  f = fun (cycle: Uint32) => TmpArg delegaddr ssnaddr cycle;
 
   list_need_compute_rewards_t = mapper f list_need_compute_rewards;
   forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
   combined_args_list = mapper f list_need_compute_rewards;
-  rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
+  rewards_amt_deleg[ssnaddr][delegaddr] := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
   (* Send rewards out and mint gzil *)
-  reward <- rewards_amt_deleg[ssn_operator][deleg];
+  reward <- rewards_amt_deleg[ssnaddr][delegaddr];
   reward = option_uint128_value reward;
-  SendDelegRewards deleg reward;
-  MintCall deleg reward;
+  SendDelegRewards delegaddr reward;
+  MintCall delegaddr reward;
 
-  ssn_o <- ssnlist[ssn_operator];
+  ssn_o <- ssnlist[ssnaddr];
   match ssn_o with
   | Some (Ssn active_status stake_amt total_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     rest_rewards = builtin sub total_rewards reward;
     ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
-    ssnlist[ssn_operator] := ssn
+    ssnlist[ssnaddr] := ssn
   | None => (* won't reach *)
   end;
   e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
   event e;
-  last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
+  last_withdraw_cycle_deleg[delegaddr][ssnaddr] := lrc
 end
 
 procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
@@ -928,7 +928,7 @@ transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String
     ssnlist[ssnaddr] := s;
     lrc <- lastrewardcycle;
     comm_for_ssn[ssnaddr][lrc] := comm;
-    e = { _eventname: "SSN added"; ssn_addr: ssnaddr };
+    e = { _eventname: "SSN added"; ssnaddr: ssnaddr };
     event e
   end
 end
@@ -963,7 +963,7 @@ transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
   | True =>
     delete ssnlist[ssnaddr];
     delete comm_for_ssn[ssnaddr];
-    e = { _eventname: "SSN removed"; ssn_addr: ssnaddr };
+    e = { _eventname: "SSN removed"; ssnaddr: ssnaddr };
     event e
   end
 end
@@ -995,7 +995,7 @@ transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
       comm_for_ssn[initiator][lrc] := new_rate;
       ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
       ssnlist[initiator] := ssn;
-      e = { _eventname: "UpdateComm"; ssn_addr: initiator; new_rate: new_rate };
+      e = { _eventname: "UpdateComm"; ssnaddr: initiator; new_rate: new_rate };
       event e
     end
   | None =>
@@ -1018,7 +1018,7 @@ transition WithdrawComm(initiator: ByStr20)
     has_comm = uint128_gt comm_rewards uint128_zero;
     match has_comm with
     | True =>
-      e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
+      e = { _eventname: "SSN withdraw reward"; ssnaddr: initiator; withdraw_comm: comm_rewards };
       event e;
       ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
       ssnlist[initiator] := ssn;
@@ -1031,17 +1031,17 @@ transition WithdrawComm(initiator: ByStr20)
 end
 
 (* @dev : To update the received address for a given SSN *)
-(* @param new_addr: The new received address *)
+(* @param newaddr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
-transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
+transition UpdateReceivingAddr(newaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
+    ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards newaddr;
     ssnlist[initiator] := ssn;
-    e = { _eventname: "UpdateReceivingAddr"; ssn_addr: initiator; new_addr: new_addr };
+    e = { _eventname: "UpdateReceivingAddr"; ssnaddr: initiator; newaddr: newaddr };
     event e
   | None =>
     e = SSNNotExist;
@@ -1064,7 +1064,7 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   accept; 
   amount = _amount;
   Delegate ssnaddr initiator amount;
-  e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
+  e = { _eventname: "DelegateStake"; ssnaddr: ssnaddr; delegaddr: initiator; amount: amount };
   event e
 end
 
@@ -1104,7 +1104,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
     (* Calculate withdrawal that can be transferred *)
     forall withdraw_list CalculateTotalWithdrawal;
     withdraw_amt <- avaiable_withdrawal;
-    e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
+    e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; initiator: withdraw_amt };
     event e;
     TransferFunds addfunds_tag withdraw_amt initiator
   | None =>
@@ -1195,7 +1195,7 @@ transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uin
   already_exists <- exists ssnlist[ssnaddr];
   match already_exists with
   | True  =>
-    e = { _eventname: "SSN already exists"; ssn_addr: ssnaddr };
+    e = { _eventname: "SSN already exists"; ssnaddr: ssnaddr };
     event e
   | False =>
     minstake_tmp <- minstake;
@@ -1204,19 +1204,19 @@ transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uin
     ssnlist[ssnaddr] := s;
     lrc <- lastrewardcycle;
     comm_for_ssn[ssnaddr][lrc] := comm;
-    e = { _eventname: "SSN added"; ssn_addr: ssnaddr };
+    e = { _eventname: "SSN added after upgrade"; ssnaddr: ssnaddr };
     event e
   end
 end
 
 (* @dev: Adds or deletes a new deleg. Used by admin only during contract upgrade. *)
 (* @param ssnaddr: Address of the ssn *)
-(* @param deleg: Address of the deleg *)
+(* @param delegaddr: Address of the deleg *)
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
 (* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
 (* lastrewardcycle last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
-transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
+transition UpdateDeleg(ssnaddr: ByStr20, delegaddr: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   ssn_o <- ssnlist[ssnaddr];
@@ -1226,26 +1226,26 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
     is_delete = builtin eq stake_amt uint128_zero;
     match is_delete with
     | True =>
-      alr_deleg_amt_o <- deposit_amt_deleg[deleg][ssnaddr];
+      alr_deleg_amt_o <- deposit_amt_deleg[delegaddr][ssnaddr];
       match alr_deleg_amt_o with
       | Some alr_deleg =>
-        TruncateDeleg deleg ssnaddr;
+        TruncateDeleg delegaddr ssnaddr;
         new_stake_amt = builtin sub staking_amt alr_deleg;
         status = uint128_le minstake_tmp new_stake_amt;
         ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
         ssnlist[ssnaddr] := ssn;
-        e = { _eventname: "Deleg deleted"; ssn_addr: ssnaddr; deleg_address: deleg };
+        e = { _eventname: "Deleg deleted"; ssnaddr: ssnaddr; delegaddr: delegaddr };
         event e;
-        TransferFunds addfunds_tag alr_deleg deleg 
+        TransferFunds addfunds_tag alr_deleg delegaddr 
       | None =>
       end
     | False =>
-      FillInDepositDelegAmt ssnaddr deleg stake_amt;
+      FillInDepositDelegAmt ssnaddr delegaddr stake_amt;
       new_stake_amt = builtin add stake_amt staking_amt;
       status = uint128_le minstake_tmp new_stake_amt;
       ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
-      e = { _eventname: "Deleg added"; ssn_addr: ssnaddr; deleg_address: deleg };
+      e = { _eventname: "Deleg added"; ssnaddr: ssnaddr; delegaddr: delegaddr };
       event e
     end
   | None =>
@@ -1254,34 +1254,34 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
   end
 end
 
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
+transition PopulateStakeSSNPerCycle(ssnaddr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  stake_ssn_per_cycle[ssn_addr][cycle] := info
+  stake_ssn_per_cycle[ssnaddr][cycle] := info
 end
 
-transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
+transition PopulateLastWithdrawCycleForDeleg(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
+  last_withdraw_cycle_deleg[delegaddr][ssnaddr] := cycle
 end
 
-transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+transition PopulateBuffDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+  buff_deposit_deleg[delegaddr][ssnaddr][cycle] := amt
 end
 
-transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+transition PopulateDirectDeposit(delegaddr: ByStr20, ssnaddr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+  direct_deposit_deleg[delegaddr][ssnaddr][cycle] := amt
 end
 
-transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
+transition PopulateCommForSSN(ssnaddr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  comm_for_ssn[ssn_addr][cycle] := comm
+  comm_for_ssn[ssnaddr][cycle] := comm
 end
 
 transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
