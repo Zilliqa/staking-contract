@@ -810,13 +810,13 @@ Delegate ssnaddr initiator amount;
 e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
 event e
 end
-transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
 IsPaused;
 IsProxy;
 DelegExists ssn_operator initiator;
 WithdrawalStakeRewards initiator ssn_operator
 end
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
 WithdrawalStakeAmt initiator ssn amt

@@ -1088,8 +1088,9 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   DelegExists ssn_operator initiator;
@@ -1097,10 +1098,10 @@ transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
 end
 
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
-(* @param ssn: Address of the SSN to which stake had been delegated. *)
+(* @param ssnaddr: Address of the SSN to which stake had been delegated. *)
 (* @param amt: The amount which the delegators wanr to withdraw*)
 (* @param initiator: The original caller who called the proxy. *)
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   WithdrawalStakeAmt initiator ssn amt
