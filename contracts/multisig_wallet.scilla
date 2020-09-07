@@ -118,6 +118,8 @@ type ProxyTransaction =
 | AddSSN of ByStr20 String String String Uint128
 (* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
 | UpdateSSN of ByStr20 String String String
+(* RemoveSSN(ssnaddr: ByStr20) *)
+| RemoveSSN of ByStr20
 (***************************************************)
 (*                  Generic transition             *)
 (***************************************************)
@@ -130,7 +132,7 @@ type ProxyTransaction =
 | UpdateDeleg of ByStr20 ByStr20 Uint128
 (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo) *)
 | PopulateStakeSSNPerCycle of ByStr20 Uint128 SSNCycleInfo 
-(* PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
+(* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
 | PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint128
 (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
 | PopulateBuffDeposit of ByStr20 ByStr20 Uint128 Uint128
@@ -140,10 +142,6 @@ type ProxyTransaction =
 | PopulateCommForSSN of ByStr20 Uint128 Uint128
 (* PopulateTotalStakeAmt(amt: Uint128) *)
 | PopulateTotalStakeAmt of Uint128
-(* UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128) *)
-| UpdateRewardCycleList of (List Uint128) Uint128
-(* RemoveSSN(ssnaddr: ByStr20) *)
-| RemoveSSN of ByStr20
 (* DrainContractBalance(amt: Uint128) *)
 | DrainContractBalance of Uint128
 
@@ -279,6 +277,12 @@ let custom_transaction_msg_as_list =
          new_name: new_name;
          new_urlraw: new_urlraw;
          new_urlapi: new_urlapi}
+        (* transition RemoveSSN(ssnaddr: ByStr20) *) 
+      | RemoveSSN ssnaddr =>
+        {_recipient: proxyContract ;
+        _tag: "RemoveSSN";
+        _amount: Uint128 0;
+        ssnaddr: ssnaddr}
         (* AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20) *)
       | AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr =>
         {_recipient : proxyContract;
@@ -310,13 +314,13 @@ let custom_transaction_msg_as_list =
          ssn_address: ssn_address;
          cycle: cycle;
          info: info}
-        (* PopulateLastWithdrawCycleForDeleg(deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
-      | PopulateLastWithdrawCycleForDeleg deleg_address ssn_address cycle =>
+        (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128) *)
+      | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
         {_recipient: proxyContract;
          _tag: "PopulateLastWithdrawCycleFordeleg";
          _amount: Uint128 0;
-         deleg_address: deleg_address;
-         ssn_address: ssn_address;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
          cycle: cycle}
         (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128) *)
       | PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
@@ -350,19 +354,6 @@ let custom_transaction_msg_as_list =
          _tag: "PopulateTotalStakeAmt";
          _amount: Uint128 0;
          amt: amt}
-        (* UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128) *)
-      | UpdateRewardCycleList list last_cycle =>
-        {_recipient : proxyContract;
-        _tag: "UpdateRewardCycleList";
-        _amount: Uint128 0;
-        list: list;
-        last_cycle: last_cycle}
-        (* RemoveSSN(ssnaddr: ByStr20) *)
-      | RemoveSSN ssnaddr =>
-        {_recipient: proxyContract ;
-         _tag: "RemoveSSN";
-         _amount: Uint128 0;
-         ssnaddr: ssnaddr}
         (* DrainContractBalance(amt: Uint128) *)
       | DrainContractBalance amt =>
         {_recipient : proxyContract;
@@ -682,7 +673,7 @@ transition SubmitPopulateStakeSSNPerCycleTransaction(proxyContract: ByStr20, ssn
 end
 
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_address: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
+transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128)
   transaction = PopulateLastWithdrawCycleForDeleg deleg_address ssn_addr cycle;
   SubmitCustomTransaction proxyContract transaction
 end
@@ -708,12 +699,6 @@ end
 (* Submit a new PopulateTotalStakeAmt transaction for future signoff *)
 transition SubmitPopulateTotalStakeAmtTransaction(proxyContract: ByStr20, amt: Uint128)
   transaction = PopulateTotalStakeAmt amt;
-  SubmitCustomTransaction proxyContract transaction
-end
-
-(* Submit a new UpdateRewardCycleList transaction for future signoff *)
-transition SubmitUpdateRewardCycleListTransaction(proxyContract: ByStr20, list: List Uint128, last_cycle: Uint128)
-  transaction = UpdateRewardCycleList list last_cycle;
   SubmitCustomTransaction proxyContract transaction
 end
 
