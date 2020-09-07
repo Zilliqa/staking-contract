@@ -1,4 +1,7 @@
 # Non-Custodial Seed Node Staking Contracts
+![GitHub Actions][github-actions-badge]
+
+[github-actions-badge]: https://github.com/Zilliqa/staking-contract/workflows/Typecheck%20contracts/badge.svg
 
 Non-custodial seed node staking in [Zilliqa](https://www.zilliqa.com) as
 described in
@@ -43,7 +46,6 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
     + [Submit Transitions](#submit-transitions)
     + [Action Transitions](#action-transitions)
 
-
 # Overview
 
 The table below summarizes the purpose of the four contracts that ZIP-11 will
@@ -56,12 +58,10 @@ broadly use:
 |Wallet| [`multisig_wallet.scilla`](./multisig_wallet.scilla)  | A multisig wallet contract tailored to work with the `SSNListproxy` contract. Certain transitions in the `SSNListProxy` contract can only be invoked when k-out-of-n users have agreed to do so. This logic is handled using the `Wallet` contract. |
 |gZILToken| [`gzil.scilla`](./gzil.scilla)  | A [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/zrcs/zrc-2.md) compliant fungible token contract. gZIL tokens represent governance tokens. They are issued alongside staking rewards whenever a delegator withdraws her staking rewards. |
 
-
 # SSNList Contract Specification
 
 The `SSNList` contract is the main contract that is central to the entire staking
 infrastructure. 
-
 
 ## Roles and Privileges
 
@@ -128,25 +128,7 @@ type SsnRewardShare =
 (*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
                         It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 ```
-
-3. DelegCycleInfo Data Type:
-
-```ocaml
-type DelegCycleInfo =
-| DelegCycleInfo of ByStr20 Uint128 ByStr20
-```
-
-```ocaml
-(*    Each DelegCycleInfo has the following fields: *)
-(*    SSNAddress          : ByStr20 *)
-(*                          Address of the SSN. *)
-(*    StakeDuringTheCycle : Uint128 *)
-(*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress        : ByStr20 *)
-(*                          Address of Delegator. *)
-```
-
-4. SSNCycleInfo Data Type:
+3. SSNCycleInfo Data Type:
 
 ```ocaml
 type SSNCycleInfo =
@@ -160,7 +142,7 @@ type SSNCycleInfo =
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
-5. Error Data Type:
+4. Error Data Type:
 
 ```ocaml
 type Error =
@@ -183,8 +165,8 @@ type Error =
   | InvalidRecvAddr (* Commission is being withdrawn to an address different from that of the receiving address *)
   | VerifierNotSet (* Verifier's address is not set in the field *)
   | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
+  | ReDelegInvalidSSNAddr (* Delegator cannot redelegate to same SSN address *)
 ```
-
 ## Immutable Parameters
 
 The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
@@ -196,7 +178,6 @@ The table below lists the parameters that are defined at the contract deployment
 | `gzil_address`       | `ByStr20` | Address of the `gZILToken` contract.  |
 
 ## Mutable Fields
-
 
 The table below presents the mutable fields of the contract and their initial values. 
 
@@ -266,21 +247,21 @@ Each of these category of transitions are presented in further detail below.
 | `WithdrawStakeRewards` | `ssnaddr : ByStr20, initiator : ByStr20` | To withdraw stake rewards from a given SSN. `initiator` is the address of the delegator. Reward to be given to a delegator can be computed on-the-fly proportional to its unbuffered stake in each cycle. I.e., if the delegator's unbuffered stake at this SSN in a given cycle is d and the total unbuffered stake across all SSNs is D, and the total reward available for all SSNs is R, then the reward earned by this delegator for the cycle will be `(R * d)/D`. When a delegator calls this transition, the reward is computed for all cycles i such that `lastWithdrawnCycle < i <=  lastrewardcyle`. The transition also mints gZILs and assigns them to the delegator's address. For every ZIL earned as reward, the delegator will earn 0.001 gZIL. | <center>:x:</center> |
 | `WithdrawStakeAmt` | `ssnaddr : ByStr20, amt : Uint128, initiator : ByStr20` | To withdraw stake amount from a given SSN. `initiator` is the address of the delegator. No stake amount can be withdrawn if the delegator has unwithdrawn reward or buffered deposit. If the amount withdrawn is less than or equal to the stake deposited, then the withdrawal request is accepted and the field `withdrawal_pending` is updated accordingly. A delegator may request multiple withdrawals in the same cycle. Once this transition is called, the delegator enters into an unbonding period of 24,000 blocks. Only at the expiry of the unbonding period, the delegator can claim the funds. During the unbonding period, the delegator will not earn any reward. | <center>:x:</center> |
 | `CompleteWithdrawal` | `initiator : ByStr20` | This is to be called after the delegator has called `WithdrawStakeAmt`. `initiator` is the address of the delegator. The transition processing all the pending withdrawals as recorded in `withdrawal_pending`. Only those pending requests for which the bonding period has expired will be processed. Upon success, all the funds get transferred from the contract to the `initiator`. | <center>:x:</center> |
-
+| `ReDelegateStake` | `ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20` | To re-delagate the stake from a SSN to another SSN. `initiator` is the address of the delegator. `ssnaddr` is the original SSN, `to_ssn` is the new SSN the delegator wants to deleagte to. The re-delegate amount is specificed by `amount`.
 
 ### SSN Operation Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
 | `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | 
-| `WithdrawComm` | `ssnaddr : ByStr20, initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN's commission receiving address. In case the `initiator` is not the receiving address for the SSN or if the SSN does not exist or if the SSN hasn't earned any commission, then the transition throws error. On success, the contract transfer the commission to the `initiator`. | <center>:x:</center> | 
+| `WithdrawComm` | `initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN operator. On success, the contract transfer the commission to the receiving address. | <center>:x:</center> | 
 | `UpdateReceivingAddr` | `newaddr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | 
 
 ### Verifier Operation Transitions
 
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
-| `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, verifier_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. c`initiator` is the verifier. The `verifier_reward` earned for this cycle is transferred to the verifier` receiving address. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | 
+| `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, verifier_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `verifier_reward` earned for this cycle is transferred to the verifier` receiving address. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | 
 
 ### Contract Upgrade Transitions
 
@@ -300,8 +281,6 @@ Each of these category of transitions are presented in further detail below.
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
 | `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | 
-
-
 
 # SSNListProxy Contract Specification
 
@@ -350,7 +329,6 @@ All the transitions in the contract can be categorized into two categories:
 
 ### Relay Transitions
 
-
 These transitions are meant to redirect calls to the corresponding `SSNList`
 contract. While redirecting, the contract prepares the `initiator` value that
 is the address of the caller of the `SSNListProxy` contract. The signature of
@@ -371,11 +349,11 @@ parameter `initiator` for the `SSNList` contract.
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
-|`WithdrawComm(ssnaddr: ByStr20)` | `WithdrawComm(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`WithdrawComm()` | `WithdrawComm(initiator : ByStr20)`|
 |`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
 |`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
-|`WithdrawStakeRewards(ssn_operator: ByStr20)` | `WithdrawStakeRewards(ssn_operator: ByStr20, initiator : ByStr20)`|
-|`WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator : ByStr20)`|
+|`WithdrawStakeRewards(ssnaddr: ByStr20)` | `WithdrawStakeRewards(ssnaddr: ByStr20, initiator : ByStr20)`|
+|`WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator : ByStr20)`|
 |`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
 |`ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128)` | `ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128, initiator : ByStr20)`|
 |`AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator : ByStr20)`|
@@ -442,9 +420,6 @@ end
 As tokens are rewarded when a delegator claims its staking rewards within the
 `SSNList` contract, the `minter` of the `gZILToken` contract will be the
 address of the `SSNList` contract. 
-
-
-
 
 # Multi-signature Wallet Contract Specification
 
@@ -545,7 +520,6 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitPopulateBufferedDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateBufferedDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDirectDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateDirectDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDepositAmountFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
-
 
 ### Action Transitions
 
