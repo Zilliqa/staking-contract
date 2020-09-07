@@ -523,7 +523,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitPopulateTotalStakeAmtTransaction`| `proxyContract : ByStr20, amt : Uint128` | Submit a request to invoke the `PopulateTotalStakeAmt` transition in the `SSNListProxy` contract. |
 |`SubmitCustomRemoveSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `RemoveSSN` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDepositAmountFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
-|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
+|`SubmitCustomDrainContractBalanceTransaction`| `proxyContract : ByStr20, amt : Uint128` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
 
 ### Action Transitions
 
