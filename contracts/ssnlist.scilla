@@ -68,7 +68,7 @@ type DelegCycleInfo =
 (*    TotalStakeDuringTheCycle            : Uint128 *)
 (*                                          Represents the amount staked during this cycle for the given SSN. *)
 (*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
-(*                                         Represents the amount staked during this cycle for the given SSN. *)
+(*                                         Represents the total reward earned during this cycle for the given SSN. . *)
 
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
