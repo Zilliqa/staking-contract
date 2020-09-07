@@ -43,7 +43,6 @@ In the sections below, we describe in detail: 1) the purpose of each contract,
     + [Submit Transitions](#submit-transitions)
     + [Action Transitions](#action-transitions)
 
-
 # Overview
 
 The table below summarizes the purpose of the four contracts that ZIP-11 will
@@ -56,12 +55,10 @@ broadly use:
 |Wallet| [`multisig_wallet.scilla`](./multisig_wallet.scilla)  | A multisig wallet contract tailored to work with the `SSNListproxy` contract. Certain transitions in the `SSNListProxy` contract can only be invoked when k-out-of-n users have agreed to do so. This logic is handled using the `Wallet` contract. |
 |gZILToken| [`gzil.scilla`](./gzil.scilla)  | A [ZRC-2](https://github.com/Zilliqa/ZRC/blob/master/zrcs/zrc-2.md) compliant fungible token contract. gZIL tokens represent governance tokens. They are issued alongside staking rewards whenever a delegator withdraws her staking rewards. |
 
-
 # SSNList Contract Specification
 
 The `SSNList` contract is the main contract that is central to the entire staking
 infrastructure. 
-
 
 ## Roles and Privileges
 
@@ -184,7 +181,6 @@ type Error =
   | VerifierNotSet (* Verifier's address is not set in the field *)
   | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
 ```
-
 ## Immutable Parameters
 
 The table below lists the parameters that are defined at the contract deployment time and hence cannot be changed later on.
@@ -196,7 +192,6 @@ The table below lists the parameters that are defined at the contract deployment
 | `gzil_address`       | `ByStr20` | Address of the `gZILToken` contract.  |
 
 ## Mutable Fields
-
 
 The table below presents the mutable fields of the contract and their initial values. 
 
@@ -268,7 +263,6 @@ Each of these category of transitions are presented in further detail below.
 | `CompleteWithdrawal` | `initiator : ByStr20` | This is to be called after the delegator has called `WithdrawStakeAmt`. `initiator` is the address of the delegator. The transition processing all the pending withdrawals as recorded in `withdrawal_pending`. Only those pending requests for which the bonding period has expired will be processed. Upon success, all the funds get transferred from the contract to the `initiator`. | <center>:x:</center> |
 | `ReDelegateStake` | `ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20` | To re-delagate the stake from a SSN to another SSN. `initiator` is the address of the delegator. `ssnaddr` is the original SSN, `to_ssn` is the new SSN the delegator wants to deleagte to. The re-delegate amount is specificed by `amount`.
 
-
 ### SSN Operation Transitions
 
 | Name        | Params     | Description | Callable when paused?|
@@ -301,8 +295,6 @@ Each of these category of transitions are presented in further detail below.
 | Name        | Params     | Description | Callable when paused?|
 | ----------- | -----------|-------------|:--------------------------:|
 | `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | 
-
-
 
 # SSNListProxy Contract Specification
 
@@ -350,7 +342,6 @@ All the transitions in the contract can be categorized into two categories:
 |`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
 
 ### Relay Transitions
-
 
 These transitions are meant to redirect calls to the corresponding `SSNList`
 contract. While redirecting, the contract prepares the `initiator` value that
@@ -444,9 +435,6 @@ end
 As tokens are rewarded when a delegator claims its staking rewards within the
 `SSNList` contract, the `minter` of the `gZILToken` contract will be the
 address of the `SSNList` contract. 
-
-
-
 
 # Multi-signature Wallet Contract Specification
 
@@ -547,7 +535,6 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitPopulateBufferedDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateBufferedDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDirectDepositTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint128, amount : Uint128` | Submit a request to invoke the `PopulateDirectDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDepositAmountFordelegTransaction`| `proxyContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
-
 
 ### Action Transitions
 
