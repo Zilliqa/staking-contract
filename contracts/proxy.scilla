@@ -205,16 +205,16 @@ transition DelegateStake(ssnaddr: ByStr20)
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "WithdrawStakeRewards"; _recipient: current_impl; _amount: zero; ssn_operator: ssn_operator; initiator: _sender};
+    msg = {_tag: "WithdrawStakeRewards"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
 
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssn: ssn; amt: amt; initiator: _sender};
+    msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; amt: amt; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

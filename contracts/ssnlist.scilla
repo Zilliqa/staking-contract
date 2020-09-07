@@ -1027,23 +1027,16 @@ transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    is_valid_addr = builtin eq initiator rec_addr;
-    match is_valid_addr with
+    has_comm = uint128_gt comm_rewards uint128_zero;
+    match has_comm with
     | True =>
-      has_comm = uint128_gt comm_rewards uint128_zero;
-      match has_comm with
-      | True =>
-        e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
-        event e;
-        ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
-        ssnlist[initiator] := ssn;
-        TransferFunds addfunds_tag comm_rewards rec_addr
-      | False =>
-        e = SSNNoComm;
-        ThrowError e
-      end
+      e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
+      event e;
+      ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
+      ssnlist[initiator] := ssn;
+      TransferFunds addfunds_tag comm_rewards rec_addr
     | False =>
-      e = InvalidRecvAddr;
+      e = SSNNoComm;
       ThrowError e
     end
   end
@@ -1088,22 +1081,23 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
+(* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawStakeRewards(ssn_operator: ByStr20, initiator: ByStr20)
+transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  DelegExists ssn_operator initiator;
-  WithdrawalStakeRewards initiator ssn_operator
+  DelegExists ssnaddr initiator;
+  WithdrawalStakeRewards initiator ssnaddr
 end
 
 (* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
-(* @param ssn: Address of the SSN to which stake had been delegated. *)
+(* @param ssnaddr: Address of the SSN to which stake had been delegated. *)
 (* @param amt: The amount which the delegators wanr to withdraw*)
 (* @param initiator: The original caller who called the proxy. *)
-transition WithdrawStakeAmt(ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssn amt
+  WithdrawalStakeAmt initiator ssnaddr amt
 end
 
 transition CompleteWithdrawal(initiator: ByStr20)
