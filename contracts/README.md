@@ -1,4 +1,7 @@
 # Non-Custodial Seed Node Staking Contracts
+![GitHub Actions][github-actions-badge]
+
+[github-actions-badge]: https://github.com/Zilliqa/staking-contract/workflows/Typecheck%20contracts/badge.svg
 
 Non-custodial seed node staking in [Zilliqa](https://www.zilliqa.com) as
 described in
