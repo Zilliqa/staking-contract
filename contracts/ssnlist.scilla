@@ -25,7 +25,7 @@ library SSNList
 (*                     Stake deposit that cannot be counted as a part of reward calculation for the ongoing reward cycle. But, to be considered *)
 (*                     for the next one. *)
 (* Commission        : Uint128 *)
-(*                     Percentage of incoming rewards that the SSN takes as commission. *)
+(*                     Percentage of incoming rewards that the SSN takes as commission. If the commission is 10.5%, then it is multiplied by 10^7 and then the resulting integer is set as commission. The assumption is that the percentage is up to 7 decimal places. *)
 (* CommissionRewards : Uint128 *)
 (*                     Number of ZILs earned as commission by the SSN. *)
 (* ReceivingAddress   : ByStr20 *)
@@ -49,31 +49,21 @@ type Ssn =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
-(* DelegCycleInfo Data Type *)
-
-(*    Each DelegCycleInfo has the following fields: *)
-(*    SSNAddress          : ByStr20 *)
-(*                          Address of the SSN. *)
-(*    StakeDuringTheCycle : Uint128 *)
-(*                          Represents the amount staked during this cycle for the given SSN. *)
-(*    DelegAddress        : ByStr20 *)
-(*                          Address of Delegator. *)
-
-type DelegCycleInfo =
-| DelegCycleInfo of ByStr20 Uint128 ByStr20
 (* SSNCycleInfo Data Type *)
 
 (*   Each SSNCycleInfo has the following fields: *)
 (*    TotalStakeDuringTheCycle            : Uint128 *)
 (*                                          Represents the amount staked during this cycle for the given SSN. *)
 (*    TotalRewardEarnedDuringTheCycle    : Uint128 *)
-(*                                         Represents the amount staked during this cycle for the given SSN. *)
+(*                                         Represents the total reward earned during this cycle for the given SSN. . *)
+
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
 (* deleg, ssn_operator, reward_cycle *)
+
 type TmpArg =
-| TmpArg of ByStr20 ByStr20 Uint128
+| TmpArg of ByStr20 ByStr20 Uint32
 
 let one_msg =
   fun (m : Message) =>
@@ -82,19 +72,12 @@ let one_msg =
 
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
+let uint128_10_power_7 = Uint128 10000000
+let uint128_100 = Uint128 100
 
-(* left < element <= right *)
-(* This function is used for filting out those cycles that need to compute rewards for delegs *)
-let list_filter_between =
-  fun (left: Uint128) =>
-  fun (right: Uint128) =>
-  fun (l: List Uint128) =>
-    let fil = @list_filter Uint128 in
-    let f = fun (element: Uint128) =>
-      let res_l = builtin lt left element in
-      let res_r = uint128_le element right in
-      andb res_l res_r
-    in fil f l
+let uint32_one = Uint32 1
+let uint32_zero = Uint32 0
+
 
 let option_value =
   tfun 'A =>
@@ -113,15 +96,19 @@ let option_map_uint128_uint128_value =
 let option_uint128_value =
   let f = @option_value Uint128 in
   f uint128_zero
+  
+let option_uint32_value =
+  let f = @option_value Uint32 in
+  f uint32_zero
 
 let sub_one_to_zero =
-  fun (x: Uint128) =>
-  let less_than_one = builtin lt x uint128_one in
+  fun (x: Uint32) =>
+  let less_than_one = builtin lt x uint32_one in
   match less_than_one with
   | True =>
-    uint128_zero
+    uint32_zero
   | False =>
-    let res = builtin sub x uint128_one in
+    let res = builtin sub x uint32_one in
     res
   end
 
@@ -147,10 +134,34 @@ let change_rate =
       builtin sub old new
     end
 
+let iota : Uint32 -> Uint32 -> List Uint32 =
+  fun (m : Uint32) => fun (n : Uint32) =>
+    let m_lt_n = builtin lt m n in
+    match m_lt_n with
+    | True =>
+        let delta = builtin sub n m in
+        let delta_nat = builtin to_nat delta in
+        let fold = @nat_fold (List Uint32) in
+        let nil = Nil {Uint32} in
+        let acc_init = Pair {(List Uint32) Uint32} nil n in
+        let one = Uint32 1 in
+        let step = fun (xs_n : Pair (List Uint32) Uint32) => fun (ignore : Nat) =>
+          match xs_n with
+          | Pair xs n =>
+              let new_n = builtin sub n one in
+              let new_xs = Cons {Uint32} new_n xs in
+              Pair {(List Uint32) Uint32} new_xs new_n
+          end in
+        let fold = @nat_fold (Pair (List Uint32) Uint32) in
+        let xs_m = fold step acc_init delta_nat in
+        match xs_m with
+        | Pair xs m => xs
+        end
+    | False => Nil {Uint32}
+    end
+
 let bool_active = True
 let bool_inactive = False
-let uint128_10_power_7 = Uint128 10000000
-let uint128_100 = Uint128 100
 let addfunds_tag = "AddFunds"
 
 type Error =
@@ -173,6 +184,7 @@ type Error =
   | InvalidRecvAddr
   | VerifierNotSet
   | VerifierRecvAddrNotSet
+  | ReDelegInvalidSSNAddr
 
 let make_error =
   fun (result: Error) =>
@@ -197,6 +209,7 @@ let make_error =
       | InvalidRecvAddr => Int32 -17
       | VerifierNotSet => Int32 -18
       | VerifierRecvAddrNotSet => Int32 -19
+      | ReDelegInvalidSSNAddr => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -205,61 +218,81 @@ let make_error =
 (***************************************************)
 contract SSNList(
   init_admin: ByStr20,
-  proxy_address: ByStr20,
-  gzil_address: ByStr20
+  init_proxy_address: ByStr20,
+  init_gzil_address: ByStr20
 )
+
 (* Keeps track of SSNS *)
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
-(* Record comm for ssn of every cycle*)
-(* AddressofSSN -> (Cycle -> comm ) *)
-field comm_for_ssn: Map ByStr20 (Map Uint128 Uint128) = Emp ByStr20 (Map Uint128 Uint128)
-(* Following data structs help to calculate rewards for delegators *)
+
+(* Record commmission for SSN for each reward cycle *)
+(* AddressofSSN -> (RewardCycle -> commission ) *)
+field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) = Emp ByStr20 (Map Uint32 Uint128)
+
+(* Following data structure helps to calculate rewards for delegators *)
 (* Keeps track of stakes deposited at SSNs *)
 (* Record deposit amount for every deleg for every ssn *)
 (* AddressofDeleg -> (AddressofSSN -> StakeAmount) *)
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
 (* AddressofSSN -> (AddressofDeleg -> StakeAmount) *)
 field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
-(* Keeps track of buffered deposit for a deleg *)
+
+(* Keeps track of buffered deposit for a delegator *)
 (* AddressOfDeleg -> (AddressofSSN -> (RewardCycleNumber -> BufferedStakeAmountDuringTheCycle)) *)
 (* The BufferedStakeAmount will only be truely delegated at next cycle *)
-field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
-(* Keeps track of stake deposits for a deleator that can be considered for reward calcuation *)
+field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+
+(* Keeps track of stake deposits for a delegator that can be considered for reward calcuation *)
 (* AddressofDeleg -> (AddressofSSN -> (RewardCycleNumber -> StakeAmount)) *)
-field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint128 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint128 Uint128))
+field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+
 (* Keeps track of the cycle number when a deleg last withdrew its rewards *)
 (* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastWithdrawn) *)
 (* notice here, the last withdraw cycle also indicated the earlist deposit cycle this round *)
 (* this will help reduce some calculation for DistributeStakeRewards, also can avoid some corner cases *)
-field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) = Emp ByStr20 (Map ByStr20 Uint32)
+
 (* Keeps track of the cycle number when a deleg last buffered deposit its delegate *)
 (* AddressOfDeleg -> ( AddressOfSSN -> CycleNumberWhenLastDeposit) *)
-field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) = Emp ByStr20 (Map ByStr20 Uint32)
+
 (* AddressOfSSN -> (RewardCycleNumber -> Pair (TotalStakeDuringTheCycleForSSN, TotalRewardEarnedDuringTheCycle) *)
-field stake_ssn_per_cycle: Map ByStr20 (Map Uint128 SSNCycleInfo) = Emp ByStr20 (Map Uint128 SSNCycleInfo)
+field stake_ssn_per_cycle: Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (Map Uint32 SSNCycleInfo)
+
+(* AddressOfDeleg -> AddressOfSSN -> EffectCycleNum -> Deposit *)
+field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+
 field bnum_req: Uint128 = Uint128 24000
-(* Temporary storage map *)
-(* Used during CalcStakeDelegPerCycle *)
-field stake_deleg_per_cycle: Map Uint128 Uint128 = Emp Uint128 Uint128
+
+(* Temporary storage maps *)
 (* Used during CalcRewardsDelegPerCycle *)
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
-field reward_cycle_list: List Uint128   =  Nil {Uint128}
+
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
-field minstake: Uint128 = Uint128 0
-(* 1 zil *)
-field mindelegstake: Uint128 = Uint128 0
+
+(* 10 mil ZIL expressed in Qa where 1 ZIL = 10^12 Qa *)
+field minstake: Uint128 = Uint128 10000000000000000000
+
+(* 1000 ZIL expresssed in Qa where 1 ZIL = 10^12 Qa *)
+field mindelegstake: Uint128 = Uint128 1000000000000000
+
 field contractadmin: ByStr20  = init_admin
-field proxyaddr: ByStr20 = proxy_address
-field gziladdr: ByStr20 = gzil_address
-field lastrewardcycle: Uint128 = uint128_one
+field proxyaddr: ByStr20 = init_proxy_address
+field gziladdr: ByStr20 = init_gzil_address
+field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
+
 (* 1% *)
 field maxcommchangerate: Uint128 = uint128_one
+
+(* 100% expressed as an integer multipled by 10^7 *)
 field maxcommrate: Uint128 = Uint128 1000000000
 field totalstakeamount: Uint128 = uint128_zero
 
@@ -314,6 +347,8 @@ procedure DecreaseTotalStakeAmt(amt: Uint128)
   valid = uint128_le amt current_amt;
   match valid with
   | True =>
+    new_amt = builtin sub current_amt amt;
+    totalstakeamount := new_amt
   | False =>
     e = InvalidTotalAmt;
     ThrowError e
@@ -368,8 +403,8 @@ end
 
 (* Check if the caller is the proxy *)
 procedure IsProxy()
-  proxyaddr_tmp <- proxyaddr;
-  is_proxy = builtin eq _sender proxyaddr_tmp;
+  proxy_tmp <- proxyaddr;
+  is_proxy = builtin eq _sender proxy_tmp;
   match is_proxy with
   | True  =>
   | False =>
@@ -414,7 +449,7 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
           avaiable_withdrawal := current_amt
       | False => 
       end
-  end
+    end
   | None => (* Won't reach *)
   end
 end
@@ -513,7 +548,7 @@ end
 
 procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
   lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
-  lrcd = option_uint128_value lrcd_tmp;
+  lrcd = option_uint32_value lrcd_tmp;
   lrc <- lastrewardcycle;
   has_reward = builtin lt lrcd lrc;
   match has_reward with
@@ -526,10 +561,10 @@ end
 
 procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
-  ldcd = option_uint128_value ldcd_o;
+  ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
   (* in fact, lrc will only more than or equal to ldcd, equal means he delegates this around and withdraw this around as well *)
-  has_buffered = uint128_le lrc ldcd;
+  has_buffered = uint32_le lrc ldcd;
   match has_buffered with
   | True =>
     e = DelegHasBufferedDeposit;
@@ -568,10 +603,43 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
       ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
       direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
+      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
+      last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
     end
   | False =>
     e = DelegHasNoSufficientAmt;
+    ThrowError e
+  end
+end
+
+procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+  ssn_o <- ssnlist[ssn];
+  deleg <- deposit_amt_deleg[initiator][ssn];
+  lrc <- lastrewardcycle;
+  match ssn_o with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    match deleg with
+    | Some amt =>
+      HasRewardToWithdraw ssn initiator;
+      HasBufferedDeposit ssn initiator;
+      AdjustDeleg ssn initiator amt redeleg_amt;
+      (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
+      DecreaseTotalStakeAmt redeleg_amt;
+      new_amt = builtin sub stake_amt redeleg_amt;
+      minstake_tmp <- minstake;
+      status = uint128_le minstake_tmp new_amt;
+      ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
+      ssnlist[ssn] := ssn_option_tmp;
+      (* If ssn becomes inactive, we need to decrease the rest ones also *)
+      DecreaseTotalStakeAmtOnStatus new_amt status;
+      e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
+      event e
+    | None =>
+      e = DelegDoesNotExistAtSSN;
+      ThrowError e
+    end
+  | None =>
+    e = SSNNotExist;
     ThrowError e
   end
 end
@@ -618,20 +686,21 @@ end
 procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
-    (* Combine buffered and direct - this replaces combine_buffered_and_direct *)
-    last_reward_cycle = builtin sub reward_cycle uint128_one;
+    last_reward_cycle = builtin sub reward_cycle uint32_one;
     last2_reward_cycle = sub_one_to_zero last_reward_cycle;
     cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
     buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
     comb_opt = option_add cur_opt buf_opt;
-    (* Calculate final staking per cycle for delegs - this replaces calculate_all_stake_pr_cycle *)
-    result_map_opt <- stake_deleg_per_cycle[last_reward_cycle];
-    stake_opt = option_add comb_opt result_map_opt;
-    match stake_opt with
+
+    last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+    last_amt = option_uint128_value last_amt_o;
+    
+    match comb_opt with
     | Some stake =>
-      stake_deleg_per_cycle[reward_cycle] := stake
+      total_stake = builtin add last_amt stake;
+      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
     | None =>
-      stake_deleg_per_cycle[reward_cycle] := uint128_zero
+      deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
     end
   end
 end
@@ -654,10 +723,9 @@ end
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
   match tmp_arg with
   | TmpArg deleg ssn_operator reward_cycle =>
-    (* Calculate staking rewards per cycle for deleg - this replaces calculate_rewards_per_cycle_for_deleg *)
-    staking_per_cycle_for_deleg_opt <- stake_deleg_per_cycle[reward_cycle];
-    lrc = builtin sub reward_cycle uint128_one;
-    staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][lrc];
+    (* Calculate staking rewards per cycle for deleg *)
+    staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
+    staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
     match staking_per_cycle_for_deleg_opt with
     | Some staking_of_deleg =>
       match staking_and_rewards_per_cycle_for_ssn_opt with
@@ -674,26 +742,22 @@ end
 
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
-  last_withdraw_cycle = option_uint128_value last_withdraw_cycle_deleg_m;
+  last_withdraw_cycle = option_uint32_value last_withdraw_cycle_deleg_m;
   lrc <- lastrewardcycle;
-  rcl <- reward_cycle_list;
-  list_reverse_uint128 = @list_reverse Uint128;
-  rcl_reverse = list_reverse_uint128 rcl;
-  (* those are the cycles that we want to compute for computing rewards *)
-  list_need_compute_rewards = list_filter_between last_withdraw_cycle lrc rcl;
+
+  m = builtin add last_withdraw_cycle uint32_one;
+  n = builtin add lrc uint32_one;
+  list_need_compute_rewards = iota m n;
+  
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
-  mapper = @list_map Uint128 TmpArg;
-  f = fun (cycle: Uint128) => TmpArg deleg ssn_operator cycle;
-  combined_args_list = mapper f list_need_compute_rewards;
+  mapper = @list_map Uint32 TmpArg;
+  f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
 
-
-  (* calculate stake_deleg_per_cycle *)
-  emp_map = Emp Uint128 Uint128;
-  stake_deleg_per_cycle := emp_map;
-  rcl_reverse_t = mapper f rcl_reverse;
-  forall rcl_reverse_t CalcStakeDelegPerCycle;
+  list_need_compute_rewards_t = mapper f list_need_compute_rewards;
+  forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
+  combined_args_list = mapper f list_need_compute_rewards;
   rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
@@ -702,7 +766,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   reward = option_uint128_value reward;
   SendDelegRewards deleg reward;
   MintCall deleg reward;
-  (* todo update ssn: sub reward *)
+
   ssn_o <- ssnlist[ssn_operator];
   match ssn_o with
   | Some (Ssn active_status stake_amt total_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
@@ -711,9 +775,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     ssnlist[ssn_operator] := ssn
   | None => (* won't reach *)
   end;
-  sdpc <- stake_deleg_per_cycle;
-  sdpc_list = builtin to_list sdpc;
-  e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list; stake_deleg_per_cycle: sdpc_list };
+  e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
@@ -728,14 +790,14 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     IsDelegstakeSufficient amount;
     minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
-    (*The delegated stake can be accepted. It is buffered if the SSN is active if not it is added to the stake_amount. *)
+    (*The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
     FillLastRewardCycle ssnaddr initiator;
+    (* It is buffered if the SSN is active if not it is added to the stake_amount. *)
     match active_status with
     | True  =>
       last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;
       new_buff_amt  = builtin add amount buffdeposit;
-      new_stake_amt = builtin add new_buff_amt stake_amt;
       (* The SSN is active so add the delegated stake to the buffer *)
       ssn = Ssn bool_active stake_amt rewards name urlraw urlapi new_buff_amt comm comm_rewards rec_addr;
       ssnlist[ssnaddr] := ssn;
@@ -838,9 +900,7 @@ end
 transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  bnum_req := input_bnum_req;
-  e = { _eventname: "ChangeBNumReqSuccess"; input_bnum_req: input_bnum_req};
-  event e
+  bnum_req := input_bnum_req
 end
 
 transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
@@ -880,9 +940,11 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   match ssn_o with
   | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
-    ssnlist[ssnaddr] := ssn
+    ssnlist[ssnaddr] := ssn;
+    e = { _eventname: "UpdateSSN"; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: initiator };
+    event e
   | None =>
-    e = SSNAlreadyExist;
+    e = SSNNotExist;
     ThrowError e
   end
 end
@@ -932,7 +994,9 @@ transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
       ValidateChangeRate comm new_rate;
       comm_for_ssn[initiator][lrc] := new_rate;
       ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit new_rate comm_rewards rec_addr;
-      ssnlist[initiator] := ssn
+      ssnlist[initiator] := ssn;
+      e = { _eventname: "UpdateComm"; ssn_addr: initiator; new_rate: new_rate };
+      event e
     end
   | None =>
     e = SSNNotExist;
@@ -941,34 +1005,26 @@ transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
 end
 
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
-(* @param ssnaddr: The ssn operator address *)
 (* @param initiator: The original caller who called the proxy *)
-transition WithdrawComm(ssnaddr: ByStr20, initiator: ByStr20)
+transition WithdrawComm(initiator: ByStr20)
   IsPaused;
   IsProxy;
-  curval <- ssnlist[ssnaddr];
+  curval <- ssnlist[initiator];
   match curval with
   | None =>
     e = SSNNotExist;
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    is_valid_addr = builtin eq initiator rec_addr;
-    match is_valid_addr with
+    has_comm = uint128_gt comm_rewards uint128_zero;
+    match has_comm with
     | True =>
-      has_comm = uint128_gt comm_rewards uint128_zero;
-      match has_comm with
-      | True =>
-        e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
-        event e;
-        ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
-        ssnlist[initiator] := ssn;
-        TransferFunds addfunds_tag comm_rewards rec_addr
-      | False =>
-        e = SSNNoComm;
-        ThrowError e
-      end
+      e = { _eventname: "SSN withdraw reward"; ssn_addr: initiator; withdraw_comm: comm_rewards };
+      event e;
+      ssn = Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm uint128_zero rec_addr;
+      ssnlist[initiator] := ssn;
+      TransferFunds addfunds_tag comm_rewards rec_addr
     | False =>
-      e = InvalidRecvAddr;
+      e = SSNNoComm;
       ThrowError e
     end
   end
@@ -977,14 +1033,16 @@ end
 (* @dev : To update the received address for a given SSN *)
 (* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
-transition UpdateReceivedAddr(new_addr: ByStr20, initiator: ByStr20)
+transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     ssn =  Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards new_addr;
-    ssnlist[initiator] := ssn
+    ssnlist[initiator] := ssn;
+    e = { _eventname: "UpdateReceivingAddr"; ssn_addr: initiator; new_addr: new_addr };
+    event e
   | None =>
     e = SSNNotExist;
     ThrowError e
@@ -1003,9 +1061,11 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   IsProxy;
   (* Accept the deposit from SSN and add to contract balance. *)
   (* Transfer back to initiator if any of the validation failed *)
-  accept;
+  accept; 
   amount = _amount;
-  Delegate ssnaddr initiator amount
+  Delegate ssnaddr initiator amount;
+  e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
+  event e
 end
 
 (* @dev: Withdraw stake reward. Can be called by a deleg. *)
@@ -1015,8 +1075,6 @@ transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   IsPaused;
   IsProxy;
   DelegExists ssnaddr initiator;
-  amt_opt <- deposit_amt_deleg[initiator][ssnaddr];
-  amt = option_uint128_value amt_opt;
   WithdrawalStakeRewards initiator ssnaddr
 end
 
@@ -1053,13 +1111,21 @@ transition CompleteWithdrawal(initiator: ByStr20)
   end
 end
 
-transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amt: Uint128, initiator: ByStr20)
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
-  WithdrawalStakeAmt initiator ssnaddr amt;
-  Delegate to_ssn initiator amt;
-  e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amt };
-  event e
+  same_ssn = builtin eq ssnaddr to_ssn;
+  match same_ssn with
+  | True =>
+    e = ReDelegInvalidSSNAddr;
+    ThrowError e
+  | False =>
+    ReDelegStakeAmt initiator ssnaddr amount;
+    Delegate to_ssn initiator amount;
+    e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
+    event e
+  end
+  
 end
 
 (***************************************************)
@@ -1074,12 +1140,9 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
-  forall ssnreward_list UpdateStakeReward;
-  newLastRewardCycleNum = builtin add uint128_one lrc;
+  newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
-  rcl <- reward_cycle_list;
-  rcl_new = Cons {Uint128} newLastRewardCycleNum rcl;
-  reward_cycle_list := rcl_new;
+  forall ssnreward_list UpdateStakeReward;
   verifier_o <- verifier_receiving_addr;
   match verifier_o with
   | Some v => 
@@ -1152,7 +1215,7 @@ end
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
 (* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
-(* lastrewardcycle reward_cycle_list last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
+(* lastrewardcycle last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
 transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
@@ -1172,7 +1235,8 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
         ssn = Ssn status new_stake_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
         ssnlist[ssnaddr] := ssn;
         e = { _eventname: "Deleg deleted"; ssn_addr: ssnaddr; deleg_address: deleg };
-        event e
+        event e;
+        TransferFunds addfunds_tag alr_deleg deleg 
       | None =>
       end
     | False =>
@@ -1190,31 +1254,31 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
   end
 end
 
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20)
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 
-transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, initiator: ByStr20)
+transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 
-transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20)
+transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
-transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20)
+transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
-transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20)
+transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
@@ -1224,17 +1288,6 @@ transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   totalstakeamount := amt
-end
-
-(* @dev: Update reward cycle list and last reward cycle *)
-(* @param list: reward cycle list *)
-(* @param last_cycle: last reward cycle *)
-(* @param initiator: The original caller who called the proxy *)
-transition UpdateRewardCycleList(list: List Uint128, last_cycle: Uint128, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  reward_cycle_list := list;
-  lastrewardcycle := last_cycle
 end
 
 (* @dev:  Drain the contract's balance. Used by current admin only *)
