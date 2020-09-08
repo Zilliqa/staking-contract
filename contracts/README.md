@@ -255,7 +255,7 @@ Each of these category of transitions are presented in further detail below.
 | ----------- | -----------|-------------|:--------------------------:|
 | `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | 
 | `WithdrawComm` | `initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN operator. On success, the contract transfer the commission to the receiving address. | <center>:x:</center> | 
-| `UpdateReceivingAddr` | `newaddr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | 
+| `UpdateReceivingAddr` | `new_addr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | 
 
 ### Verifier Operation Transitions
 
@@ -350,7 +350,7 @@ parameter `initiator` for the `SSNList` contract.
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
 |`WithdrawComm()` | `WithdrawComm(initiator : ByStr20)`|
-|`UpdateReceivedAddr(new_addr: ByStr20)` | `UpdateReceivedAddr(new_addr: ByStr20, initiator : ByStr20)`|
+|`UpdateReceivingAddr(new_addr: ByStr20)` | `UpdateReceivingAddr(new_addr: ByStr20, initiator : ByStr20)`|
 |`DelegateStake(ssnaddr: ByStr20)` | `DelegateStake(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`WithdrawStakeRewards(ssnaddr: ByStr20)` | `WithdrawStakeRewards(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator : ByStr20)`|
