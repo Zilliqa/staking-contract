@@ -271,10 +271,16 @@ field bnum_req: Uint128 = Uint128 24000
 (* Temporary storage maps *)
 (* Used during CalcRewardsDelegPerCycle *)
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+
+(* Used during AssignStakeReward *)
+field verifier_reward: Uint128 = uint128_zero
+
 field avaiable_withdrawal: Uint128 = uint128_zero
+
 field current_deleg: Option ByStr20 = None {ByStr20}
 
 field verifier: Option ByStr20 = None {ByStr20}
+
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 
 (* 10 mil ZIL expressed in Qa where 1 ZIL = 10^12 Qa *)
@@ -474,6 +480,11 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         total_stake_amt <- totalstakeamount;
         new_rewards_tmp = builtin mul stake_amt cycle_reward;
         new_rewards = builtin div new_rewards_tmp total_stake_amt;
+
+        (* Substract verifier_reward *)
+        current_verifier_reward <- verifier_reward;
+        new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
+        verifier_reward := new_current_verifier_reward;
 
         (* To calculate commission *)
         reward_comm_tmp = builtin mul new_rewards comm;
@@ -1134,23 +1145,26 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param available_reward: total rewards for ssn operator, delegators and verifier *)
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
   newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
+  verifier_reward := available_reward;
   forall ssnreward_list UpdateStakeReward;
+  verifier_reward_amt <- verifier_reward;
   verifier_o <- verifier_receiving_addr;
   match verifier_o with
   | Some v => 
-    is_zero = builtin eq verifier_reward uint128_zero;
+    is_zero = builtin eq verifier_reward_amt uint128_zero;
     match is_zero with
     | True =>
     | False =>
-      TransferFunds addfunds_tag verifier_reward v
+      TransferFunds addfunds_tag verifier_reward_amt v
     end
   | None =>
     e = VerifierRecvAddrNotSet;
