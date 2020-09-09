@@ -481,7 +481,7 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         new_rewards_tmp = builtin mul stake_amt cycle_reward;
         new_rewards = builtin div new_rewards_tmp total_stake_amt;
 
-        (* Substract verifier_reward *)
+        (* Substract from verifier_reward, scilla would help us with underflow exception which is always should not happen *)
         current_verifier_reward <- verifier_reward;
         new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
         verifier_reward := new_current_verifier_reward;
