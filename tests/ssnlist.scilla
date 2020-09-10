@@ -146,7 +146,7 @@ in
 contract SSNList(
 init_admin: ByStr20,
 init_proxy_address: ByStr20,
-gzil_address: ByStr20
+init_gzil_address: ByStr20
 )
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
 field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) = Emp ByStr20 (Map Uint32 Uint128)
@@ -161,6 +161,7 @@ field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Em
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 field bnum_req: Uint128 = Uint128 24000
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field verifier_reward: Uint128 = uint128_zero
 field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
 field verifier: Option ByStr20 = None {ByStr20}
@@ -169,7 +170,7 @@ field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 field contractadmin: ByStr20  = init_admin
 field proxyaddr: ByStr20 = init_proxy_address
-field gziladdr: ByStr20 = gzil_address
+field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
 field maxcommchangerate: Uint128 = uint128_one
@@ -330,6 +331,9 @@ event e
 total_stake_amt <- totalstakeamount;
 new_rewards_tmp = builtin mul stake_amt cycle_reward;
 new_rewards = builtin div new_rewards_tmp total_stake_amt;
+current_verifier_reward <- verifier_reward;
+new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
+verifier_reward := new_current_verifier_reward;
 reward_comm_tmp = builtin mul new_rewards comm;
 reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
 reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
@@ -848,22 +852,24 @@ e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; de
 event e
 end
 end
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
 CallerIsVerifier initiator;
 lrc <- lastrewardcycle;
 newLastRewardCycleNum = builtin add uint32_one lrc;
 lastrewardcycle := newLastRewardCycleNum;
+verifier_reward := available_reward;
 forall ssnreward_list UpdateStakeReward;
+verifier_reward_amt <- verifier_reward;
 verifier_o <- verifier_receiving_addr;
 match verifier_o with
 | Some v =>
-is_zero = builtin eq verifier_reward uint128_zero;
+is_zero = builtin eq verifier_reward_amt uint128_zero;
 match is_zero with
 | True =>
 | False =>
-TransferFunds addfunds_tag verifier_reward v
+TransferFunds addfunds_tag verifier_reward_amt v
 end
 | None =>
 e = VerifierRecvAddrNotSet;

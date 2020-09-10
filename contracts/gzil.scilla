@@ -59,8 +59,10 @@ contract GZIL
   symbol: String,
   decimals: Uint32,
   init_supply: Uint128,
-  end_block: BNum
+  num_minting_blocks: Uint128
 )
+
+ 
 
 (* Mutable fields *)
 field total_supply: Uint128 = Uint128 0
@@ -71,6 +73,7 @@ field allowances: Map ByStr20 (Map ByStr20 Uint128)
   = Emp ByStr20 (Map ByStr20 Uint128)
 (* This will be set to the current implementation contract address *)
 field minter: ByStr20 = init_minter
+field end_block: BNum = builtin badd _creation_block num_minting_blocks
 
 (**************************************)
 (*             Procedures             *)
@@ -166,9 +169,12 @@ end
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
   current_block <- & BLOCKNUMBER;
-  is_minting_over = builtin blt end_block current_block;
+  end_block_num <- end_block;
+  is_minting_over = builtin blt end_block_num current_block;
   match is_minting_over with
   | True =>
+    e = {_eventname: "MintIsOver"};
+    event e  
   | False =>
     IsMinter;
     AuthorizedMint recipient amount;
