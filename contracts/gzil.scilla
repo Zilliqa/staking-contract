@@ -59,7 +59,7 @@ contract GZIL
   symbol: String,
   decimals: Uint32,
   init_supply: Uint128,
-  during_block: Uint128
+  num_minting_blocks: Uint128
 )
 
  
@@ -73,7 +73,7 @@ field allowances: Map ByStr20 (Map ByStr20 Uint128)
   = Emp ByStr20 (Map ByStr20 Uint128)
 (* This will be set to the current implementation contract address *)
 field minter: ByStr20 = init_minter
-field end_block: BNum = builtin badd _creation_block during_block
+field end_block: BNum = builtin badd _creation_block num_minting_blocks
 
 (**************************************)
 (*             Procedures             *)
@@ -173,6 +173,8 @@ transition Mint(recipient: ByStr20, amount: Uint128)
   is_minting_over = builtin blt end_block_num current_block;
   match is_minting_over with
   | True =>
+    e = {_eventname: "MintIsOver"};
+    event e  
   | False =>
     IsMinter;
     AuthorizedMint recipient amount;
