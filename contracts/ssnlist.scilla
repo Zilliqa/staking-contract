@@ -763,12 +763,11 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
   mapper = @list_map Uint32 TmpArg;
   f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
+  combined_args_list = mapper f list_need_compute_rewards;
 
-  list_need_compute_rewards_t = mapper f list_need_compute_rewards;
-  forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
+  forall combined_args_list CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
-  combined_args_list = mapper f list_need_compute_rewards;
   rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
