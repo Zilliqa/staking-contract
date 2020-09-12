@@ -65,6 +65,10 @@ type SSNCycleInfo =
 type TmpArg =
 | TmpArg of ByStr20 ByStr20 Uint32
 
+(* Verifier address and verifier reward address *)
+type Verifier =
+| Verifier of ByStr20 ByStr20
+
 let one_msg =
   fun (m : Message) =>
     let e = Nil {Message} in
@@ -274,8 +278,7 @@ field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map By
 field avaiable_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
 
-field verifier: Option ByStr20 = None {ByStr20}
-field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
+field verifier : Option Verifier = None {Verifier}
 
 (* 10 mil ZIL expressed in Qa where 1 ZIL = 10^12 Qa *)
 field minstake: Uint128 = Uint128 10000000000000000000
@@ -375,7 +378,7 @@ end
 procedure CallerIsVerifier(initiator: ByStr20)
   verifier_tmp <- verifier;
   match verifier_tmp with
-  | Some v =>
+  | Some (Verifier v _) =>
     is_verifier = builtin eq initiator v;
     match is_verifier with
     | True =>
@@ -865,14 +868,20 @@ transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   contractadmin := admin
 end
 
+procedure SetVerifier(verif : ByStr20, reward_addr : ByStr20)
+  new_verifier = Verifier verif reward_addr;
+  new_verifier_opt = Some {Verifier} new_verifier;
+  verifier := new_verifier_opt
+end
+
 (* @dev: Set the verifier of the contract. Used by admin only. *)
 (* @param verif: New verifier value *)
+(* @param reward_addr: New verifier reward address *)
 (* @param initiator: The original caller who called the proxy *)
-transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
+transition UpdateVerifier(verif: ByStr20, reward_addr : ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  newverifier = Some {ByStr20} verif;
-  verifier := newverifier
+  SetVerifier verif reward_addr
 end
 
 (* @dev: Set the verifier receiving address of the contract. Used by admin only. *)
@@ -881,8 +890,14 @@ end
 transition UpdateVerifierRewardAddr(addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  newAddr = Some {ByStr20} addr;
-  verifier_receiving_addr := newAddr
+  cur_verifier <- verifier;
+  match cur_verifier with
+  | Some (Verifier verif _) =>
+    SetVerifier verif addr
+  | None =>
+    e = VerifierNotSet;
+    ThrowError e
+  end
 end
 
 (* @dev: Set the staking parameters of contract. Used by admin only. *)
@@ -1143,9 +1158,9 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_rewar
   newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
   forall ssnreward_list UpdateStakeReward;
-  verifier_o <- verifier_receiving_addr;
+  verifier_o <- verifier;
   match verifier_o with
-  | Some v => 
+  | Some (Verifier _ v) => 
     is_zero = builtin eq verifier_reward uint128_zero;
     match is_zero with
     | True =>
