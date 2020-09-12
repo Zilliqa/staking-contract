@@ -134,14 +134,14 @@ let change_rate =
       builtin sub old new
     end
 
-(* iota (m, n) = [ n, n+1, n+2, ..., m-1] *)
+(* iota (m, n) = [ m, m+1, m+2, ..., n-1] *)
 let iota : Uint32 -> Uint32 -> List Uint32 =
   fun (m : Uint32) => fun (n : Uint32) =>
     let m_lt_n = builtin lt m n in
     match m_lt_n with
     | True =>
-      let m_minus_n = builtin sub m n in
-      let delta = builtin to_nat m_minus_n in
+      let n_minus_m = builtin sub n m in
+      let delta = builtin to_nat n_minus_m in
       let folder = @nat_fold (List Uint32) in
       let init = Nil {Uint32} in
       let step =
@@ -150,7 +150,7 @@ let iota : Uint32 -> Uint32 -> List Uint32 =
           let next_x = 
             match acc with
             | Cons x _ => builtin sub x uint32_one
-            | Nil => builtin sub m uint32_one
+            | Nil => builtin sub n uint32_one
             end
           in
           Cons {Uint32} next_x acc
