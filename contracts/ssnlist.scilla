@@ -557,16 +557,21 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
   end
 end
 
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
-  lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
-  lrcd = option_uint32_value lrcd_tmp;
-  lrc <- lastrewardcycle;
-  has_reward = builtin lt lrcd lrc;
-  match has_reward with
+procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
+  no_total_rewards = builtin eq total_rewards uint128_zero;
+  match no_total_rewards with
   | True =>
-    e = DelegHasUnwithdrawRewards;
-    ThrowError e
   | False =>
+    lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
+    lrcd = option_uint32_value lrcd_tmp;
+    lrc <- lastrewardcycle;
+    has_reward = builtin lt lrcd lrc;
+    match has_reward with
+    | True =>
+      e = DelegHasUnwithdrawRewards;
+      ThrowError e
+    | False =>
+    end
   end
 end
 
@@ -631,7 +636,7 @@ procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator;
+      HasRewardToWithdraw ssn initiator rewards;
       HasBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt redeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
@@ -663,7 +668,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator;
+      HasRewardToWithdraw ssn initiator rewards;
       HasBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
@@ -785,7 +790,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     ssnlist[ssn_operator] := ssn
   | None => (* won't reach *)
   end;
-  e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
+  e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
   event e;
   last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end

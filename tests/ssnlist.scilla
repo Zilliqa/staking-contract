@@ -392,7 +392,11 @@ deposit_amt_deleg[deleg][ssnaddr] := amount;
 ssn_deleg_amt[ssnaddr][deleg] := amount
 end
 end
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
+procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
+no_total_rewards = builtin eq total_rewards uint128_zero;
+match no_total_rewards with
+| True =>
+| False =>
 lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
 lrcd = option_uint32_value lrcd_tmp;
 lrc <- lastrewardcycle;
@@ -402,6 +406,7 @@ match has_reward with
 e = DelegHasUnwithdrawRewards;
 ThrowError e
 | False =>
+end
 end
 end
 procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
@@ -457,7 +462,7 @@ match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
 | Some amt =>
-HasRewardToWithdraw ssn initiator;
+HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt redeleg_amt;
 DecreaseTotalStakeAmt redeleg_amt;
@@ -486,7 +491,7 @@ match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
 | Some amt =>
-HasRewardToWithdraw ssn initiator;
+HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt withdraw_amount;
 DecreaseTotalStakeAmt withdraw_amount;
@@ -589,7 +594,7 @@ ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit co
 ssnlist[ssn_operator] := ssn
 | None =>
 end;
-e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
+e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
 event e;
 last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
