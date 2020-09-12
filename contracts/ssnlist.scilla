@@ -150,7 +150,7 @@ let iota : Uint32 -> Uint32 -> List Uint32 =
           let next_x = 
             match acc with
             | Cons x _ => builtin sub x uint32_one
-            | Nil => n
+            | Nil => builtin sub m uint32_one
             end
           in
           Cons {Uint32} next_x acc
