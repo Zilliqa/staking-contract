@@ -134,30 +134,29 @@ let change_rate =
       builtin sub old new
     end
 
+(* iota (m, n) = [ n, n+1, n+2, ..., m-1] *)
 let iota : Uint32 -> Uint32 -> List Uint32 =
   fun (m : Uint32) => fun (n : Uint32) =>
     let m_lt_n = builtin lt m n in
     match m_lt_n with
     | True =>
-        let delta = builtin sub n m in
-        let delta_nat = builtin to_nat delta in
-        let fold = @nat_fold (List Uint32) in
-        let nil = Nil {Uint32} in
-        let acc_init = Pair {(List Uint32) Uint32} nil n in
-        let one = Uint32 1 in
-        let step = fun (xs_n : Pair (List Uint32) Uint32) => fun (ignore : Nat) =>
-          match xs_n with
-          | Pair xs n =>
-              let new_n = builtin sub n one in
-              let new_xs = Cons {Uint32} new_n xs in
-              Pair {(List Uint32) Uint32} new_xs new_n
-          end in
-        let fold = @nat_fold (Pair (List Uint32) Uint32) in
-        let xs_m = fold step acc_init delta_nat in
-        match xs_m with
-        | Pair xs m => xs
-        end
-    | False => Nil {Uint32}
+      let m_minus_n = builtin sub m n in
+      let folder = @nat_fold (List Uint32) in
+      let init = Nil {Uint32} in
+      let step =
+        fun (acc : (List Uint32)) =>
+        fun (i : Nat) =>
+          let next_x = 
+            match acc with
+            | Cons x _ => builtin sub x uint32_one
+            | Nil => n
+            end
+          in
+          Cons {Uint32} next_x acc
+      in
+      folder step acc_init m_minus_n
+    | False =>
+      Nil {Uint32}
     end
 
 let bool_active = True
