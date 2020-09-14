@@ -110,8 +110,8 @@ type ProxyTransaction =
 | UpdateStakingParameters of Uint128 Uint128 Uint128
 (* ChangeBNumReq(input_bnum_req: Uint128) *)
 | ChangeBNumReq of Uint128
-(* UpdateContractAddr(gzil_address: ByStr20) *)
-| UpdateContractAddr of ByStr20
+(* UpdateGzilAddr(gzil_address: ByStr20) *)
+| UpdateGzilAddr of ByStr20
 (* AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128) *)
 | AddSSN of ByStr20 String String String Uint128
 (* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
@@ -243,10 +243,10 @@ let custom_transaction_msg_as_list =
          _tag: "ChangeBNumReq";
          _amount: Uint128 0;
          input_bnum_req: input_bnum_req}
-        (* UpdateContractAddr(gzil_address: ByStr20) *)
-      | UpdateContractAddr gzil_address  =>
+        (* UpdateGzilAddr(gzil_address: ByStr20) *)
+      | UpdateGzilAddr gzil_address  =>
         {_recipient : proxyContract;
-         _tag: "UpdateContractAddr";
+         _tag: "UpdateGzilAddr";
          _amount: Uint128 0;
          gzil_address: gzil_address}
         (* AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128) *)
@@ -617,9 +617,9 @@ transition SubmitCustomChangeBNumReqTransaction(proxyContract: ByStr20, input_bn
   SubmitCustomTransaction proxyContract transaction
 end
 
-(* Submit a new UpdateContractAddr transaction for future signoff *)
-transition SubmitCustomUpdateContractAddrTransaction(proxyContract: ByStr20, gzil_address: ByStr20)
-  transaction = UpdateContractAddr gzil_address;
+(* Submit a new UpdateGzilAddr transaction for future signoff *)
+transition SubmitCustomUpdateGzilAddrTransaction(proxyContract: ByStr20, gzil_address: ByStr20)
+  transaction = UpdateGzilAddr gzil_address;
   SubmitCustomTransaction proxyContract transaction
 end
 

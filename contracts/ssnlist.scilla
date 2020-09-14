@@ -918,7 +918,7 @@ transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
   bnum_req := input_bnum_req
 end
 
-transition UpdateContractAddr(gzil_addr: ByStr20, initiator: ByStr20)
+transition UpdateGzilAddr(gzil_addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
   gziladdr := gzil_addr
