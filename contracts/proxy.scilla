@@ -121,9 +121,9 @@ transition ChangeBNumReq(input_bnum_req: Uint128)
     send msgs
 end
 
-transition UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)
+transition UpdateContractAddr(gzil_address: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "UpdateContractAddr"; _recipient: current_impl; _amount: zero; proxy_addr: proxy_address; gzil_addr: gzil_address; initiator: _sender};
+    msg = {_tag: "UpdateContractAddr"; _recipient: current_impl; _amount: zero; gzil_addr: gzil_address; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end

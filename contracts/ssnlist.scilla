@@ -918,11 +918,10 @@ transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
   bnum_req := input_bnum_req
 end
 
-transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
+transition UpdateContractAddr(gzil_addr: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  gziladdr := gzil_addr;
-  proxyaddr := proxy_addr
+  gziladdr := gzil_addr
 end
 
 transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
