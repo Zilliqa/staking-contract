@@ -344,7 +344,7 @@ parameter `initiator` for the `SSNList` contract.
 |`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
 |`ChangeBNumReq(input_bnum_req: Uint128)` | ` ChangeBNumReq(input_bnum_req: Uint128, initiator : ByStr20)`|
-|`UpdateGzilAddr(proxy_address: ByStr20, gzil_address: ByStr20)` | `UpdateGzilAddr(gzil_addr: ByStr20, initiator : ByStr20)`|
+|`UpdateGzilAddr(gzil_address: ByStr20)` | `UpdateGzilAddr(gzil_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)` | `AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator : ByStr20)`|
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
