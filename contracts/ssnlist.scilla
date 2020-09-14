@@ -310,6 +310,7 @@ procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete buff_deposit_deleg[deleg][ssnaddr];
   delete direct_deposit_deleg[deleg][ssnaddr];
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
+  delete deleg_stake_per_cycle[deleg][ssnaddr];
   delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
 

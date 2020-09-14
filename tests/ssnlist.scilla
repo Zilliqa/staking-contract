@@ -182,6 +182,7 @@ delete ssn_deleg_amt[ssnaddr][deleg];
 delete buff_deposit_deleg[deleg][ssnaddr];
 delete direct_deposit_deleg[deleg][ssnaddr];
 delete last_withdraw_cycle_deleg[deleg][ssnaddr];
+delete deleg_stake_per_cycle[deleg][ssnaddr];
 delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
 procedure ThrowError(err: Error)
@@ -680,11 +681,10 @@ IsProxy;
 IsAdmin initiator;
 bnum_req := input_bnum_req
 end
-transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
+transition UpdateGzilAddr(gzil_addr: ByStr20, initiator: ByStr20)
 IsProxy;
 IsAdmin initiator;
-gziladdr := gzil_addr;
-proxyaddr := proxy_addr
+gziladdr := gzil_addr
 end
 transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
 IsProxy;
