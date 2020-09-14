@@ -273,6 +273,7 @@ field bnum_req: Uint128 = Uint128 24000
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 
 (* Used during AssignStakeReward *)
+(* Record the latest rewards earned by verifier *)
 field verifier_reward: Uint128 = uint128_zero
 
 field avaiable_withdrawal: Uint128 = uint128_zero
