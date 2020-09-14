@@ -169,7 +169,6 @@ field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 field contractadmin: ByStr20  = init_admin
-field proxyaddr: ByStr20 = init_proxy_address
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -269,7 +268,7 @@ ThrowError e
 end
 end
 procedure IsProxy()
-proxy_tmp <- proxyaddr;
+proxy_tmp = init_proxy_address;
 is_proxy = builtin eq _sender proxy_tmp;
 match is_proxy with
 | True  =>
