@@ -237,6 +237,7 @@ field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) = Emp ByStr20 (Map Uint32 U
 field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 
 (* AddressofSSN -> (AddressofDeleg -> StakeAmount) *)
+(* Used by offchain services like wallets *)
 field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 
 (* Keeps track of buffered deposit for a delegator *)

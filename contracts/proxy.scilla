@@ -121,9 +121,9 @@ transition ChangeBNumReq(input_bnum_req: Uint128)
     send msgs
 end
 
-transition UpdateGzilAddr(gzil_address: ByStr20)
+transition UpdateGzilAddr(gzil_addr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "UpdateGzilAddr"; _recipient: current_impl; _amount: zero; gzil_addr: gzil_address; initiator: _sender};
+    msg = {_tag: "UpdateGzilAddr"; _recipient: current_impl; _amount: zero; gzil_addr: gzil_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
