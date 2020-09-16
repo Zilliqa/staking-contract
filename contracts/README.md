@@ -344,7 +344,7 @@ parameter `initiator` for the `SSNList` contract.
 |`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
 |`ChangeBNumReq(input_bnum_req: Uint128)` | ` ChangeBNumReq(input_bnum_req: Uint128, initiator : ByStr20)`|
-|`UpdateGzilAddr(gzil_address: ByStr20)` | `UpdateGzilAddr(gzil_addr: ByStr20, initiator : ByStr20)`|
+|`UpdateGzilAddr(gzil_addr: ByStr20)` | `UpdateGzilAddr(gzil_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)` | `AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator : ByStr20)`|
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
 |`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
@@ -510,7 +510,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomUpdateVerifierTransaction`| `proxyContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `UpdateVerifier` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateStakingParametersTransaction`| `proxyContract : ByStr20, min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128` | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeBNumReqTransaction`| `proxyContract : ByStr20, input_bnum_req : Uint128` | Submit a request to invoke the `ChangeBNumReq` transition in the `SSNListProxy` contract. |
-|`SubmitCustomUpdateGzilAddrTransaction`| `proxyContract : ByStr20, gzil_address: ByStr20` | Submit a request to invoke the `UpdateGzilAddr` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateGzilAddrTransaction`| `proxyContract : ByStr20, gzil_addr: ByStr20` | Submit a request to invoke the `UpdateGzilAddr` transition in the `SSNListProxy` contract. |
 |`SubmitCustomAddSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, stake_amount : Uint128, rewards : Uint128, urlraw : String, urlapi : String, buffered_deposit : Uint128` | Submit a request to invoke the `AddSSN` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateSSNTransaction`| `proxyContract : ByStr20, ssnaddr : ByStr20, new_name : String, new_urlraw : String, new_urlapi : String` | Submit a request to invoke the `UpdateSSN` transition in the `SSNListProxy` contract. |
 |`SubmitCustomAddSSNAfterUpgradeTransaction` | `proxyContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20` | Submit a request to invoke the `AddSSNAfterUpgrade` transition in the `SSNListProxy` contract. |
