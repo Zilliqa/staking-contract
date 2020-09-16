@@ -410,8 +410,7 @@ end
 
 (* Check if the caller is the proxy *)
 procedure IsProxy()
-  proxy_tmp = init_proxy_address;
-  is_proxy = builtin eq _sender proxy_tmp;
+  is_proxy = builtin eq _sender init_proxy_address;
   match is_proxy with
   | True  =>
   | False =>
