@@ -169,7 +169,6 @@ field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 field contractadmin: ByStr20  = init_admin
-field proxyaddr: ByStr20 = init_proxy_address
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -182,6 +181,7 @@ delete ssn_deleg_amt[ssnaddr][deleg];
 delete buff_deposit_deleg[deleg][ssnaddr];
 delete direct_deposit_deleg[deleg][ssnaddr];
 delete last_withdraw_cycle_deleg[deleg][ssnaddr];
+delete deleg_stake_per_cycle[deleg][ssnaddr];
 delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
 procedure ThrowError(err: Error)
@@ -268,8 +268,7 @@ ThrowError e
 end
 end
 procedure IsProxy()
-proxy_tmp <- proxyaddr;
-is_proxy = builtin eq _sender proxy_tmp;
+is_proxy = builtin eq _sender init_proxy_address;
 match is_proxy with
 | True  =>
 | False =>
@@ -392,7 +391,11 @@ deposit_amt_deleg[deleg][ssnaddr] := amount;
 ssn_deleg_amt[ssnaddr][deleg] := amount
 end
 end
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20)
+procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
+no_total_rewards = builtin eq total_rewards uint128_zero;
+match no_total_rewards with
+| True =>
+| False =>
 lrcd_tmp <- last_withdraw_cycle_deleg[deleg][ssnaddr];
 lrcd = option_uint32_value lrcd_tmp;
 lrc <- lastrewardcycle;
@@ -402,6 +405,7 @@ match has_reward with
 e = DelegHasUnwithdrawRewards;
 ThrowError e
 | False =>
+end
 end
 end
 procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
@@ -457,7 +461,7 @@ match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
 | Some amt =>
-HasRewardToWithdraw ssn initiator;
+HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt redeleg_amt;
 DecreaseTotalStakeAmt redeleg_amt;
@@ -486,7 +490,7 @@ match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
 | Some amt =>
-HasRewardToWithdraw ssn initiator;
+HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt withdraw_amount;
 DecreaseTotalStakeAmt withdraw_amount;
@@ -573,9 +577,8 @@ n = builtin add lrc uint32_one;
 list_need_compute_rewards = iota m n;
 mapper = @list_map Uint32 TmpArg;
 f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
-list_need_compute_rewards_t = mapper f list_need_compute_rewards;
-forall list_need_compute_rewards_t CalcStakeDelegPerCycle;
 combined_args_list = mapper f list_need_compute_rewards;
+forall combined_args_list CalcStakeDelegPerCycle;
 rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
 forall combined_args_list CalcRewardsDelegPerCycle;
 reward <- rewards_amt_deleg[ssn_operator][deleg];
@@ -590,7 +593,7 @@ ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit co
 ssnlist[ssn_operator] := ssn
 | None =>
 end;
-e = { _eventname: "WithdrawalStakeRewards"; reward_list_need: list_need_compute_rewards; combined_args_list: combined_args_list };
+e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
 event e;
 last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
 end
@@ -676,11 +679,10 @@ IsProxy;
 IsAdmin initiator;
 bnum_req := input_bnum_req
 end
-transition UpdateContractAddr(proxy_addr: ByStr20, gzil_addr: ByStr20, initiator: ByStr20)
+transition UpdateGzilAddr(gzil_addr: ByStr20, initiator: ByStr20)
 IsProxy;
 IsAdmin initiator;
-gziladdr := gzil_addr;
-proxyaddr := proxy_addr
+gziladdr := gzil_addr
 end
 transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
 IsProxy;
