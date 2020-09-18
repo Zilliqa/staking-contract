@@ -285,6 +285,15 @@ e = ContractFrozenFailure;
 ThrowError e
 end
 end
+procedure IsNotPaused()
+paused_tmp <- paused;
+match paused_tmp with
+| False =>
+e = ContractFrozenFailure;
+ThrowErr e
+| True =>
+end
+end
 procedure TransferFunds(tag: String, amt: Uint128, recipient: ByStr20)
 msg = {_tag: tag; _recipient: recipient; _amount: amt};
 msgs = one_msg msg;
@@ -941,36 +950,43 @@ ThrowError e
 end
 end
 transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 comm_for_ssn[ssn_addr][cycle] := comm
 end
 transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 totalstakeamount := amt
 end
 transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
+IsNotPaused;
 IsProxy;
 IsAdmin initiator;
 bal <- _balance;
