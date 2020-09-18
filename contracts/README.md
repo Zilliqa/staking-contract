@@ -251,9 +251,9 @@ Each of these category of transitions are presented in further detail below.
 
 ### SSN Operation Transitions
 
-| Name        | Params     | Description | Callable when paused?|
+| Name        | Params     | Description | Callable when paused?| Callable when not paused? |
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
-| `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | 
+| `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | :heavy_check_mark: |
 | `WithdrawComm` | `initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN operator. On success, the contract transfer the commission to the receiving address. | <center>:x:</center> | :heavy_check_mark: |
 | `UpdateReceivingAddr` | `new_addr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | :heavy_check_mark: |
 
