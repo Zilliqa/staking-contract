@@ -226,7 +226,7 @@ Each of these category of transitions are presented in further detail below.
 ### Housekeeping Transitions
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? | 
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `Pause` | `initiator : ByStr20`| Pause the contract temporarily to stop any critical transition from being invoked. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `Unpause` | `initiator : ByStr20`| Un-pause the contract to re-allow the invocation of all transitions. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateAdmin` | `admin : ByStr20, initiator : ByStr20` | Replace the current `contractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
@@ -242,7 +242,7 @@ Each of these category of transitions are presented in further detail below.
 ### Delegator Transitions
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `DelegateStake` | `ssnaddr : ByStr20, initiator : ByStr20` | To delegate the stake to an SSN. `initiator` is the address of the delegator. The stake being delegated is captured in the implicit field `_amount`. In case of failure to accept the stake, an `exception` will be thrown and the transaction will be reverted. This stake will be buffered if the SSN is already active else it will be added to the stake pool of the SSN. This transition must update the following fields accordingly: `ssnlist` (with the updated buffered stake or unbuffered stake), `deposit_amt_deleg` and `ssn_deleg_amt` (with the amount deposited by the delegator), `buff_deposit_deleg` (with the amount deposited in case the SSN was active), `direct_deposit_deleg` (with the amount deposited in case the SSN was inactive), `last_withdraw_cycle_deleg` (to record the reward cycle number when the deposit was made for first-time delegators) and `last_buf_deposit_cycle_deleg` (to record the reward cycle number in case the SSN was active and the stake ended up as buffered deposit). The transition should throw an error in case the amount being delegated is less than `mindelegstake`.   | <center>:x:</center> | :heavy_check_mark: |
 | `WithdrawStakeRewards` | `ssnaddr : ByStr20, initiator : ByStr20` | To withdraw stake rewards from a given SSN. `initiator` is the address of the delegator. Reward to be given to a delegator can be computed on-the-fly proportional to its unbuffered stake in each cycle. I.e., if the delegator's unbuffered stake at this SSN in a given cycle is d and the total unbuffered stake across all SSNs is D, and the total reward available for all SSNs is R, then the reward earned by this delegator for the cycle will be `(R * d)/D`. When a delegator calls this transition, the reward is computed for all cycles i such that `lastWithdrawnCycle < i <=  lastrewardcycle`. The transition also mints gZILs and assigns them to the delegator's address. For every ZIL earned as reward, the delegator will earn 0.001 gZIL. | <center>:x:</center> | :heavy_check_mark: |
 | `WithdrawStakeAmt` | `ssnaddr : ByStr20, amt : Uint128, initiator : ByStr20` | To withdraw stake amount from a given SSN. `initiator` is the address of the delegator. No stake amount can be withdrawn if the delegator has unwithdrawn reward or buffered deposit. If the amount withdrawn is less than or equal to the stake deposited, then the withdrawal request is accepted and the field `withdrawal_pending` is updated accordingly. A delegator may request multiple withdrawals in the same cycle. Once this transition is called, the delegator enters into an unbonding period of 24,000 blocks. Only at the expiry of the unbonding period, the delegator can claim the funds via `CompleteWithdrawal` transition. During the unbonding period, the delegator will not earn any reward. | <center>:x:</center> | :heavy_check_mark: |
@@ -252,7 +252,7 @@ Each of these category of transitions are presented in further detail below.
 ### SSN Operation Transitions
 
 | Name        | Params     | Description | Callable when paused?|
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `UpdateComm` | `new_rate : Uint128, initiator : ByStr20`| To update the commission rate. `initiator` is the SSN operator. An operator cannot update twice in the same cycle. The `new_rate` must also be less that the field `maxcommrate` and the change in the rate compared from the old one must be less than or equal to `maxcommchangerate`. | <center>:x:</center> | 
 | `WithdrawComm` | `initiator : ByStr20`| To withdraw the commission earned. `initiator` is the SSN operator. On success, the contract transfer the commission to the receiving address. | <center>:x:</center> | :heavy_check_mark: |
 | `UpdateReceivingAddr` | `new_addr : ByStr20, initiator : ByStr20`| To update the commission receiving address for the SSN. `initiator` is the address of the SSN. | <center>:x:</center> | :heavy_check_mark: |
@@ -260,13 +260,13 @@ Each of these category of transitions are presented in further detail below.
 ### Verifier Operation Transitions
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, available_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `available_reward` contains the rewards for all SSN as well as verifier. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | :heavy_check_mark: |
 
 ### Contract Upgrade Transitions
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `AddSSNAfterUpgrade` | `ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator: ByStr20`| To add a new SSN to the contract. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateDeleg` | `ssnaddr: ByStr20, deleg : ByStr20, stake_amt: Uint128, initiator: ByStr20`| To add or remove a delegator for an SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `PopulateStakeSSNPerCycle` | `ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20`| To populate `stake_ssn_per_cycle` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
@@ -279,7 +279,7 @@ Each of these category of transitions are presented in further detail below.
 ### Other Transitions
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
-| ----------- | -----------|-------------|:--------------------------:|
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `AddFunds` | `initiator : ByStr20`| To add funds to the contract. Anyone should be able to add funds to the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 
 # SSNListProxy Contract Specification
