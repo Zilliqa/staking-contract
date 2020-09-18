@@ -431,7 +431,7 @@ procedure IsNotPaused()
   end
 end
 
-(* Check if the contract unpaused *)
+(* Check if the contract is paused *)
 procedure IsPaused()
   paused_tmp <- paused;
   match paused_tmp with
