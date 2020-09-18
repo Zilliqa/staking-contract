@@ -420,8 +420,8 @@ procedure IsProxy()
   end
 end
 
-(* Check if the contract is paused *)
-procedure IsPaused()
+(* Check if the contract is not paused *)
+procedure IsNotPaused()
   paused_tmp <- paused;
   match paused_tmp with
   | False =>
@@ -431,13 +431,13 @@ procedure IsPaused()
   end
 end
 
-(* Check if the contract is unpaused *)
-procedure IsNotPaused()
+(* Check if the contract unpaused *)
+procedure IsPaused()
   paused_tmp <- paused;
   match paused_tmp with
   | False =>
     e = ContractFrozenFailure;
-    ThrowErr e
+    ThrowError e
   | True => 
   end
 end
@@ -1004,7 +1004,7 @@ end
 (* If the percentage is 5.2%, then, the value of this field will be 5.2 x 10^7 represented as an integer *)
 (* The max rate is 100%, so the max new rate will be 100 x 10^7 which is 10^9 *)
 transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
@@ -1033,7 +1033,7 @@ end
 (* @dev: Withdraw comm. Can be called by a ssn operator. *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawComm(initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
@@ -1060,7 +1060,7 @@ end
 (* @param new_addr: The new received address *)
 (* @param initiator: The original caller who called the proxy. This is SSN address. *)
 transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   curval <- ssnlist[initiator];
   match curval with
@@ -1083,7 +1083,7 @@ end
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy aka the deleg. *)
 transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   (* Accept the deposit from SSN and add to contract balance. *)
   (* Transfer back to initiator if any of the validation failed *)
@@ -1098,7 +1098,7 @@ end
 (* @param ssnaddr: The address of the SSN to which the deleg wants to stake *)
 (* @param initiator: The original caller who called the proxy *)
 transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   DelegExists ssnaddr initiator;
   WithdrawalStakeRewards initiator ssnaddr
@@ -1109,13 +1109,13 @@ end
 (* @param amt: The amount which the delegators wanr to withdraw*)
 (* @param initiator: The original caller who called the proxy. *)
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   WithdrawalStakeAmt initiator ssnaddr amt
 end
 
 transition CompleteWithdrawal(initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   withdraw_map_o <- withdrawal_pending[initiator];
   match withdraw_map_o with
@@ -1138,7 +1138,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
 end
 
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   same_ssn = builtin eq ssnaddr to_ssn;
   match same_ssn with
@@ -1163,7 +1163,7 @@ end
 (* @param available_reward: total rewards for ssn operator, delegators and verifier *)
 (* @param initiator: The original caller who called the proxy *)
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
@@ -1284,42 +1284,42 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
 end
 
 transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
-  IsNotPaused;
+  IsPaused;
   IsProxy;
   IsAdmin initiator;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
-  IsNotPaused;  
+  IsPaused;  
   IsProxy;
   IsAdmin initiator;
   last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
-  IsNotPaused;  
+  IsPaused;  
   IsProxy;
   IsAdmin initiator;
   buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
 transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
-  IsNotPaused;
+  IsPaused;
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
-  IsNotPaused;
+  IsPaused;
   IsProxy;
   IsAdmin initiator;
   comm_for_ssn[ssn_addr][cycle] := comm
 end
 
 transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
-  IsNotPaused;
+  IsPaused;
   IsProxy;
   IsAdmin initiator;
   totalstakeamount := amt
@@ -1330,7 +1330,7 @@ end
 (* @param initiator: The original caller who called the proxy *)
 (* @param amt: The amount (Qa) to be drained from the contract back to the admin address *)
 transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
-  IsNotPaused;
+  IsPaused;
   IsProxy;
   IsAdmin initiator;
   bal <- _balance;
