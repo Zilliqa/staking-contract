@@ -558,7 +558,7 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
   end
 end
 
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
+procedure AssertNoRewards(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
   no_total_rewards = builtin eq total_rewards uint128_zero;
   match no_total_rewards with
   | True =>
@@ -576,7 +576,7 @@ procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: U
   end
 end
 
-procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
+procedure AsseertNoBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
   ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
@@ -629,7 +629,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
   end
 end
 
-procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
   lrc <- lastrewardcycle;
@@ -637,8 +637,8 @@ procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator rewards;
-      HasBufferedDeposit ssn initiator;
+      AssertNoRewards ssn initiator rewards;
+      AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt redeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
       DecreaseTotalStakeAmt redeleg_amt;
@@ -669,8 +669,8 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator rewards;
-      HasBufferedDeposit ssn initiator;
+      AssertNoRewards ssn initiator rewards;
+      AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
       DecreaseTotalStakeAmt withdraw_amount;
@@ -1135,7 +1135,7 @@ transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, i
     e = ReDelegInvalidSSNAddr;
     ThrowError e
   | False =>
-    ReDelegStakeAmt initiator ssnaddr amount;
+    UnDelegateStakeAmt initiator ssnaddr amount;
     Delegate to_ssn initiator amount;
     e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
     event e
