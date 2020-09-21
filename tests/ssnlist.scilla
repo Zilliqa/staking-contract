@@ -5,6 +5,8 @@ type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
+type SsnStakeRewardShare =
+| SsnStakeRewardShare of ByStr20 Uint128 Uint128
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 type TmpArg =
@@ -91,6 +93,12 @@ match xs_m with
 | Pair xs m => xs
 end
 | False => Nil {Uint32}
+end
+let map_to_stake_rewards =
+fun (total_stake: Uint128) =>
+fun (element: SsnRewardShare) =>
+match element with
+| SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake
 end
 let bool_active = True
 let bool_inactive = False
@@ -312,10 +320,10 @@ end
 | None =>
 end
 end
-procedure UpdateStakeReward(entry: SsnRewardShare)
+procedure UpdateStakeReward(entry: SsnStakeRewardShare)
 lastreward_blk <- lastrewardcycle;
 match entry with
-| SsnRewardShare ssnaddr cycle_reward =>
+| SsnStakeRewardShare ssnaddr cycle_reward total_stake =>
 curval <- ssnlist[ssnaddr];
 match curval with
 | None =>
@@ -327,9 +335,8 @@ match active_status with
 e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
 event e
 | True  =>
-total_stake_amt <- totalstakeamount;
 new_rewards_tmp = builtin mul stake_amt cycle_reward;
-new_rewards = builtin div new_rewards_tmp total_stake_amt;
+new_rewards = builtin div new_rewards_tmp total_stake;
 current_verifier_reward <- verifier_reward;
 new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
 verifier_reward := new_current_verifier_reward;
@@ -862,7 +869,11 @@ lrc <- lastrewardcycle;
 newLastRewardCycleNum = builtin add uint32_one lrc;
 lastrewardcycle := newLastRewardCycleNum;
 verifier_reward := available_reward;
-forall ssnreward_list UpdateStakeReward;
+total_stake_amt <- totalstakeamount;
+f = map_to_stake_rewards total_stake_amt;
+mapper = @list_map SsnRewardShare SsnStakeRewardShare;
+ssn_stake_reward_list = mapper f ssnreward_list;
+forall ssn_stake_reward_list UpdateStakeReward;
 verifier_reward_amt <- verifier_reward;
 verifier_o <- verifier_receiving_addr;
 match verifier_o with
