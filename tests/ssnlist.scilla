@@ -441,6 +441,7 @@ TruncateDeleg deleg ssnaddr
 | False =>
 lrc <- lastrewardcycle;
 rest_deleg = builtin sub total_amount withdraw_amount;
+IsDelegstakeSufficient amount;
 TruncateDeleg deleg ssnaddr;
 deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
 ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
