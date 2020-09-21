@@ -77,7 +77,7 @@ type SsnRewardShare =
 
 (* Type of Proxy transactions. *)
 (* All calls are made to the proxy contract *)
-type ProxyTransaction =
+type CalleeTransaction =
 (***************************************************)
 (*               Proxy Transition                  *)
 (***************************************************)
@@ -148,7 +148,7 @@ type Transaction =
 (* Transfer of native tokens *)
 | NativeTransaction of ByStr20 Uint128 String
 (* Custom token transactions *)
-| CustomTransaction of ByStr20 ProxyTransaction
+| CustomTransaction of ByStr20 CalleeTransaction
 
 (* Make map of owners *)
 let mk_owners_map =
@@ -179,59 +179,59 @@ let native_transaction_msg_as_list =
 
 (* Create custom transaction message as singleton list *)
 let custom_transaction_msg_as_list =
-  fun (proxyContract : ByStr20) =>
-  fun (proxyTransaction : ProxyTransaction) =>
+  fun (calleeContract : ByStr20) =>
+  fun (calleeTransaction : CalleeTransaction) =>
     let msg =
-      match proxyTransaction with
+      match calleeTransaction with
         (* UpgradeTo(newImplementation: ByStr20) *)
       | UpgradeTo newImplementation =>
-        {_recipient: proxyContract ;
+        {_recipient: calleeContract ;
          _tag: "UpgradeTo";
          _amount: Uint128 0;
          newImplementation : newImplementation}
         (* ChangeProxyAdmin(newAdmin: ByStr20) *)
       | ChangeProxyAdmin newAdmin =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "ChangeProxyAdmin";
          _amount: Uint128 0;
          newAdmin: newAdmin}
         (* ChangeMinter(new_minter: ByStr20) *)
       | ChangeMinter new_minter =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "ChangeMinter";
          _amount: Uint128 0;
          new_minter: new_minter}
         (* Pause() *)
       | Pause =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "Pause";
          _amount: Uint128 0}
         (* UnPause() *)
       | UnPause =>
-        {_recipient: proxyContract ;
+        {_recipient: calleeContract ;
          _tag: "UnPause";
          _amount: Uint128 0}
         (* UpdateAdmin(new_admin: ByStr20) *)
       | UpdateAdmin new_admin =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "UpdateAdmin";
          _amount: Uint128 0;
          new_admin: new_admin}
         (* UpdateVerifier(verif: ByStr20)  *)
       | UpdateVerifier verif =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "UpdateVerifier";
          _amount: Uint128 0;
          verif: verif}
         (* UpdateVerifierRewardAddr(addr: ByStr20) *)
       | UpdateVerifierRewardAddr addr =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "UpdateVerifierRewardAddr";
          _amount: Uint128 0;
          addr: addr}
         (* UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128) *)
       | UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "UpdateStakingParameters";
          _amount: Uint128 0;
          min_stake: min_stake;
@@ -239,19 +239,19 @@ let custom_transaction_msg_as_list =
          max_comm_change_rate: max_comm_change_rate}
         (* ChangeBNumReq(input_bnum_req: Uint128) *)
       | ChangeBNumReq input_bnum_req =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "ChangeBNumReq";
          _amount: Uint128 0;
          input_bnum_req: input_bnum_req}
         (* UpdateGzilAddr(gzil_addr: ByStr20) *)
       | UpdateGzilAddr gzil_addr  =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "UpdateGzilAddr";
          _amount: Uint128 0;
          gzil_addr: gzil_addr}
         (* AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128) *)
       | AddSSN ssnaddr name urlraw urlapi comm =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "AddSSN";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
@@ -261,7 +261,7 @@ let custom_transaction_msg_as_list =
          comm: comm}
         (* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
       | UpdateSSN ssnaddr new_name new_urlraw new_urlapi =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "UpdateSSN";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
@@ -270,13 +270,13 @@ let custom_transaction_msg_as_list =
          new_urlapi: new_urlapi}
         (* transition RemoveSSN(ssnaddr: ByStr20) *) 
       | RemoveSSN ssnaddr =>
-        {_recipient: proxyContract ;
+        {_recipient: calleeContract ;
         _tag: "RemoveSSN";
         _amount: Uint128 0;
         ssnaddr: ssnaddr}
         (* AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20) *)
       | AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "AddSSNAfterUpgrade";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
@@ -291,7 +291,7 @@ let custom_transaction_msg_as_list =
          rec_addr: rec_addr}
         (* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
       | UpdateDeleg ssnaddr deleg stake_amt =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "UpdateDeleg";
          _amount: Uint128 0;
          ssnaddr: ssnaddr;
@@ -299,7 +299,7 @@ let custom_transaction_msg_as_list =
          stake_amt: stake_amt}
         (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
       | PopulateStakeSSNPerCycle ssn_address cycle info =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "PopulateStakeSSNPerCycle";
          _amount : Uint128 0;
          ssn_address: ssn_address;
@@ -307,7 +307,7 @@ let custom_transaction_msg_as_list =
          info: info}
         (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
       | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "PopulateLastWithdrawCycleFordeleg";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
@@ -315,7 +315,7 @@ let custom_transaction_msg_as_list =
          cycle: cycle}
         (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
       | PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "PopulateBuffDeposit";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
@@ -324,7 +324,7 @@ let custom_transaction_msg_as_list =
          amt: amt}
         (* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
       | PopulateDirectDeposit deleg_addr ssn_addr cycle amt =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "PopulateDirectDeposit";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
@@ -333,7 +333,7 @@ let custom_transaction_msg_as_list =
          amt: amt}
         (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128) *)
       | PopulateCommForSSN ssn_addr cycle comm =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag: "PopulateCommForSSN";
          _amount: Uint128 0;
          ssn_addr: ssn_addr;
@@ -341,13 +341,13 @@ let custom_transaction_msg_as_list =
          comm: comm}
         (* PopulateTotalStakeAmt(amt: Uint128) *)
       | PopulateTotalStakeAmt amt =>
-        {_recipient: proxyContract;
+        {_recipient: calleeContract;
          _tag: "PopulateTotalStakeAmt";
          _amount: Uint128 0;
          amt: amt}
         (* DrainContractBalance(amt: Uint128) *)
       | DrainContractBalance amt =>
-        {_recipient : proxyContract;
+        {_recipient : calleeContract;
          _tag : "DrainContractBalance";
          _amount : Uint128 0;
          amt: amt}
@@ -536,8 +536,8 @@ transition SubmitNativeTransaction (recipient : ByStr20, amount : Uint128, tag :
 end
 
 (* Common submit procedure for custom transactions *)
-procedure SubmitCustomTransaction (proxyContract : ByStr20, proxyTransaction : ProxyTransaction)
-  transaction = CustomTransaction proxyContract proxyTransaction;
+procedure SubmitCustomTransaction (calleeContract : ByStr20, calleeTransaction : CalleeTransaction)
+  transaction = CustomTransaction calleeContract calleeTransaction;
   SubmitTransaction transaction
 end
 
@@ -546,24 +546,24 @@ end
 (***************************************************)
 
 (* Submit a new UpgradeTo transaction for future signoff *)
-transition SubmitCustomUpgradeToTransaction (proxyContract : ByStr20, newImplementation : ByStr20)
+transition SubmitCustomUpgradeToTransaction (calleeContract : ByStr20, newImplementation : ByStr20)
   transaction = UpgradeTo newImplementation;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new ChangeProxyAdmin transaction for future signoff *)
-transition SubmitCustomChangeProxyAdminTransaction (proxyContract : ByStr20, newAdmin : ByStr20)
+transition SubmitCustomChangeProxyAdminTransaction (calleeContract : ByStr20, newAdmin : ByStr20)
   transaction = ChangeProxyAdmin newAdmin;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (***************************************************)
 (*              gZIL Transitions                   *)
 (***************************************************)
 
-transition SubmitCustomChangeMinterTransaction (proxyContract : ByStr20, new_minter : ByStr20)
+transition SubmitCustomChangeMinterTransaction (calleeContract : ByStr20, new_minter : ByStr20)
   transaction = ChangeMinter new_minter;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (***************************************************)
@@ -576,69 +576,69 @@ end
 (***************************************************)
 
 (* Submit a new pause transaction for future signoff *)
-transition SubmitCustomPauseTransaction(proxyContract: ByStr20)
+transition SubmitCustomPauseTransaction(calleeContract: ByStr20)
   transaction = Pause;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new unpause transaction for future signoff *)
-transition SubmitCustomUnpauseTransaction(proxyContract: ByStr20)
+transition SubmitCustomUnpauseTransaction(calleeContract: ByStr20)
   transaction = UnPause;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new UpdateAdmin transaction for future signoff *)
-transition SubmitCustomUpdateAdminTransaction(proxyContract: ByStr20, new_admin: ByStr20)
+transition SubmitCustomUpdateAdminTransaction(calleeContract: ByStr20, new_admin: ByStr20)
   transaction = UpdateAdmin new_admin;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new UpdateVerifier transaction for future signoff *)
-transition SubmitCustomUpdateVerifierTransaction(proxyContract: ByStr20, verif: ByStr20)
+transition SubmitCustomUpdateVerifierTransaction(calleeContract: ByStr20, verif: ByStr20)
   transaction = UpdateVerifier verif;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new UpdateVerifierRewardAddr transaction for future signoff *)
-transition SubmitCustomUpdateVerifierRewardAddrTransaction(proxyContract: ByStr20, addr: ByStr20)
+transition SubmitCustomUpdateVerifierRewardAddrTransaction(calleeContract: ByStr20, addr: ByStr20)
   transaction = UpdateVerifierRewardAddr addr;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new ContractStakingParameter transaction for future signoff *)
-transition SubmitCustomUpdateStakingParametersTransaction(proxyContract: ByStr20, min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
+transition SubmitCustomUpdateStakingParametersTransaction(calleeContract: ByStr20, min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
   transaction = UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new ChangeBNumReq transaction for future signoff *)
-transition SubmitCustomChangeBNumReqTransaction(proxyContract: ByStr20, input_bnum_req: Uint128)
+transition SubmitCustomChangeBNumReqTransaction(calleeContract: ByStr20, input_bnum_req: Uint128)
   transaction = ChangeBNumReq input_bnum_req;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new UpdateGzilAddr transaction for future signoff *)
-transition SubmitCustomUpdateGzilAddrTransaction(proxyContract: ByStr20, gzil_addr: ByStr20)
+transition SubmitCustomUpdateGzilAddrTransaction(calleeContract: ByStr20, gzil_addr: ByStr20)
   transaction = UpdateGzilAddr gzil_addr;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new AddSSN transaction for future signoff *)
-transition SubmitCustomAddSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
+transition SubmitCustomAddSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
   transaction = AddSSN ssnaddr name urlraw urlapi comm;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new UpdateSSN transaction for future signoff *)
-transition SubmitCustomUpdateSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
+transition SubmitCustomUpdateSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
   transaction = UpdateSSN ssnaddr new_name new_urlraw new_urlapi;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new AddSSNAfterUpgrade transaction for future signoff *)
-transition SubmitCustomAddSSNAfterUpgradeTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
+transition SubmitCustomAddSSNAfterUpgradeTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
   transaction = AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (***************************************************)
@@ -647,57 +647,57 @@ end
 
 
 (* Submit a new UpdateDeleg transaction for future signoff *)
-transition SubmitUpdateDelegTransaction(proxyContract: ByStr20, ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
+transition SubmitUpdateDelegTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
   transaction = UpdateDeleg ssnaddr deleg stake_amt;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateStakeSSNPerCycle transaction for future signoff *)
-transition SubmitPopulateStakeSSNPerCycleTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
+transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
   transaction = PopulateStakeSSNPerCycle ssn_addr cycle info;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+transition SubmitPopulateLastWithdrawCycleFordelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
   transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateBuffDeposit transaction for future signoff *)
-transition SubmitPopulateBuffDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transition SubmitPopulateBuffDepositTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
   transaction = PopulateBuffDeposit deleg_addr ssn_addr cycle amt;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateDirectDeposit transaction for future signoff *)
-transition SubmitPopulateDirectDepositTransaction(proxyContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transition SubmitPopulateDirectDepositTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
   transaction = PopulateDirectDeposit deleg_addr ssn_addr cycle amt;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateCommForSSN transaction for future signoff *)
-transition SubmitPopulateCommForSSNTransaction(proxyContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
+transition SubmitPopulateCommForSSNTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
   transaction = PopulateCommForSSN ssn_addr cycle comm;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new PopulateTotalStakeAmt transaction for future signoff *)
-transition SubmitPopulateTotalStakeAmtTransaction(proxyContract: ByStr20, amt: Uint128)
+transition SubmitPopulateTotalStakeAmtTransaction(calleeContract: ByStr20, amt: Uint128)
   transaction = PopulateTotalStakeAmt amt;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new AddSSN transaction for future signoff *)
-transition SubmitCustomRemoveSSNTransaction(proxyContract: ByStr20, ssnaddr: ByStr20)
+transition SubmitCustomRemoveSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20)
   transaction = RemoveSSN ssnaddr;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Submit a new DrainContractBalance transaction for future signoff *)
-transition SubmitCustomDrainContractBalanceTransaction(proxyContract : ByStr20, amt: Uint128)
+transition SubmitCustomDrainContractBalanceTransaction(calleeContract : ByStr20, amt: Uint128)
   transaction = DrainContractBalance amt;
-  SubmitCustomTransaction proxyContract transaction
+  SubmitCustomTransaction calleeContract transaction
 end
 
 (* Sign off on an existing transaction *)
@@ -791,7 +791,7 @@ end
 (* Execute custom transaction. *)
 (* Checks permission to execute. *)
 (* Assumes the transaction has been signed off by enough owners. *)
-procedure ExecuteCustomTransaction (proxyContract : ByStr20, proxyTransaction : ProxyTransaction)
+procedure ExecuteCustomTransaction (calleeContract : ByStr20, calleeTransaction : CalleeTransaction)
   (* Only owners may execute *)
   sender_is_owner <- exists owners[_sender];
   match sender_is_owner with
@@ -799,7 +799,7 @@ procedure ExecuteCustomTransaction (proxyContract : ByStr20, proxyTransaction : 
     err = SenderMayNotExecute;
     MakeError err
   | True =>
-    as_msg = custom_transaction_msg_as_list proxyContract proxyTransaction;
+    as_msg = custom_transaction_msg_as_list calleeContract calleeTransaction;
     send as_msg
   end
 end
@@ -829,8 +829,8 @@ transition ExecuteTransaction (transactionId : Uint32)
         match transaction with
         | NativeTransaction recipient amount tag =>
           ExecuteNativeTransaction recipient amount tag
-        | CustomTransaction proxyContract proxyTransaction =>
-          ExecuteCustomTransaction proxyContract proxyTransaction
+        | CustomTransaction calleeContract calleeTransaction =>
+          ExecuteCustomTransaction calleeContract calleeTransaction
         end;
         (* Remove transaction and signatures. *)
         (* Note: The transaction may have failed, but without a callback *)
