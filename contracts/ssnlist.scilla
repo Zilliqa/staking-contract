@@ -379,7 +379,7 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   end
 end
 
-procedure EmitSsnEventOnStausChange(ssnaddr: String, old_status: Bool, new_status: Bool)
+procedure EmitSsnEventOnStausChange(ssnaddr: ByStr20, old_status: Bool, new_status: Bool)
   match old_status with
   | True =>
     match new_status with
