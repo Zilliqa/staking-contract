@@ -164,7 +164,7 @@ transition ChangeMinter(new_minter: ByStr20)
   event e  
 end
 
-(* @dev:  Mint new tokens. Only contract_owner can mint.                     *)
+(* @dev:  Mint new tokens. Only minter which is ssnlist can mint.                     *)
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
