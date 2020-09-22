@@ -112,7 +112,6 @@ type Error =
 | ExceedMaxChangeRate
 | ExceedMaxCommRate
 | InvalidTotalAmt
-| InvalidRecvAddr
 | VerifierNotSet
 | VerifierRecvAddrNotSet
 | ReDelegInvalidSSNAddr
@@ -136,10 +135,9 @@ match result with
 | ExceedMaxChangeRate => Int32 -14
 | ExceedMaxCommRate => Int32 -15
 | InvalidTotalAmt => Int32 -16
-| InvalidRecvAddr => Int32 -17
-| VerifierNotSet => Int32 -18
-| VerifierRecvAddrNotSet => Int32 -19
-| ReDelegInvalidSSNAddr => Int32 -20
+| VerifierNotSet => Int32 -17
+| VerifierRecvAddrNotSet => Int32 -18
+| ReDelegInvalidSSNAddr => Int32 -19
 end
 in
 { _exception: "Error"; code: result_code }
