@@ -956,6 +956,7 @@ transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String
     e = SSNAlreadyExist;
     ThrowError e
   | False =>
+    ValidateRate comm;
     status = bool_inactive;
     stake_amt = Uint128 0;
     rewards = Uint128 0;
