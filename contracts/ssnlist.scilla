@@ -476,7 +476,7 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       | False => 
       end
     end
-  | None => (* Won't reach *)
+  | None => throw
   end
 end
 
@@ -810,7 +810,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     rest_rewards = builtin sub total_rewards reward;
     ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
     ssnlist[ssn_operator] := ssn
-  | None => (* won't reach *)
+  | None => throw
   end;
   e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
   event e;

@@ -327,7 +327,7 @@ avaiable_withdrawal := current_amt
 | False =>
 end
 end
-| None =>
+| None => throw
 end
 end
 procedure UpdateStakeReward(entry: SsnRewardShare)
@@ -611,7 +611,7 @@ match ssn_o with
 rest_rewards = builtin sub total_rewards reward;
 ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn_operator] := ssn
-| None =>
+| None => throw
 end;
 e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
 event e;
