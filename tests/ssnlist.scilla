@@ -855,7 +855,7 @@ c = Some {ByStr20} initiator;
 current_deleg := c;
 forall withdraw_list CalculateTotalWithdrawal;
 withdraw_amt <- avaiable_withdrawal;
-e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
+e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; withdraw_amt: withdraw_amt };
 event e;
 TransferFunds addfunds_tag withdraw_amt initiator
 | None =>
