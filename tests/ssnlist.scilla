@@ -344,7 +344,7 @@ new_stake_amt = builtin add stake_amt buffdeposit;
 deleg_reward = builtin add delegate_reward rewards;
 ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
 ssnlist[ssnaddr] := ssn;
-IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
+IncreaseTotalStakeAmt buffdeposit;
 e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
 event e
 end
@@ -605,7 +605,6 @@ e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 IsDelegstakeSufficient amount;
-minstake_tmp <- minstake;
 lrc <- lastrewardcycle;
 FillInDepositDelegAmt ssnaddr initiator amount;
 FillLastRewardCycle ssnaddr initiator;
@@ -624,6 +623,7 @@ buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
 buff_deposit_deleg[initiator][ssnaddr][lrc] := amount
 end
 | False =>
+minstake_tmp <- minstake;
 new_stake_amt  = builtin add amount stake_amt;
 status = uint128_le minstake_tmp new_stake_amt;
 ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
