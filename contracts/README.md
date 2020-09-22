@@ -162,7 +162,6 @@ type Error =
   | ExceedMaxChangeRate (* SSN is trying to modify the commission rate by over 1% *)
   | ExceedMaxCommRate (* SSN is trying to set the commission rate greater than the allowed max *)
   | InvalidTotalAmt (* Error when the total stake amount is being decreased by an illegal amount *)
-  | InvalidRecvAddr (* Commission is being withdrawn to an address different from that of the receiving address *)
   | VerifierNotSet (* Verifier's address is not set in the field *)
   | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
   | ReDelegInvalidSSNAddr (* Delegator cannot redelegate to same SSN address *)
