@@ -241,6 +241,24 @@ match status with
 DecreaseTotalStakeAmt amt
 end
 end
+procedure EmitSsnEventOnStausChange(ssnaddr: String, old_status: Bool, new_status: Bool)
+match old_status with
+| True =>
+match new_status with
+| True =>
+| False =>
+e = { _eventname: "SSN becomes inactive"; ssnaddr: ssnaddr };
+event e
+end
+| False =>
+match new_status with
+| True =>
+e = { _eventname: "SSN becomes active"; ssnaddr: ssnaddr };
+event e
+| False =>
+end
+end
+end
 procedure CallerIsVerifier(initiator: ByStr20)
 verifier_tmp <- verifier;
 match verifier_tmp with
@@ -471,6 +489,7 @@ status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn] := ssn_option_tmp;
 DecreaseTotalStakeAmtOnStatus new_amt status;
+EmitSsnEventOnStausChange ssn active_status status;
 e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
 event e
 | None =>
@@ -500,6 +519,7 @@ status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn] := ssn_option_tmp;
 DecreaseTotalStakeAmtOnStatus new_amt status;
+EmitSsnEventOnStausChange ssn active_status status;
 withdrawal_bnum <- & BLOCKNUMBER;
 withdraw_amt_o <- withdrawal_pending[initiator][withdrawal_bnum];
 withdraw_amt_pending = match withdraw_amt_o with
@@ -629,6 +649,7 @@ status = uint128_le minstake_tmp new_stake_amt;
 ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssnaddr] := ssn;
 IncreaseTotalStakeAmtOnStatus new_stake_amt status;
+EmitSsnEventOnStausChange ssnaddr active_status status;
 stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
 match stake_amt_for_deleg_option  with
 | Some stake_amt_for_deleg =>
