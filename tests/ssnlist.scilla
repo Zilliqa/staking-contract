@@ -1,5 +1,5 @@
 scilla_version 0
-import ListUtils IntUtils BoolUtils
+import ListUtils IntUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
