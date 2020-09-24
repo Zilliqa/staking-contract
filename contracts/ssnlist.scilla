@@ -1123,7 +1123,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
       e = { _eventname: "NoUnboundDelegate"; ssnaddr: initiator };
       event e
     | False =>
-      e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; initiator: withdraw_amt };
+      e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
       event e;
       TransferFunds addfunds_tag withdraw_amt initiator
     end
