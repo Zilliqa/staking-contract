@@ -1120,7 +1120,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
     transfer = builtin eq withdraw_amt uint128_zero;
     match transfer with
     | True =>
-      e = { _eventname: "NoUnboundDelegate"; ssnaddr: initiator };
+      e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
       event e
     | False =>
       e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
