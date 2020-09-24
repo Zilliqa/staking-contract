@@ -834,7 +834,7 @@ withdraw_amt <- avaiable_withdrawal;
 transfer = builtin eq withdraw_amt uint128_zero;
 match transfer with
 | True =>
-e = { _eventname: "NoUnboundDelegate"; ssnaddr: initiator };
+e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
 event e
 | False =>
 e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
@@ -842,7 +842,7 @@ event e;
 TransferFunds addfunds_tag withdraw_amt initiator
 end
 | None =>
-e = { _eventname: "NoDelegateToWithdral"; ssnaddr: initiator };
+e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
 event e
 end
 end
