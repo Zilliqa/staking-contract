@@ -1128,7 +1128,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
       TransferFunds addfunds_tag withdraw_amt initiator
     end
   | None =>
-    e = { _eventname: "NoDelegateToWithdral"; ssnaddr: initiator };
+    e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
     event e
   end
 end
