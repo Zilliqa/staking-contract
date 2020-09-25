@@ -527,9 +527,9 @@ event e;
 match active_status with
 | True =>
 DecreaseTotalStakeAmt withdraw_amount;
-event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: redeleg_amt };
+event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: withdraw_amount };
 event event_decrease;
-DecreaseTotalStakeAmtOnStatus new_amt status;
+DecreaseTotalStakeAmtOnStatus new_amt status
 | False =>
 event_decrease = { _eventname: "SSN was inactive, wont effect totalstakeamt" };
 event event_decrease
