@@ -476,7 +476,7 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       | False => 
       end
     end
-  | None => throw
+  | None => (* Won't reach *)
   end
 end
 
