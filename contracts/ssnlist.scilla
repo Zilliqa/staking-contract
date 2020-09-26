@@ -1145,7 +1145,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
     e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; withdraw_amt: withdraw_amt };
     event e;
     TransferFunds addfunds_tag withdraw_amt initiator
-  | None =>
+  | None => throw
   end
 end
 
