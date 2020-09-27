@@ -188,7 +188,7 @@ end
 
 (* @dev: Increase the allowance of an approved spender over the caller's tokens.                                       *)
 (* param spender:      Address of the designated approved spender.                                                   *)
-(* param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
+(* param amount:       Number of tokens to be increased as allowance for the approved spender.                       *)
 transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
   IsNotSender spender;
   some_current_allowance <- allowances[_sender][spender];
