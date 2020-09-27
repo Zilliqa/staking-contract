@@ -353,7 +353,7 @@ new_stake_amt = builtin add stake_amt buffdeposit;
 deleg_reward = builtin add delegate_reward rewards;
 ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
 ssnlist[ssnaddr] := ssn;
-IncreaseTotalStakeAmt buffdeposit;
+IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
 e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
 event e
 end
@@ -473,23 +473,15 @@ match deleg with
 HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt redeleg_amt;
+DecreaseTotalStakeAmt redeleg_amt;
 new_amt = builtin sub stake_amt redeleg_amt;
 minstake_tmp <- minstake;
 status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn] := ssn_option_tmp;
+DecreaseTotalStakeAmtOnStatus new_amt status;
 e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
-event e;
-match active_status with
-| True =>
-DecreaseTotalStakeAmt redeleg_amt;
-event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: redeleg_amt };
-event event_decrease;
-DecreaseTotalStakeAmtOnStatus new_amt status
-| False =>
-event_decrease = { _eventname: "SSN was inactive, wont effect totalstakeamt" };
-event event_decrease
-end
+event e
 | None =>
 e = DelegDoesNotExistAtSSN;
 ThrowError e
@@ -510,11 +502,13 @@ match deleg with
 HasRewardToWithdraw ssn initiator rewards;
 HasBufferedDeposit ssn initiator;
 AdjustDeleg ssn initiator amt withdraw_amount;
+DecreaseTotalStakeAmt withdraw_amount;
 new_amt = builtin sub stake_amt withdraw_amount;
 minstake_tmp <- minstake;
 status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn] := ssn_option_tmp;
+DecreaseTotalStakeAmtOnStatus new_amt status;
 withdrawal_bnum <- & BLOCKNUMBER;
 withdraw_amt_o <- withdrawal_pending[initiator][withdrawal_bnum];
 withdraw_amt_pending = match withdraw_amt_o with
@@ -523,17 +517,7 @@ withdraw_amt_pending = match withdraw_amt_o with
 end;
 withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
 e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
-event e;
-match active_status with
-| True =>
-DecreaseTotalStakeAmt withdraw_amount;
-event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: withdraw_amount };
-event event_decrease;
-DecreaseTotalStakeAmtOnStatus new_amt status
-| False =>
-event_decrease = { _eventname: "SSN was inactive, wont effect totalstakeamt" };
-event event_decrease
-end
+event e
 | None =>
 e = DelegDoesNotExistAtSSN;
 ThrowError e
