@@ -186,7 +186,7 @@ transition Mint(recipient: ByStr20, amount: Uint128)
   end
 end
 
-(* @dev: Increase the allowance of an approved_spender over the caller tokens.                                       *)
+(* @dev: Increase the allowance of an approved spender over the caller's tokens.                                       *)
 (* param spender:      Address of the designated approved_spender.                                                   *)
 (* param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
 transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
