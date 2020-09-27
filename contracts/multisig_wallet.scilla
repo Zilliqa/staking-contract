@@ -844,6 +844,6 @@ end
 (* Add native funds to wallet *)
 transition AddFunds ()
   accept;
-  e = { _eventname: "Funds deposit"; funder: _sender };
+  e = { _eventname: "FundsAdded"; sender: _sender; amount : _amount};
   event e
 end
