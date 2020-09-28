@@ -688,7 +688,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       | None => withdraw_amount
       end;
       withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
-      e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
+      e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; withdraw_amount: withdraw_amount };
       event e
     | None =>
       e = DelegDoesNotExistAtSSN;
