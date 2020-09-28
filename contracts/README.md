@@ -355,7 +355,7 @@ parameter `initiator` for the `SSNList` contract.
 |`WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator : ByStr20)`|
 |`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
 |`ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128)` | `ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128, initiator : ByStr20)`|
-|`AssignStakeReward(ssnreward_list: List SsnRewardShare)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128, initiator : ByStr20)`|
+|`AssignStakeReward(ssnreward_list: List SsnRewardShare)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator : ByStr20)`|
 |`AddFunds()` | `AddFunds(initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
