@@ -242,7 +242,7 @@ end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
     current_impl <- implementation;
     accept;
-    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: _amount; ssnreward_list: ssnreward_list; available_reward: available_reward; initiator: _sender};
+    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: _amount; ssnreward_list: ssnreward_list; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
