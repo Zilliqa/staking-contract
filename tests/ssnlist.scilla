@@ -165,7 +165,7 @@ field stake_ssn_per_cycle: Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (
 field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 field bnum_req: Uint128 = Uint128 24000
-field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field cycle_rewards_deleg: Uint128 = uint128_zero
 field verifier_reward: Uint128 = uint128_zero
 field available_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
@@ -568,10 +568,9 @@ msgs = one_msg msg_to_gzil;
 send msgs
 end
 procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-exist_reward_o <- rewards_amt_deleg[ssn][deleg];
-exist_reward = option_uint128_value exist_reward_o;
+exist_reward <- cycle_rewards_deleg;
 new_reward = builtin add exist_reward reward;
-rewards_amt_deleg[ssn][deleg] := new_reward
+cycle_rewards_deleg := new_reward
 end
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
 match tmp_arg with
@@ -602,10 +601,9 @@ mapper = @list_map Uint32 TmpArg;
 f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
 combined_args_list = mapper f list_need_compute_rewards;
 forall combined_args_list CalcStakeDelegPerCycle;
-rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
+cycle_rewards_deleg := uint128_zero;
 forall combined_args_list CalcRewardsDelegPerCycle;
-reward <- rewards_amt_deleg[ssn_operator][deleg];
-reward = option_uint128_value reward;
+reward <- cycle_rewards_deleg;
 SendDelegRewards deleg reward;
 MintCall deleg reward;
 ssn_o <- ssnlist[ssn_operator];
