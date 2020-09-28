@@ -743,6 +743,9 @@ procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
     buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
     comb_opt = option_add cur_opt buf_opt;
 
+    delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+    delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+
     last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
     last_amt = option_uint128_value last_amt_o;
     
