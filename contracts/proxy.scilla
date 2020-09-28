@@ -239,10 +239,10 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param available_reward: total rewards for ssn operator, delegators and verifier *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
     current_impl <- implementation;
-    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; available_reward: available_reward; initiator: _sender};
+    accept;
+    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: _amount; ssnreward_list: ssnreward_list; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
