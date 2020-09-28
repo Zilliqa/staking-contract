@@ -141,7 +141,8 @@ transition ChangeMinter(new_minter: ByStr20)
   e = {_eventname: "ChangedMinter"; new_minter: new_minter};
   event e  
 end
-(* @dev:  Mint new tokens. Only contract_owner can mint.                     *)
+
+(* @dev:  Mint new tokens. Only minter which is ssnlist can mint.            *)
 (* @param recipient: Address of the recipient whose balance is to increase.  *)
 (* @param amount:    Number of tokens to be minted.                          *)
 transition Mint(recipient: ByStr20, amount: Uint128)
@@ -162,9 +163,10 @@ transition Mint(recipient: ByStr20, amount: Uint128)
     send msgs
   end
 end
-(* @dev: Increase the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke.   *)
-(* param spender:      Address of the designated approved_spender.                                                   *)
-(* param amount:       Number of tokens to be increased as allowance for the approved_spender.                       *)
+
+(* @dev: Increase the allowance of an approved spender over the caller's tokens.                                     *)
+(* param spender:      Address of the designated approved spender.                                                   *)
+(* param amount:       Number of tokens to be increased as allowance for the approved spender.                       *)
 transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
   IsNotSender spender;
   some_current_allowance <- allowances[_sender][spender];
@@ -174,9 +176,10 @@ transition IncreaseAllowance(spender: ByStr20, amount: Uint128)
   e = {_eventname: "IncreasedAllowance"; token_owner: _sender; spender: spender; new_allowance: new_allowance};
   event e
 end
-(* @dev: Decrease the allowance of an approved_spender over the caller tokens. Only token_owner allowed to invoke. *)
-(* param spender:      Address of the designated approved_spender.                                                 *)
-(* param amount:       Number of tokens to be decreased as allowance for the approved_spender.                     *)
+
+(* @dev: Decrease the allowance of an approved spender over the caller's tokens.                                   *)
+(* param spender:      Address of the designated approved spender.                                                 *)
+(* param amount:       Number of tokens to be decreased as allowance for the approved spender.                     *)
 transition DecreaseAllowance(spender: ByStr20, amount: Uint128)
   IsNotSender spender;
   some_current_allowance <- allowances[_sender][spender];
