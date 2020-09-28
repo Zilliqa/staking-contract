@@ -2,7 +2,7 @@ scilla_version 0
 (***************************************************)
 (*               Associated library                *)
 (***************************************************)
-import IntUtils ListUtils
+import IntUtils
 library GZIL
 let one_msg = 
   fun (msg: Message) => 
@@ -34,9 +34,6 @@ let make_error =
     { _exception: "Error"; code: result_code }
   
 let zero = Uint128 0
-(* Dummy user-defined ADT *)
-type Unit =
-| Unit
 let get_val =
   fun (some_val: Option Uint128) =>
   match some_val with

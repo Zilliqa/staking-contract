@@ -1,5 +1,5 @@
 scilla_version 0
-import ListUtils IntUtils BoolUtils
+import ListUtils IntUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
@@ -74,7 +74,6 @@ match m_lt_n with
 | True =>
 let delta = builtin sub n m in
 let delta_nat = builtin to_nat delta in
-let fold = @nat_fold (List Uint32) in
 let nil = Nil {Uint32} in
 let acc_init = Pair {(List Uint32) Uint32} nil n in
 let one = Uint32 1 in
@@ -483,7 +482,6 @@ end
 procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
-lrc <- lastrewardcycle;
 match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
