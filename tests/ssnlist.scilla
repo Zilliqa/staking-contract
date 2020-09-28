@@ -1,5 +1,5 @@
 scilla_version 0
-import ListUtils IntUtils BoolUtils
+import ListUtils IntUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
@@ -74,7 +74,6 @@ match m_lt_n with
 | True =>
 let delta = builtin sub n m in
 let delta_nat = builtin to_nat delta in
-let fold = @nat_fold (List Uint32) in
 let nil = Nil {Uint32} in
 let acc_init = Pair {(List Uint32) Uint32} nil n in
 let one = Uint32 1 in
@@ -112,7 +111,6 @@ type Error =
 | ExceedMaxChangeRate
 | ExceedMaxCommRate
 | InvalidTotalAmt
-| InvalidRecvAddr
 | VerifierNotSet
 | VerifierRecvAddrNotSet
 | ReDelegInvalidSSNAddr
@@ -136,10 +134,9 @@ match result with
 | ExceedMaxChangeRate => Int32 -14
 | ExceedMaxCommRate => Int32 -15
 | InvalidTotalAmt => Int32 -16
-| InvalidRecvAddr => Int32 -17
-| VerifierNotSet => Int32 -18
-| VerifierRecvAddrNotSet => Int32 -19
-| ReDelegInvalidSSNAddr => Int32 -20
+| VerifierNotSet => Int32 -17
+| VerifierRecvAddrNotSet => Int32 -18
+| ReDelegInvalidSSNAddr => Int32 -19
 end
 in
 { _exception: "Error"; code: result_code }
@@ -344,7 +341,7 @@ new_stake_amt = builtin add stake_amt buffdeposit;
 deleg_reward = builtin add delegate_reward rewards;
 ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
 ssnlist[ssnaddr] := ssn;
-IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
+IncreaseTotalStakeAmt buffdeposit;
 e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
 event e
 end
@@ -485,7 +482,6 @@ end
 procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
-lrc <- lastrewardcycle;
 match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
@@ -507,7 +503,7 @@ withdraw_amt_pending = match withdraw_amt_o with
 | None => withdraw_amount
 end;
 withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
-e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
+e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; withdraw_amount: withdraw_amount };
 event e
 | None =>
 e = DelegDoesNotExistAtSSN;
@@ -605,7 +601,6 @@ e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 IsDelegstakeSufficient amount;
-minstake_tmp <- minstake;
 lrc <- lastrewardcycle;
 FillInDepositDelegAmt ssnaddr initiator amount;
 FillLastRewardCycle ssnaddr initiator;
@@ -624,6 +619,7 @@ buff_deposit_deleg[initiator][ssnaddr][lrc] := new_stake_amt_for_deleg
 buff_deposit_deleg[initiator][ssnaddr][lrc] := amount
 end
 | False =>
+minstake_tmp <- minstake;
 new_stake_amt  = builtin add amount stake_amt;
 status = uint128_le minstake_tmp new_stake_amt;
 ssn = Ssn status new_stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
@@ -833,10 +829,19 @@ c = Some {ByStr20} initiator;
 current_deleg := c;
 forall withdraw_list CalculateTotalWithdrawal;
 withdraw_amt <- avaiable_withdrawal;
-e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
+transfer = builtin eq withdraw_amt uint128_zero;
+match transfer with
+| True =>
+e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
+event e
+| False =>
+e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
 event e;
 TransferFunds addfunds_tag withdraw_amt initiator
+end
 | None =>
+e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
+event e
 end
 end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
