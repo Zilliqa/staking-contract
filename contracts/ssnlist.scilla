@@ -1193,16 +1193,17 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param available_reward: total rewards for ssn operator, delegators and verifier *)
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
   IsPaused;
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
+  accept;
   newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
-  verifier_reward := available_reward;
+  (* _amount: total rewards for ssn operator, delegators and verifier *)
+  verifier_reward := _amount;
   
   total_stake_amt <- totalstakeamount;
   f = map_to_stake_rewards total_stake_amt;
