@@ -112,8 +112,6 @@ type CalleeTransaction =
 | AddSSN of ByStr20 String String String Uint128
 (* UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String) *)
 | UpdateSSN of ByStr20 String String String
-(* RemoveSSN(ssnaddr: ByStr20) *)
-| RemoveSSN of ByStr20
 (***************************************************)
 (*                  Generic transition             *)
 (***************************************************)
@@ -264,12 +262,6 @@ let custom_transaction_msg_as_list =
          new_name: new_name;
          new_urlraw: new_urlraw;
          new_urlapi: new_urlapi}
-        (* transition RemoveSSN(ssnaddr: ByStr20) *) 
-      | RemoveSSN ssnaddr =>
-        {_recipient: calleeContract ;
-        _tag: "RemoveSSN";
-        _amount: Uint128 0;
-        ssnaddr: ssnaddr}
         (* AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20) *)
       | AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr =>
         {_recipient : calleeContract;
@@ -681,12 +673,6 @@ end
 (* Submit a new PopulateTotalStakeAmt transaction for future signoff *)
 transition SubmitPopulateTotalStakeAmtTransaction(calleeContract: ByStr20, amt: Uint128)
   transaction = PopulateTotalStakeAmt amt;
-  SubmitCustomTransaction calleeContract transaction
-end
-
-(* Submit a new AddSSN transaction for future signoff *)
-transition SubmitCustomRemoveSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20)
-  transaction = RemoveSSN ssnaddr;
   SubmitCustomTransaction calleeContract transaction
 end
 

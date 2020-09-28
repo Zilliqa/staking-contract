@@ -236,7 +236,6 @@ Each of these category of transitions are presented in further detail below.
 | `UpdateGzilAddr` | `gzil_addr : ByStr20, initiator : ByStr20` | Replace the gZIL token contract (`gziladdr`) by the input values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
 | `AddSSN` | `ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm : Uint128, initiator : ByStr20` | Add a new SSN to the list of available SSNs with the input values. The transition will create a value of type `Ssn` using the input values and add it to the `ssnlist` map. Since, this SSN is new, the `status` field in `Ssn` type will be `False`. Similarly, the fields `stake_amt`, `rewards`, `buff_deposit`, `comm_rewards` in the `ssn` type will be set to 0. The commission for this SSN for this reward cycle as recorded in the field `comm_for_ssn` will also be set to 0. The transition will emit a success event to signal the addition of the new SSN. The event will emit the address of the new SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
 | `UpdateSSN` | `ssnaddr : ByStr20, new_name : String, new_urlraw : String, new_urlapi : String, initiator : ByStr20` | Update `name`, `urlraw` and `urlapi` of a given SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
-| `RemoveSSN` | `ssnaddr : ByStr20, initiator : ByStr20` | Remove a specific SSN from `ssnlist`. It should also remove the corresponding entry from all other fields. **This is a very privileged operation and therefore should not be invoked until all delegators have withdrawn their stake and their stake rewards.  If the SSN gets removed while there exists a delegator at this SSN, then funds for the delegator may get locked forever.**  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: |
 
 ### Delegator Transitions
 
@@ -346,7 +345,6 @@ parameter `initiator` for the `SSNList` contract.
 |`UpdateGzilAddr(gzil_addr: ByStr20)` | `UpdateGzilAddr(gzil_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)` | `AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator : ByStr20)`|
 |`UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)` | `UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator : ByStr20)`|
-|`RemoveSSN(ssnaddr: ByStr20)` | `RemoveSSN(ssnaddr: ByStr20, initiator : ByStr20)`|
 |`UpdateComm(new_rate: Uint128)` | `UpdateComm(new_rate: Uint128, initiator : ByStr20)`|
 |`WithdrawComm()` | `WithdrawComm(initiator : ByStr20)`|
 |`UpdateReceivingAddr(new_addr: ByStr20)` | `UpdateReceivingAddr(new_addr: ByStr20, initiator : ByStr20)`|
@@ -520,7 +518,6 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitPopulateDirectDepositTransaction`| `calleeContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, cycle : Uint32, amount : Uint128` | Submit a request to invoke the `PopulateDirectDeposit` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateCommForSSNTransaction`| `calleeContract : ByStr20, ssn_address : ByStr20, cycle : Uint32, comm : Uint128` | Submit a request to invoke the `PopulateCommForSSN` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateTotalStakeAmtTransaction`| `calleeContract : ByStr20, amt : Uint128` | Submit a request to invoke the `PopulateTotalStakeAmt` transition in the `SSNListProxy` contract. |
-|`SubmitCustomRemoveSSNTransaction`| `calleeContract : ByStr20, ssnaddr : ByStr20` | Submit a request to invoke the `RemoveSSN` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateDepositAmountFordelegTransaction`| `calleeContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainContractBalanceTransaction`| `calleeContract : ByStr20, amt : Uint128` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
 
