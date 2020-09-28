@@ -666,12 +666,12 @@ procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint
       | True =>
         (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
         DecreaseTotalStakeAmt redeleg_amt;
-        event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: redeleg_amt };
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: redeleg_amt };
         event event_decrease;
         (* If ssn becomes inactive, we need to decrease the rest ones as well *)
         DecreaseTotalStakeAmtOnStatus new_amt status
       | False =>
-        event_decrease = { _eventname: "SSN was inactive, wont effect totalstakeamt" };
+        event_decrease = { _eventname: "SSNInactive" };
         event event_decrease
       end
     | None =>
@@ -713,12 +713,12 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       | True =>
         (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
         DecreaseTotalStakeAmt withdraw_amount;
-        event_decrease = { _eventname: "SSN was active, decrease it"; decreased_amt: withdraw_amount };
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: withdraw_amount };
         event event_decrease;
         (* If ssn becomes inactive, we need to decrease the rest as well *)
         DecreaseTotalStakeAmtOnStatus new_amt status
       | False =>
-        event_decrease = { _eventname: "SSN was inactive, wont effect totalstakeamt" };
+        event_decrease = { _eventname: "SSNInactive" };
         event event_decrease
       end
     | None =>
