@@ -1151,6 +1151,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
   | None =>
     e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
     event e
+  end
 end
 
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)

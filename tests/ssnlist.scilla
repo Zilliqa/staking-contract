@@ -324,7 +324,7 @@ avaiable_withdrawal := current_amt
 | False =>
 end
 end
-| None => throw
+| None =>
 end
 end
 procedure UpdateStakeReward(entry: SsnRewardShare)
@@ -851,7 +851,6 @@ c = Some {ByStr20} initiator;
 current_deleg := c;
 forall withdraw_list CalculateTotalWithdrawal;
 withdraw_amt <- avaiable_withdrawal;
-
 transfer = builtin eq withdraw_amt uint128_zero;
 match transfer with
 | True =>
@@ -865,6 +864,7 @@ end
 | None =>
 e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
 event e
+end
 end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
 IsPaused;
