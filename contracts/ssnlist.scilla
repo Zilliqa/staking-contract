@@ -49,6 +49,15 @@ type Ssn =
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
 
+(*  SSNAddress        : ByStr20 *)
+(*                      Address of the SSN. *)
+(*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*  TotalStakeAmount  : Uint128 *)
+(*                      Total stake amount at a specific cycle.                                               *)
+type SsnStakeRewardShare = 
+| SsnStakeRewardShare of ByStr20 Uint128 Uint128
+
 (* SSNCycleInfo Data Type *)
 
 (*   Each SSNCycleInfo has the following fields: *)
@@ -157,6 +166,13 @@ let iota : Uint32 -> Uint32 -> List Uint32 =
         | Pair xs m => xs
         end
     | False => Nil {Uint32}
+    end
+
+let map_to_stake_rewards = 
+  fun (total_stake: Uint128) =>
+  fun (element: SsnRewardShare) =>
+    match element with
+    | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
 let bool_active = True
@@ -372,6 +388,8 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
   | False =>
+    e = { _eventname: "SSN becomes inactive"; decreased_amt: amt };
+    event e;
     DecreaseTotalStakeAmt amt
   end
 end
@@ -478,10 +496,10 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
 end
 
 
-procedure UpdateStakeReward(entry: SsnRewardShare)
+procedure UpdateStakeReward(entry: SsnStakeRewardShare)
   lastreward_blk <- lastrewardcycle;
   match entry with
-  | SsnRewardShare ssnaddr cycle_reward =>
+  | SsnStakeRewardShare ssnaddr cycle_reward total_stake =>
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
@@ -494,9 +512,8 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         event e
       | True  =>
         (* To calculate rewards belong to this ssn operator *)
-        total_stake_amt <- totalstakeamount;
         new_rewards_tmp = builtin mul stake_amt cycle_reward;
-        new_rewards = builtin div new_rewards_tmp total_stake_amt;
+        new_rewards = builtin div new_rewards_tmp total_stake;
 
         (* Substract from verifier_reward, scilla would help us with underflow exception which should not happen *)
         current_verifier_reward <- verifier_reward;
@@ -1187,7 +1204,13 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_rewa
   newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
   verifier_reward := available_reward;
-  forall ssnreward_list UpdateStakeReward;
+  
+  total_stake_amt <- totalstakeamount;
+  f = map_to_stake_rewards total_stake_amt;
+
+  mapper = @list_map SsnRewardShare SsnStakeRewardShare;
+  ssn_stake_reward_list = mapper f ssnreward_list;
+  forall ssn_stake_reward_list UpdateStakeReward;
   verifier_reward_amt <- verifier_reward;
   verifier_o <- verifier_receiving_addr;
   match verifier_o with
