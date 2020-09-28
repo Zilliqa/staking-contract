@@ -149,16 +149,6 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     send msgs
 end
 
-(* @dev: Remove a specific ssn from ssnlist. Used by Admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-transition RemoveSSN(ssnaddr: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "RemoveSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
-
 (***************************************************)
 (*             SSN operator transition             *)
 (***************************************************)

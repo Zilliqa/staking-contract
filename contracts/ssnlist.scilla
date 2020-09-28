@@ -999,25 +999,6 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   end
 end
 
-(* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-(* @param initiator: The original caller who called the proxy *)
-transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | False =>
-    e = SSNNotExist;
-    ThrowError e
-  | True =>
-    delete ssnlist[ssnaddr];
-    delete comm_for_ssn[ssnaddr];
-    e = { _eventname: "SSN removed"; ssn_addr: ssnaddr };
-    event e
-  end
-end
-
 (***************************************************)
 (*             SSN operator transition             *)
 (***************************************************)
