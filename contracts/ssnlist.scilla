@@ -181,7 +181,6 @@ type Error =
   | ExceedMaxChangeRate
   | ExceedMaxCommRate
   | InvalidTotalAmt
-  | InvalidRecvAddr
   | VerifierNotSet
   | VerifierRecvAddrNotSet
   | ReDelegInvalidSSNAddr
@@ -206,10 +205,9 @@ let make_error =
       | ExceedMaxChangeRate => Int32 -14
       | ExceedMaxCommRate => Int32 -15
       | InvalidTotalAmt => Int32 -16
-      | InvalidRecvAddr => Int32 -17
-      | VerifierNotSet => Int32 -18
-      | VerifierRecvAddrNotSet => Int32 -19
-      | ReDelegInvalidSSNAddr => Int32 -20
+      | VerifierNotSet => Int32 -17
+      | VerifierRecvAddrNotSet => Int32 -18
+      | ReDelegInvalidSSNAddr => Int32 -19
       end
     in
     { _exception: "Error"; code: result_code }
@@ -1119,10 +1117,19 @@ transition CompleteWithdrawal(initiator: ByStr20)
     (* Calculate withdrawal that can be transferred *)
     forall withdraw_list CalculateTotalWithdrawal;
     withdraw_amt <- avaiable_withdrawal;
-    e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
-    event e;
-    TransferFunds addfunds_tag withdraw_amt initiator
+    transfer = builtin eq withdraw_amt uint128_zero;
+    match transfer with
+    | True =>
+      e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
+      event e
+    | False =>
+      e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
+      event e;
+      TransferFunds addfunds_tag withdraw_amt initiator
+    end
   | None =>
+    e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
+    event e
   end
 end
 

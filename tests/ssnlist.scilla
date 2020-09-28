@@ -112,7 +112,6 @@ type Error =
 | ExceedMaxChangeRate
 | ExceedMaxCommRate
 | InvalidTotalAmt
-| InvalidRecvAddr
 | VerifierNotSet
 | VerifierRecvAddrNotSet
 | ReDelegInvalidSSNAddr
@@ -136,10 +135,9 @@ match result with
 | ExceedMaxChangeRate => Int32 -14
 | ExceedMaxCommRate => Int32 -15
 | InvalidTotalAmt => Int32 -16
-| InvalidRecvAddr => Int32 -17
-| VerifierNotSet => Int32 -18
-| VerifierRecvAddrNotSet => Int32 -19
-| ReDelegInvalidSSNAddr => Int32 -20
+| VerifierNotSet => Int32 -17
+| VerifierRecvAddrNotSet => Int32 -18
+| ReDelegInvalidSSNAddr => Int32 -19
 end
 in
 { _exception: "Error"; code: result_code }
@@ -833,10 +831,19 @@ c = Some {ByStr20} initiator;
 current_deleg := c;
 forall withdraw_list CalculateTotalWithdrawal;
 withdraw_amt <- avaiable_withdrawal;
-e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
+transfer = builtin eq withdraw_amt uint128_zero;
+match transfer with
+| True =>
+e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
+event e
+| False =>
+e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
 event e;
 TransferFunds addfunds_tag withdraw_amt initiator
+end
 | None =>
+e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
+event e
 end
 end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
