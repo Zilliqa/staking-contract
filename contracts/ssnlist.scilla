@@ -239,7 +239,7 @@ contract SSNList(
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
 
-(* Record commmission for SSN for each reward cycle *)
+(* Record commission for SSN for each reward cycle *)
 (* AddressofSSN -> (RewardCycle -> commission ) *)
 field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) = Emp ByStr20 (Map Uint32 Uint128)
 
@@ -290,7 +290,7 @@ field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map By
 (* Record the latest rewards earned by verifier *)
 field verifier_reward: Uint128 = uint128_zero
 
-field avaiable_withdrawal: Uint128 = uint128_zero
+field available_withdrawal: Uint128 = uint128_zero
 
 field current_deleg: Option ByStr20 = None {ByStr20}
 
@@ -394,25 +394,6 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   end
 end
 
-procedure EmitSsnEventOnStausChange(ssnaddr: ByStr20, old_status: Bool, new_status: Bool)
-  match old_status with
-  | True =>
-    match new_status with
-    | True =>
-    | False => 
-      e = { _eventname: "SSN becomes inactive"; ssnaddr: ssnaddr };
-      event e
-    end
-  | False =>
-    match new_status with
-    | True =>
-      e = { _eventname: "SSN becomes active"; ssnaddr: ssnaddr };
-      event e
-    | False =>
-    end
-  end
-end
-
 (* Check if the initiator is verifier *)
 procedure CallerIsVerifier(initiator: ByStr20)
   verifier_tmp <- verifier;
@@ -485,9 +466,9 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       match can_withdraw with
       | True =>
           delete withdrawal_pending[current_deleg][withdraw_number];
-          current_amt <- avaiable_withdrawal;
+          current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          avaiable_withdrawal := current_amt
+          available_withdrawal := current_amt
       | False => 
       end
     end
@@ -674,17 +655,25 @@ procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint
       AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt redeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
-      DecreaseTotalStakeAmt redeleg_amt;
       new_amt = builtin sub stake_amt redeleg_amt;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      (* If ssn becomes inactive, we need to decrease the rest ones also *)
-      DecreaseTotalStakeAmtOnStatus new_amt status;
-      EmitSsnEventOnStausChange ssn active_status status;
       e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
-      event e
+      event e;
+      match active_status with
+      | True =>
+        (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
+        DecreaseTotalStakeAmt redeleg_amt;
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: redeleg_amt };
+        event event_decrease;
+        (* If ssn becomes inactive, we need to decrease the rest ones as well *)
+        DecreaseTotalStakeAmtOnStatus new_amt status
+      | False =>
+        event_decrease = { _eventname: "SSNInactive" };
+        event event_decrease
+      end
     | None =>
       e = DelegDoesNotExistAtSSN;
       ThrowError e
@@ -706,15 +695,11 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
-      DecreaseTotalStakeAmt withdraw_amount;
       new_amt = builtin sub stake_amt withdraw_amount;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      (* If ssn becomes inactive, we need to decrease the rest ones also *)
-      DecreaseTotalStakeAmtOnStatus new_amt status;
-      EmitSsnEventOnStausChange ssn active_status status;
       withdrawal_bnum <- & BLOCKNUMBER;
       withdraw_amt_o <- withdrawal_pending[initiator][withdrawal_bnum];
       withdraw_amt_pending = match withdraw_amt_o with
@@ -723,7 +708,19 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       end;
       withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
       e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; withdraw_amount: withdraw_amount };
-      event e
+      event e;
+      match active_status with
+      | True =>
+        (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
+        DecreaseTotalStakeAmt withdraw_amount;
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: withdraw_amount };
+        event event_decrease;
+        (* If ssn becomes inactive, we need to decrease the rest as well *)
+        DecreaseTotalStakeAmtOnStatus new_amt status
+      | False =>
+        event_decrease = { _eventname: "SSNInactive" };
+        event event_decrease
+      end
     | None =>
       e = DelegDoesNotExistAtSSN;
       ThrowError e
@@ -872,7 +869,6 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
       ssnlist[ssnaddr] := ssn;
       (* If ssn becomes active, then we need to increase totalstakeamount *)
       IncreaseTotalStakeAmtOnStatus new_stake_amt status;
-      EmitSsnEventOnStausChange ssnaddr active_status status;
       (* record this to direct deposit for deleg *)
       stake_amt_for_deleg_option  <- direct_deposit_deleg[initiator][ssnaddr][lrc];
       match stake_amt_for_deleg_option  with
@@ -1149,15 +1145,15 @@ transition CompleteWithdrawal(initiator: ByStr20)
   match withdraw_map_o with
   | Some withdraw_map =>
     withdraw_list = builtin to_list withdraw_map;
-    (* To init tmp fileds *)
+    (* To init tmp fields *)
     withdrawal_zero = uint128_zero;
-    avaiable_withdrawal := withdrawal_zero;
+    available_withdrawal := withdrawal_zero;
     c = Some {ByStr20} initiator;
     current_deleg := c;
 
     (* Calculate withdrawal that can be transferred *)
     forall withdraw_list CalculateTotalWithdrawal;
-    withdraw_amt <- avaiable_withdrawal;
+    withdraw_amt <- available_withdrawal;
     transfer = builtin eq withdraw_amt uint128_zero;
     match transfer with
     | True =>
