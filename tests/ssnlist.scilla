@@ -368,8 +368,8 @@ new_stake_amt = builtin add stake_amt buffdeposit;
 deleg_reward = builtin add delegate_reward rewards;
 ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
 ssnlist[ssnaddr] := ssn;
+e = { _eventname: "SSN assign reward"; ssnaddr: ssnaddr; cycle_number: lastreward_blk; delegate_rewards: delegate_reward; comm_rewards:  reward_comm_tmp};
 IncreaseTotalStakeAmt buffdeposit;
-e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
 event e
 end
 end

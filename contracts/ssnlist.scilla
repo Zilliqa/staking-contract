@@ -538,7 +538,7 @@ procedure UpdateStakeReward(entry: SsnStakeRewardShare)
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
         IncreaseTotalStakeAmt buffdeposit;
-        e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
+        e = { _eventname: "SSN assign reward"; ssnaddr: ssnaddr; cycle_number: lastreward_blk; delegate_rewards: delegate_reward; comm_rewards:  reward_comm_tmp};
         event e
       end
     end
