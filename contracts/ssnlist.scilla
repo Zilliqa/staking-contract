@@ -284,7 +284,7 @@ field bnum_req: Uint128 = Uint128 24000
 
 (* Temporary storage maps *)
 (* Used during CalcRewardsDelegPerCycle *)
-field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field cycle_rewards_deleg: Uint128 = uint128_zero
 
 (* Used during AssignStakeReward *)
 (* Record the latest rewards earned by verifier *)
@@ -765,10 +765,9 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
 end
 
 procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-  exist_reward_o <- rewards_amt_deleg[ssn][deleg];
-  exist_reward = option_uint128_value exist_reward_o;
+  exist_reward <- cycle_rewards_deleg;
   new_reward = builtin add exist_reward reward;
-  rewards_amt_deleg[ssn][deleg] := new_reward
+  cycle_rewards_deleg := new_reward
 end
 
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
@@ -808,12 +807,11 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   forall combined_args_list CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
-  rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
+  cycle_rewards_deleg := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
   (* Send rewards out and mint gzil *)
-  reward <- rewards_amt_deleg[ssn_operator][deleg];
-  reward = option_uint128_value reward;
+  reward <- cycle_rewards_deleg;
   SendDelegRewards deleg reward;
   MintCall deleg reward;
 
