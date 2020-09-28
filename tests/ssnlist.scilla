@@ -167,7 +167,7 @@ field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum
 field bnum_req: Uint128 = Uint128 24000
 field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field verifier_reward: Uint128 = uint128_zero
-field avaiable_withdrawal: Uint128 = uint128_zero
+field available_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
@@ -310,9 +310,9 @@ can_withdraw = builtin blt bnum current_bnum;
 match can_withdraw with
 | True =>
 delete withdrawal_pending[current_deleg][withdraw_number];
-current_amt <- avaiable_withdrawal;
+current_amt <- available_withdrawal;
 current_amt = builtin add current_amt amt;
-avaiable_withdrawal := current_amt
+available_withdrawal := current_amt
 | False =>
 end
 end
@@ -850,11 +850,11 @@ match withdraw_map_o with
 | Some withdraw_map =>
 withdraw_list = builtin to_list withdraw_map;
 withdrawal_zero = uint128_zero;
-avaiable_withdrawal := withdrawal_zero;
+available_withdrawal := withdrawal_zero;
 c = Some {ByStr20} initiator;
 current_deleg := c;
 forall withdraw_list CalculateTotalWithdrawal;
-withdraw_amt <- avaiable_withdrawal;
+withdraw_amt <- available_withdrawal;
 transfer = builtin eq withdraw_amt uint128_zero;
 match transfer with
 | True =>
