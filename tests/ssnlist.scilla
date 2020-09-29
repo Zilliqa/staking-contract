@@ -451,8 +451,8 @@ ThrowError e
 end
 end
 procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
-suffient = uint128_le withdraw_amount total_amount;
-match suffient with
+sufficient = uint128_le withdraw_amount total_amount;
+match sufficient with
 | True =>
 need_truncate =  builtin eq withdraw_amount total_amount;
 match need_truncate with
