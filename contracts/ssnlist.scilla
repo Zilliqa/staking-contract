@@ -1,6 +1,6 @@
 scilla_version 0
 
-import ListUtils IntUtils BoolUtils
+import ListUtils IntUtils
 
 library SSNList
 
@@ -48,6 +48,15 @@ type Ssn =
 
 type SsnRewardShare =
 | SsnRewardShare of ByStr20 Uint128
+
+(*  SSNAddress        : ByStr20 *)
+(*                      Address of the SSN. *)
+(*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*  TotalStakeAmount  : Uint128 *)
+(*                      Total stake amount at a specific cycle.                                               *)
+type SsnStakeRewardShare = 
+| SsnStakeRewardShare of ByStr20 Uint128 Uint128
 
 (* SSNCycleInfo Data Type *)
 
@@ -141,7 +150,6 @@ let iota : Uint32 -> Uint32 -> List Uint32 =
     | True =>
         let delta = builtin sub n m in
         let delta_nat = builtin to_nat delta in
-        let fold = @nat_fold (List Uint32) in
         let nil = Nil {Uint32} in
         let acc_init = Pair {(List Uint32) Uint32} nil n in
         let one = Uint32 1 in
@@ -158,6 +166,13 @@ let iota : Uint32 -> Uint32 -> List Uint32 =
         | Pair xs m => xs
         end
     | False => Nil {Uint32}
+    end
+
+let map_to_stake_rewards = 
+  fun (total_stake: Uint128) =>
+  fun (element: SsnRewardShare) =>
+    match element with
+    | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
 let bool_active = True
@@ -181,10 +196,10 @@ type Error =
   | ExceedMaxChangeRate
   | ExceedMaxCommRate
   | InvalidTotalAmt
-  | InvalidRecvAddr
   | VerifierNotSet
   | VerifierRecvAddrNotSet
   | ReDelegInvalidSSNAddr
+  | AvailableRewardsError
 
 let make_error =
   fun (result: Error) =>
@@ -206,10 +221,10 @@ let make_error =
       | ExceedMaxChangeRate => Int32 -14
       | ExceedMaxCommRate => Int32 -15
       | InvalidTotalAmt => Int32 -16
-      | InvalidRecvAddr => Int32 -17
-      | VerifierNotSet => Int32 -18
-      | VerifierRecvAddrNotSet => Int32 -19
-      | ReDelegInvalidSSNAddr => Int32 -20
+      | VerifierNotSet => Int32 -17
+      | VerifierRecvAddrNotSet => Int32 -18
+      | ReDelegInvalidSSNAddr => Int32 -19
+      | AvailableRewardsError => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -226,7 +241,7 @@ contract SSNList(
 (* AddressOfSSN -> SSNInfo *)
 field ssnlist: Map ByStr20 Ssn = Emp ByStr20 Ssn
 
-(* Record commmission for SSN for each reward cycle *)
+(* Record commission for SSN for each reward cycle *)
 (* AddressofSSN -> (RewardCycle -> commission ) *)
 field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) = Emp ByStr20 (Map Uint32 Uint128)
 
@@ -271,13 +286,13 @@ field bnum_req: Uint128 = Uint128 24000
 
 (* Temporary storage maps *)
 (* Used during CalcRewardsDelegPerCycle *)
-field rewards_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field cycle_rewards_deleg: Uint128 = uint128_zero
 
 (* Used during AssignStakeReward *)
 (* Record the latest rewards earned by verifier *)
 field verifier_reward: Uint128 = uint128_zero
 
-field avaiable_withdrawal: Uint128 = uint128_zero
+field available_withdrawal: Uint128 = uint128_zero
 
 field current_deleg: Option ByStr20 = None {ByStr20}
 
@@ -366,6 +381,8 @@ end
 procedure IncreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
+    e = { _eventname: "SSNActive"; increase_amt: amt };
+    event e;
     IncreaseTotalStakeAmt amt
   | False =>
   end  
@@ -375,6 +392,8 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
   | False =>
+    e = { _eventname: "SSNInactive"; decreased_amt: amt };
+    event e;
     DecreaseTotalStakeAmt amt
   end
 end
@@ -462,9 +481,9 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       match can_withdraw with
       | True =>
           delete withdrawal_pending[current_deleg][withdraw_number];
-          current_amt <- avaiable_withdrawal;
+          current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          avaiable_withdrawal := current_amt
+          available_withdrawal := current_amt
       | False => 
       end
     end
@@ -472,11 +491,20 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
   end
 end
 
+procedure AssertCorrectRewards(remaining_rewards: Uint128, ssn_rewards: Uint128)
+  validate = uint128_le ssn_rewards remaining_rewards;
+  match validate with
+  | True =>
+  | False =>
+    e = AvailableRewardsError;
+    ThrowError e
+  end
+end
 
-procedure UpdateStakeReward(entry: SsnRewardShare)
+procedure UpdateStakeReward(entry: SsnStakeRewardShare)
   lastreward_blk <- lastrewardcycle;
   match entry with
-  | SsnRewardShare ssnaddr cycle_reward =>
+  | SsnStakeRewardShare ssnaddr cycle_reward total_stake =>
     curval <- ssnlist[ssnaddr];
     match curval with
     | None =>
@@ -489,12 +517,13 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         event e
       | True  =>
         (* To calculate rewards belong to this ssn operator *)
-        total_stake_amt <- totalstakeamount;
         new_rewards_tmp = builtin mul stake_amt cycle_reward;
-        new_rewards = builtin div new_rewards_tmp total_stake_amt;
+        new_rewards = builtin div new_rewards_tmp total_stake;
 
-        (* Substract from verifier_reward, scilla would help us with underflow exception which should not happen *)
+
         current_verifier_reward <- verifier_reward;
+
+        AssertCorrectRewards current_verifier_reward new_rewards;
         new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
         verifier_reward := new_current_verifier_reward;
 
@@ -515,8 +544,8 @@ procedure UpdateStakeReward(entry: SsnRewardShare)
         deleg_reward = builtin add delegate_reward rewards;
         ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_zero comm total_reward_comm rec_addr;
         ssnlist[ssnaddr] := ssn;
-        IncreaseTotalStakeAmtOnStatus buffdeposit active_status;
-        e = { _eventname: "SSN assign reward"; ssn_addr: ssnaddr; total_reward: total_reward_comm };
+        IncreaseTotalStakeAmt buffdeposit;
+        e = { _eventname: "SSN assign reward"; ssnaddr: ssnaddr; cycle_number: lastreward_blk; delegate_rewards: delegate_reward; comm_rewards:  reward_comm_tmp};
         event e
       end
     end
@@ -569,7 +598,7 @@ procedure FillInDepositDelegAmt(ssnaddr: ByStr20, deleg: ByStr20, amount: Uint12
   end
 end
 
-procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
+procedure AssertNoRewards(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: Uint128)
   no_total_rewards = builtin eq total_rewards uint128_zero;
   match no_total_rewards with
   | True =>
@@ -587,7 +616,7 @@ procedure HasRewardToWithdraw(ssnaddr: ByStr20, deleg: ByStr20, total_rewards: U
   end
 end
 
-procedure HasBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
+procedure AsseertNoBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
   ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
@@ -613,8 +642,8 @@ procedure IsDelegstakeSufficient(amount: Uint128)
 end
 
 procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, withdraw_amount: Uint128)
-  suffient = uint128_le withdraw_amount total_amount;
-  match suffient with
+  sufficient = uint128_le withdraw_amount total_amount;
+  match sufficient with
   | True =>
     need_truncate =  builtin eq withdraw_amount total_amount;
     match need_truncate with
@@ -625,14 +654,15 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       (* Readjust all rest deleg to this cycle *)
       lrc <- lastrewardcycle;
       rest_deleg = builtin sub total_amount withdraw_amount;
+      (* rest delegate should also meet mindelegstake *)
+      IsDelegstakeSufficient rest_deleg;
       TruncateDeleg deleg ssnaddr;
       (* Refer to transition TruncateDeleg, here we don't use Fillin transition because we *)
       (* know they are all empty, and this can reduce some gasfee *)
       deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
       ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
       direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
-      last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
+      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
     end
   | False =>
     e = DelegHasNoSufficientAmt;
@@ -640,7 +670,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
   end
 end
 
-procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
   lrc <- lastrewardcycle;
@@ -648,20 +678,29 @@ procedure ReDelegStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator rewards;
-      HasBufferedDeposit ssn initiator;
+      AssertNoRewards ssn initiator rewards;
+      AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt redeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
-      DecreaseTotalStakeAmt redeleg_amt;
       new_amt = builtin sub stake_amt redeleg_amt;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      (* If ssn becomes inactive, we need to decrease the rest ones also *)
-      DecreaseTotalStakeAmtOnStatus new_amt status;
       e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
-      event e
+      event e;
+      match active_status with
+      | True =>
+        (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
+        DecreaseTotalStakeAmt redeleg_amt;
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: redeleg_amt };
+        event event_decrease;
+        (* If ssn becomes inactive, we need to decrease the rest ones as well *)
+        DecreaseTotalStakeAmtOnStatus new_amt status
+      | False =>
+        event_decrease = { _eventname: "SSNInactiveBefore" };
+        event event_decrease
+      end
     | None =>
       e = DelegDoesNotExistAtSSN;
       ThrowError e
@@ -675,23 +714,19 @@ end
 procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
-  lrc <- lastrewardcycle;
   match ssn_o with
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     match deleg with
     | Some amt =>
-      HasRewardToWithdraw ssn initiator rewards;
-      HasBufferedDeposit ssn initiator;
+      AssertNoRewards ssn initiator rewards;
+      AsseertNoBufferedDeposit ssn initiator;
       AdjustDeleg ssn initiator amt withdraw_amount;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
-      DecreaseTotalStakeAmt withdraw_amount;
       new_amt = builtin sub stake_amt withdraw_amount;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      (* If ssn becomes inactive, we need to decrease the rest ones also *)
-      DecreaseTotalStakeAmtOnStatus new_amt status;
       withdrawal_bnum <- & BLOCKNUMBER;
       withdraw_amt_o <- withdrawal_pending[initiator][withdrawal_bnum];
       withdraw_amt_pending = match withdraw_amt_o with
@@ -699,8 +734,20 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
       | None => withdraw_amount
       end;
       withdrawal_pending[initiator][withdrawal_bnum] := withdraw_amt_pending;
-      e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; amt: amt };
-      event e
+      e = { _eventname: "Deleg withdraw deposit"; ssn_addr: ssn; deleg_address: initiator; withdraw_amount: withdraw_amount };
+      event e;
+      match active_status with
+      | True =>
+        (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
+        DecreaseTotalStakeAmt withdraw_amount;
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: withdraw_amount };
+        event event_decrease;
+        (* If ssn becomes inactive, we need to decrease the rest as well *)
+        DecreaseTotalStakeAmtOnStatus new_amt status
+      | False =>
+        event_decrease = { _eventname: "SSNInactiveBefore" };
+        event event_decrease
+      end
     | None =>
       e = DelegDoesNotExistAtSSN;
       ThrowError e
@@ -719,6 +766,9 @@ procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
     cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
     buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
     comb_opt = option_add cur_opt buf_opt;
+
+    delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+    delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 
     last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
     last_amt = option_uint128_value last_amt_o;
@@ -742,10 +792,9 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
 end
 
 procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-  exist_reward_o <- rewards_amt_deleg[ssn][deleg];
-  exist_reward = option_uint128_value exist_reward_o;
+  exist_reward <- cycle_rewards_deleg;
   new_reward = builtin add exist_reward reward;
-  rewards_amt_deleg[ssn][deleg] := new_reward
+  cycle_rewards_deleg := new_reward
 end
 
 procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
@@ -785,12 +834,11 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   forall combined_args_list CalcStakeDelegPerCycle;
 
   (* Calculate rewards *)
-  rewards_amt_deleg[ssn_operator][deleg] := uint128_zero;
+  cycle_rewards_deleg := uint128_zero;
   forall combined_args_list CalcRewardsDelegPerCycle;
 
   (* Send rewards out and mint gzil *)
-  reward <- rewards_amt_deleg[ssn_operator][deleg];
-  reward = option_uint128_value reward;
+  reward <- cycle_rewards_deleg;
   SendDelegRewards deleg reward;
   MintCall deleg reward;
 
@@ -800,7 +848,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
     rest_rewards = builtin sub total_rewards reward;
     ssn = Ssn active_status stake_amt rest_rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
     ssnlist[ssn_operator] := ssn
-  | None => (* won't reach *)
+  | None => throw
   end;
   e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
   event e;
@@ -815,7 +863,6 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     ThrowError e
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     IsDelegstakeSufficient amount;
-    minstake_tmp <- minstake;
     lrc <- lastrewardcycle;
     (*The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
@@ -838,6 +885,7 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
         buff_deposit_deleg[initiator][ssnaddr][lrc] := amount
       end
     | False =>
+      minstake_tmp <- minstake;
       (* The SSN is inactive so add the delegated stake to stake_amount *)
       new_stake_amt  = builtin add amount stake_amt;
       status = uint128_le minstake_tmp new_stake_amt;
@@ -945,6 +993,7 @@ transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String
     e = SSNAlreadyExist;
     ThrowError e
   | False =>
+    ValidateRate comm;
     status = bool_inactive;
     stake_amt = Uint128 0;
     rewards = Uint128 0;
@@ -972,25 +1021,6 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   | None =>
     e = SSNNotExist;
     ThrowError e
-  end
-end
-
-(* @dev: Remove a specific ssn from ssnlist. Used by admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-(* @param initiator: The original caller who called the proxy *)
-transition RemoveSSN(ssnaddr: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | False =>
-    e = SSNNotExist;
-    ThrowError e
-  | True =>
-    delete ssnlist[ssnaddr];
-    delete comm_for_ssn[ssnaddr];
-    e = { _eventname: "SSN removed"; ssn_addr: ssnaddr };
-    event e
   end
 end
 
@@ -1121,19 +1151,28 @@ transition CompleteWithdrawal(initiator: ByStr20)
   match withdraw_map_o with
   | Some withdraw_map =>
     withdraw_list = builtin to_list withdraw_map;
-    (* To init tmp fileds *)
+    (* To init tmp fields *)
     withdrawal_zero = uint128_zero;
-    avaiable_withdrawal := withdrawal_zero;
+    available_withdrawal := withdrawal_zero;
     c = Some {ByStr20} initiator;
     current_deleg := c;
 
     (* Calculate withdrawal that can be transferred *)
     forall withdraw_list CalculateTotalWithdrawal;
-    withdraw_amt <- avaiable_withdrawal;
-    e = { _eventname: "CompleteWithdrawal"; ssn_addr: initiator; initiator: withdraw_amt };
-    event e;
-    TransferFunds addfunds_tag withdraw_amt initiator
+    withdraw_amt <- available_withdrawal;
+    transfer = builtin eq withdraw_amt uint128_zero;
+    match transfer with
+    | True =>
+      e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
+      event e
+    | False =>
+      e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
+      event e;
+      TransferFunds addfunds_tag withdraw_amt initiator
+    end
   | None =>
+    e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
+    event e
   end
 end
 
@@ -1146,7 +1185,7 @@ transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, i
     e = ReDelegInvalidSSNAddr;
     ThrowError e
   | False =>
-    ReDelegStakeAmt initiator ssnaddr amount;
+    UnDelegateStakeAmt initiator ssnaddr amount;
     Delegate to_ssn initiator amount;
     e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
     event e
@@ -1160,17 +1199,24 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-(* @param available_reward: total rewards for ssn operator, delegators and verifier *)
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, available_reward: Uint128, initiator: ByStr20)
-  IsNotPaused;
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
+  IsPaused;
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
+  accept;
   newLastRewardCycleNum = builtin add uint32_one lrc;
   lastrewardcycle := newLastRewardCycleNum;
-  verifier_reward := available_reward;
-  forall ssnreward_list UpdateStakeReward;
+  (* _amount: total rewards for ssn operator, delegators and verifier *)
+  verifier_reward := _amount;
+  
+  total_stake_amt <- totalstakeamount;
+  f = map_to_stake_rewards total_stake_amt;
+
+  mapper = @list_map SsnRewardShare SsnStakeRewardShare;
+  ssn_stake_reward_list = mapper f ssnreward_list;
+  forall ssn_stake_reward_list UpdateStakeReward;
   verifier_reward_amt <- verifier_reward;
   verifier_o <- verifier_receiving_addr;
   match verifier_o with
