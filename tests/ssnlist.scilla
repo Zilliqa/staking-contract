@@ -316,11 +316,6 @@ match curval with
 e = SSNNotExist;
 ThrowError e
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-match active_status with
-| False =>
-e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
-event e
-| True  =>
 new_rewards_tmp = builtin mul stake_amt cycle_reward;
 new_rewards = builtin div new_rewards_tmp total_stake;
 current_verifier_reward <- verifier_reward;
@@ -340,7 +335,6 @@ ssn = Ssn active_status new_stake_amt deleg_reward name urlraw urlapi uint128_ze
 ssnlist[ssnaddr] := ssn;
 e = { _eventname: "SSN assign reward"; ssnaddr: ssnaddr; cycle_number: lastreward_blk; delegate_rewards: delegate_reward; comm_rewards:  reward_comm_tmp};
 event e
-end
 end
 end
 end
