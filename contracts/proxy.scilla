@@ -121,9 +121,9 @@ transition ChangeBNumReq(input_bnum_req: Uint128)
     send msgs
 end
 
-transition UpdateContractAddr(proxy_address: ByStr20, gzil_address: ByStr20)
+transition UpdateGzilAddr(gzil_addr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "UpdateContractAddr"; _recipient: current_impl; _amount: zero; proxy_addr: proxy_address; gzil_addr: gzil_address; initiator: _sender};
+    msg = {_tag: "UpdateGzilAddr"; _recipient: current_impl; _amount: zero; gzil_addr: gzil_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -148,16 +148,6 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     msgs = one_msg msg;
     send msgs
 end
-
-(* @dev: Remove a specific ssn from ssnlist. Used by Admin only. *)
-(* @param ssnaddr: Address of the ssn to be removed *)
-transition RemoveSSN(ssnaddr: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "RemoveSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
 
 (***************************************************)
 (*             SSN operator transition             *)
@@ -239,9 +229,10 @@ end
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
 (* @param ssnrewardlist: List of SsnRewardShare *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, verifier_reward: Uint128)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
     current_impl <- implementation;
-    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: zero; ssnreward_list: ssnreward_list; verifier_reward: verifier_reward; initiator: _sender};
+    accept;
+    msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: _amount; ssnreward_list: ssnreward_list; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
