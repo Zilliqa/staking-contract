@@ -199,6 +199,7 @@ type Error =
   | VerifierNotSet
   | VerifierRecvAddrNotSet
   | ReDelegInvalidSSNAddr
+  | AvailableRewardsError
 
 let make_error =
   fun (result: Error) =>
@@ -223,6 +224,7 @@ let make_error =
       | VerifierNotSet => Int32 -17
       | VerifierRecvAddrNotSet => Int32 -18
       | ReDelegInvalidSSNAddr => Int32 -19
+      | AvailableRewardsError => Int32 -20
       end
     in
     { _exception: "Error"; code: result_code }
@@ -478,6 +480,15 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
   end
 end
 
+procedure AssertCorrectRewards(remaining_rewards: Uint128, ssn_rewards: Uint128)
+  validate = uint128_le ssn_rewards remaining_rewards;
+  match validate with
+  | True =>
+  | False =>
+    e = AvailableRewardsError;
+    ThrowError e
+  end
+end
 
 procedure UpdateStakeReward(entry: SsnStakeRewardShare)
   lastreward_blk <- lastrewardcycle;
@@ -498,8 +509,10 @@ procedure UpdateStakeReward(entry: SsnStakeRewardShare)
         new_rewards_tmp = builtin mul stake_amt cycle_reward;
         new_rewards = builtin div new_rewards_tmp total_stake;
 
-        (* Substract from verifier_reward, scilla would help us with underflow exception which should not happen *)
+
         current_verifier_reward <- verifier_reward;
+
+        AssertCorrectRewards current_verifier_reward new_rewards;
         new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
         verifier_reward := new_current_verifier_reward;
 
@@ -636,8 +649,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       deposit_amt_deleg[deleg][ssnaddr] := rest_deleg;
       ssn_deleg_amt[ssnaddr][deleg] := rest_deleg;
       direct_deposit_deleg[deleg][ssnaddr][lrc] := rest_deleg;
-      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc;
-      last_buf_deposit_cycle_deleg[deleg][ssnaddr] := lrc
+      last_withdraw_cycle_deleg[deleg][ssnaddr] := lrc
     end
   | False =>
     e = DelegHasNoSufficientAmt;
