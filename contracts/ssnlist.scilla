@@ -379,6 +379,8 @@ end
 procedure IncreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
+    e = { _eventname: "SSNActive"; increase_amt: amt };
+    event e;
     IncreaseTotalStakeAmt amt
   | False =>
   end  
@@ -388,7 +390,7 @@ procedure DecreaseTotalStakeAmtOnStatus(amt: Uint128, status: Bool)
   match status with
   | True =>
   | False =>
-    e = { _eventname: "SSN becomes inactive"; decreased_amt: amt };
+    e = { _eventname: "SSNInactive"; decreased_amt: amt };
     event e;
     DecreaseTotalStakeAmt amt
   end
@@ -671,7 +673,7 @@ procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint
         (* If ssn becomes inactive, we need to decrease the rest ones as well *)
         DecreaseTotalStakeAmtOnStatus new_amt status
       | False =>
-        event_decrease = { _eventname: "SSNInactive" };
+        event_decrease = { _eventname: "SSNInactiveBefore" };
         event event_decrease
       end
     | None =>
@@ -718,7 +720,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
         (* If ssn becomes inactive, we need to decrease the rest as well *)
         DecreaseTotalStakeAmtOnStatus new_amt status
       | False =>
-        event_decrease = { _eventname: "SSNInactive" };
+        event_decrease = { _eventname: "SSNInactiveBefore" };
         event event_decrease
       end
     | None =>
