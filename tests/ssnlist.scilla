@@ -287,13 +287,22 @@ e = ProxyValidationFailed;
 ThrowError e
 end
 end
-procedure IsPaused()
+procedure IsNotPaused()
 paused_tmp <- paused;
 match paused_tmp with
 | False =>
 | True  =>
 e = ContractFrozenFailure;
 ThrowError e
+end
+end
+procedure IsPaused()
+paused_tmp <- paused;
+match paused_tmp with
+| False =>
+e = ContractFrozenFailure;
+ThrowError e
+| True =>
 end
 end
 procedure TransferFunds(tag: String, amt: Uint128, recipient: ByStr20)
@@ -758,7 +767,7 @@ ThrowError e
 end
 end
 transition UpdateComm(new_rate: Uint128, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 curval <- ssnlist[initiator];
 match curval with
@@ -784,7 +793,7 @@ ThrowError e
 end
 end
 transition WithdrawComm(initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 curval <- ssnlist[initiator];
 match curval with
@@ -807,7 +816,7 @@ end
 end
 end
 transition UpdateReceivingAddr(new_addr: ByStr20, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 curval <- ssnlist[initiator];
 match curval with
@@ -822,7 +831,7 @@ ThrowError e
 end
 end
 transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 accept;
 amount = _amount;
@@ -831,18 +840,18 @@ e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amou
 event e
 end
 transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 DelegExists ssnaddr initiator;
 WithdrawalStakeRewards initiator ssnaddr
 end
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 WithdrawalStakeAmt initiator ssnaddr amt
 end
 transition CompleteWithdrawal(initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 withdraw_map_o <- withdrawal_pending[initiator];
 match withdraw_map_o with
@@ -870,7 +879,7 @@ event e
 end
 end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 same_ssn = builtin eq ssnaddr to_ssn;
 match same_ssn with
@@ -976,36 +985,43 @@ ThrowError e
 end
 end
 transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 buff_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
 end
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 comm_for_ssn[ssn_addr][cycle] := comm
 end
 transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 totalstakeamount := amt
 end
 transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
+IsPaused;
 IsProxy;
 IsAdmin initiator;
 bal <- _balance;
