@@ -643,6 +643,8 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
       (* Readjust all rest deleg to this cycle *)
       lrc <- lastrewardcycle;
       rest_deleg = builtin sub total_amount withdraw_amount;
+      (* rest delegate should also meet mindelegstake *)
+      IsDelegstakeSufficient rest_deleg;
       TruncateDeleg deleg ssnaddr;
       (* Refer to transition TruncateDeleg, here we don't use Fillin transition because we *)
       (* know they are all empty, and this can reduce some gasfee *)
