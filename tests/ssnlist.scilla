@@ -639,7 +639,11 @@ ssnlist[ssn_operator] := ssn
 end;
 e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
 event e;
-last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
+last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc;
+msg_to_delegator = {_tag : "WithdrawStakeRewardsSuccessCallBack"; _recipient : deleg; _amount : uint128_zero;
+ssnaddr : ssn_operator; rewards : reward};
+msg = one_msg msg_to_delegator;
+send msg
 end
 procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
 curval <- ssnlist[ssnaddr];
@@ -837,7 +841,11 @@ accept;
 amount = _amount;
 Delegate ssnaddr initiator amount;
 e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
-event e
+event e;
+msg_to_delegator = {_tag : "DelegateStakeSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr : ssnaddr; amount : amount};
+msg = one_msg msg_to_delegator;
+send msg
 end
 transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
 IsNotPaused;
@@ -848,7 +856,11 @@ end
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
 IsNotPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssnaddr amt
+WithdrawalStakeAmt initiator ssnaddr amt;
+msg_to_delegator = {_tag : "WithdrawStakeAmtSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr : ssnaddr; amount : amt};
+msg = one_msg msg_to_delegator;
+send msg
 end
 transition CompleteWithdrawal(initiator: ByStr20)
 IsNotPaused;
@@ -867,15 +879,23 @@ transfer = builtin eq withdraw_amt uint128_zero;
 match transfer with
 | True =>
 e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
-event e
+event e;
+msg_to_delegator = {_tag : "CompleteWithdrawalNoUnbondedStakeCallBack"; _recipient : initiator; _amount : uint128_zero;
+amount : uint128_zero};
+msg = one_msg msg_to_delegator;
+send msg
 | False =>
 e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
 event e;
-TransferFunds addfunds_tag withdraw_amt initiator
+TransferFunds addfunds_tag withdraw_amt initiator;
+msg_to_delegator = {_tag : "CompleteWithdrawalSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+amount : withdraw_amt};
+msg = one_msg msg_to_delegator;
+send msg
 end
 | None =>
 e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
-event e
+event e;
 end
 end
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
@@ -890,7 +910,11 @@ ThrowError e
 UnDelegateStakeAmt initiator ssnaddr amount;
 Delegate to_ssn initiator amount;
 e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
-event e
+event e;
+msg_to_delegator = {_tag : "ReDelegateStakeSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr: ssnaddr; tossn: to_ssn; amount : amount};
+msg = one_msg msg_to_delegator;
+send msg
 end
 end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
