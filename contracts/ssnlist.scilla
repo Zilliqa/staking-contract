@@ -1192,7 +1192,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
     end
   | None =>
     e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
-    event e;
+    event e
   end
 end
 
