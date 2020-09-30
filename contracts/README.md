@@ -129,7 +129,7 @@ type SsnRewardShare =
                         It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 ```
 
-3. SsnStakeRewardShare Data Type
+3. SsnStakeRewardShare Data Type:
 
 ```ocaml
 type SsnStakeRewardShare = 
