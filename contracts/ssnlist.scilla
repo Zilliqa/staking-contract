@@ -1201,7 +1201,7 @@ end
 (* @param ssnrewardlist: List of SsnRewardShare *)
 (* @param initiator: The original caller who called the proxy *)
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
-  IsPaused;
+  IsNotPaused;
   IsProxy;
   CallerIsVerifier initiator;
   lrc <- lastrewardcycle;
