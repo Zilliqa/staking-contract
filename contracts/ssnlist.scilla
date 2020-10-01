@@ -758,7 +758,7 @@ procedure WithdrawalStakeAmt(initiator: ByStr20, ssn: ByStr20, withdraw_amount: 
   end
 end
 
-procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
+procedure IncreaseReward(deleg: ByStr20, reward: Uint128)
   exist_reward <- cycle_rewards_deleg;
   new_reward = builtin add exist_reward reward;
   cycle_rewards_deleg := new_reward
@@ -792,7 +792,7 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     | Some (SSNCycleInfo total_staking total_rewards) =>
       reward_tmp = builtin mul total_rewards staking_of_deleg;
       reward = builtin div reward_tmp total_staking;
-      IncreaseReward ssn_operator deleg reward
+      IncreaseReward deleg reward
     | None =>
     end
 
