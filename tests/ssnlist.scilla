@@ -562,7 +562,12 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
+procedure IncreaseReward(deleg: ByStr20, reward: Uint128)
+exist_reward <- cycle_rewards_deleg;
+new_reward = builtin add exist_reward reward;
+cycle_rewards_deleg := new_reward
+end
+procedure CalcStakeRewards(tmp_arg: TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
 last_reward_cycle = builtin sub reward_cycle uint32_one;
@@ -570,16 +575,23 @@ last2_reward_cycle = sub_one_to_zero last_reward_cycle;
 cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
 buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 comb_opt = option_add cur_opt buf_opt;
-delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
 last_amt = option_uint128_value last_amt_o;
-match comb_opt with
-| Some stake =>
-total_stake = builtin add last_amt stake;
-deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
+staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+staking_of_deleg = match comb_opt with
+| Some stake => builtin add last_amt stake
+| None => last_amt
+end;
+deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := staking_of_deleg;
+match staking_and_rewards_per_cycle_for_ssn_opt with
+| Some (SSNCycleInfo total_staking total_rewards) =>
+reward_tmp = builtin mul total_rewards staking_of_deleg;
+reward = builtin div reward_tmp total_staking;
+IncreaseReward deleg reward
 | None =>
-deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
 end
 end
 end
@@ -589,29 +601,6 @@ msg_to_gzil = {_tag: "Mint"; _recipient: addr; _amount: uint128_zero;
 recipient: recipient; amount: amount};
 msgs = one_msg msg_to_gzil;
 send msgs
-end
-procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-exist_reward <- cycle_rewards_deleg;
-new_reward = builtin add exist_reward reward;
-cycle_rewards_deleg := new_reward
-end
-procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
-match tmp_arg with
-| TmpArg deleg ssn_operator reward_cycle =>
-staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
-staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
-match staking_per_cycle_for_deleg_opt with
-| Some staking_of_deleg =>
-match staking_and_rewards_per_cycle_for_ssn_opt with
-| Some (SSNCycleInfo total_staking total_rewards) =>
-reward_tmp = builtin mul total_rewards staking_of_deleg;
-reward = builtin div reward_tmp total_staking;
-IncreaseReward ssn_operator deleg reward
-| None =>
-end
-| None =>
-end
-end
 end
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
 last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
@@ -623,9 +612,8 @@ list_need_compute_rewards = iota m n;
 mapper = @list_map Uint32 TmpArg;
 f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
 combined_args_list = mapper f list_need_compute_rewards;
-forall combined_args_list CalcStakeDelegPerCycle;
 cycle_rewards_deleg := uint128_zero;
-forall combined_args_list CalcRewardsDelegPerCycle;
+forall combined_args_list CalcStakeRewards;
 reward <- cycle_rewards_deleg;
 SendDelegRewards deleg reward;
 MintCall deleg reward;
