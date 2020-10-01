@@ -894,7 +894,7 @@ event e
 end
 end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 CallerIsVerifier initiator;
 lrc <- lastrewardcycle;
