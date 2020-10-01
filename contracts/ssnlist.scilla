@@ -286,7 +286,6 @@ field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum
 field bnum_req: Uint128 = Uint128 24000
 
 (* Temporary storage maps *)
-(* Used during CalcRewardsDelegPerCycle *)
 field cycle_rewards_deleg: Uint128 = uint128_zero
 
 (* Used during AssignStakeReward *)
