@@ -68,7 +68,8 @@ type SsnStakeRewardShare =
 
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
-(* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
+
+(* Used in order to be able to iterate over the procedure CalcStakeRewards *)
 (* deleg, ssn_operator, reward_cycle *)
 
 type TmpArg =
