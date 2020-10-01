@@ -128,7 +128,23 @@ type SsnRewardShare =
 (*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
                         It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
 ```
-3. SSNCycleInfo Data Type:
+
+3. SsnStakeRewardShare Data Type:
+
+```ocaml
+type SsnStakeRewardShare = 
+| SsnStakeRewardShare of ByStr20 Uint128 Uint128
+```
+```ocmal
+(*  SSNAddress        : ByStr20 *)
+(*                      Address of the SSN. *)
+(*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*  TotalStakeAmount  : Uint128 *)
+(*                      Total stake amount at a specific cycle.                                               *)
+```
+
+4. SSNCycleInfo Data Type:
 
 ```ocaml
 type SSNCycleInfo =
@@ -142,7 +158,7 @@ type SSNCycleInfo =
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
-4. Error Data Type:
+5. Error Data Type:
 
 ```ocaml
 type Error =
@@ -183,17 +199,16 @@ The table below presents the mutable fields of the contract and their initial va
 | Name        | Type       | Initial Value                           | Description                                        |
 | ----------- | --------------------|--------------- | -------------------------------------------------- |
 | `ssnlist`   | `Map ByStr20 Ssn` | `Emp ByStr20 Ssn` | Mapping between SSN addresses and the corresponding `Ssn` information. |
-| `comm_for_ssn`   | `Map ByStr20 (Map Uint32 Uint128)` | `Emp ByStr20 (Map Uint32 Uint128)` | `Map (SSNAddress -> Map (RewardCycleNum -> Commission))` |
+| `comm_for_ssn`   | `Map ByStr20 (Map Uint32 Uint128)` | `Emp ByStr20 (Map Uint32 Uint128)` | `Map (SSNAddress -> Map (RewardCycleNum -> Commission))` This Map is not used for computing commission fee for an SSN. Its purpose is to act as a placeholder to prevent SSN operators from changing their commission rate multiple times within one reward cycle. |
 | `deposit_amt_deleg`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (DelegatorAddress -> Map (SSNAddress -> AmoutDelegated))` |
 | `ssn_deleg_amt`   | `Map ByStr20 (Map ByStr20 Uint128)` | `Emp ByStr20 (Map ByStr20 Uint128)` | `Map (SSNAddress -> Map (DelegatorAddress -> AmountDelegated))` This map does not affect any of the contract operation. It is introduced so that wallet developers can easily query the deposit amount given by a delegator. |
 | `buff_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> BufferedStakeAmount)))` |
 | `direct_deposit_deleg`   | `Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))` | `Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))` | `Map (DelegatorAddress -> Map (SSNAddress -> Map (RewardCycleNum -> UnBufferedStakeAmount)))` |
-| `last_withdraw_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint32))` | `Emp ByStr20 (Map ByStr20 Uint32))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastWithdrawn))`. For a new delegator that has never deposited any stake for this SSN, this field will store the reward cycle number during which the delegator successfully deposited its stake. |
+| `last_withdraw_cycle_deleg`   | `Map ByStr20 (Map ByStr20 Uint32))` | `Emp ByStr20 (Map ByStr20 Uint32))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastWithdrawn))`. For a new delegator that has never deposited any stake for this SSN, this field will store the reward cycle number during which the delegator successfully deposited its stake. |
 | `last_buf_deposit_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint32))` | `Emp ByStr20 (Map ByStr20 Uint32))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastDeposited))` |
 | `stake_ssn_per_cycle`   | `Map ByStr20 (Map Uint32  SSNCycleInfo))` | `Emp ByStr20 (Map Uint32 SSNCycleInfo))` | `Map (SSNAddress -> Map (RewardCycleNum -> SSNCycleInfo))`. **Note that this data type contains information that corresponds to the end of the cycle when the verifier has distributed the reward. It could therefore be different from the information stored in `ssnlist` particularly its `stake` field which gets updated in the middle of a cycle.** |
 |`withdrawal_pending` | `Map ByStr20 (Map BNum Uint128)` | `Emp ByStr20 (Map BNum Uint128)` | `Map (DelegatorAddress -> (BlockNumberWhenRewardWithdrawalRequested -> Amount ))` |
 | `bnum_req`  | `Uint128` | `Uin128 24000`       | Bonding period in terms of number of blocks. Set to be equivalent to 14 days. |
-|`reward_cycle_list` | `List Uint128` | `Nil {Uint128}` | List of all reward cycles. |
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
 | `minstake`  | `Uint128` | `Uin128 10000000000000000000`       | Minimum stake required to activate an SSN (1 mil ZIL expressed in `Qa`, where `1 ZIL = 10^12 Qa`). |
@@ -201,7 +216,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 | `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
 | `gziladdr` | `ByStr20` |  `init_gzil_address` | Address of the gzil contract. |
-|`lastrewardcycle` | `Uint128` | `Uint128 1` | The block number when the last reward was distributed. |
+|`lastrewardcycle` | `Uint32` | `Uint32 1` | The block number when the last reward was distributed. |
 |`paused` | `ByStr20` | `True` | A flag to record the paused status of the contract. Certain transitions in the contract cannot be invoked when the contract is paused. |
 | `maxcommchangerate`| `Uint128` | `Uint128 1` | The maximum rate change that an SSN is allowed to make across cycles. Set to 1%. |
 | `maxcommrate`| `Uint128` | `Uint128 1000000000` | The maximum commission rate that an SSN can charge. Set to 100% but represented as an integer multiplied by 10^7. This prevents SSN from setting commission beyond 100%. |
@@ -234,9 +249,8 @@ Each of these category of transitions are presented in further detail below.
 | `UpdateStakingParameters` | `min_stake: ByStr20, min_deleg_stake : Uint128, max_comm_change_rate : Uint128, initiator : ByStr20` | Replace the current values of the fields `minstake`, `mindelegstake`,  and `maxcommchangerate` to the input values.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `ChangeBNumReq` | `input_bnum_req : Uint128, initiator : ByStr20` | Replace the current value of the field `bnum_req`.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateGzilAddr` | `gzil_addr : ByStr20, initiator : ByStr20` | Replace the gZIL token contract (`gziladdr`) by the input values. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
-| `AddSSN` | `ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm : Uint128, initiator : ByStr20` | Add a new SSN to the list of available SSNs with the input values. The transition will create a value of type `Ssn` using the input values and add it to the `ssnlist` map. Since, this SSN is new, the `status` field in `Ssn` type will be `False`. Similarly, the fields `stake_amt`, `rewards`, `buff_deposit`, `comm_rewards` in the `ssn` type will be set to 0. The commission for this SSN for this reward cycle as recorded in the field `comm_for_ssn` will also be set to 0. The transition will emit a success event to signal the addition of the new SSN. The event will emit the address of the new SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
+| `AddSSN` | `ssnaddr : ByStr20, name : String, urlraw : String, urlapi : String, comm : Uint128, initiator : ByStr20` | Add a new SSN to the list of available SSNs with the input values. The transition will create a value of type `Ssn` using the input values and add it to the `ssnlist` map. Since, this SSN is new, the `status` field in `Ssn` type will be `False`. Similarly, the fields `stake_amt`, `rewards`, `buff_deposit`, `comm_rewards` in the `ssn` type will be set to 0. The transition will emit a success event to signal the addition of the new SSN. The event will emit the address of the new SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateSSN` | `ssnaddr : ByStr20, new_name : String, new_urlraw : String, new_urlapi : String, initiator : ByStr20` | Update `name`, `urlraw` and `urlapi` of a given SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
-| `RemoveSSN` | `ssnaddr : ByStr20, initiator : ByStr20` | Remove a specific SSN from `ssnlist`. It should also remove the corresponding entry from all other fields. **This is a very privileged operation and therefore should not be invoked until all delegators have withdrawn their stake and their stake rewards.  If the SSN gets removed while there exists a delegator at this SSN, then funds for the delegator may get locked forever.**  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 
 
 ### Delegator Transitions
@@ -269,11 +283,11 @@ Each of these category of transitions are presented in further detail below.
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `AddSSNAfterUpgrade` | `ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator: ByStr20`| To add a new SSN to the contract. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateDeleg` | `ssnaddr: ByStr20, deleg : ByStr20, stake_amt: Uint128, initiator: ByStr20`| To add or remove a delegator for an SSN. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
-| `PopulateStakeSSNPerCycle` | `ssn_addr: ByStr20, cycle: Uint128, info: SSNCycleInfo, initiator: ByStr20`| To populate `stake_ssn_per_cycle` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
-| `PopulateLastWithdrawCycleForDeleg` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, initiator: ByStr20`| To populate `last_withdraw_cycle_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
-| `PopulateBuffDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20` | To populate `buff_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
-| `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint128, amt: Uint128, initiator: ByStr20` | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
-| `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint128, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateStakeSSNPerCycle` | `ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20`| To populate `stake_ssn_per_cycle` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateLastWithdrawCycleForDeleg` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20`| To populate `last_withdraw_cycle_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateBuffDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20` | To populate `buff_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20` | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20` | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 
 ### Other Transitions

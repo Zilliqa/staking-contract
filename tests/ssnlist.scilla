@@ -562,7 +562,12 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-procedure CalcStakeDelegPerCycle(tmp_arg: TmpArg)
+procedure IncreaseReward(deleg: ByStr20, reward: Uint128)
+exist_reward <- cycle_rewards_deleg;
+new_reward = builtin add exist_reward reward;
+cycle_rewards_deleg := new_reward
+end
+procedure CalcStakeRewards(tmp_arg: TmpArg)
 match tmp_arg with
 | TmpArg deleg ssn_operator reward_cycle =>
 last_reward_cycle = builtin sub reward_cycle uint32_one;
@@ -570,16 +575,23 @@ last2_reward_cycle = sub_one_to_zero last_reward_cycle;
 cur_opt <- direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
 buf_opt <- buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 comb_opt = option_add cur_opt buf_opt;
-delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
 last_amt = option_uint128_value last_amt_o;
-match comb_opt with
-| Some stake =>
-total_stake = builtin add last_amt stake;
-deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := total_stake
+staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+staking_of_deleg = match comb_opt with
+| Some stake => builtin add last_amt stake
+| None => last_amt
+end;
+deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := staking_of_deleg;
+match staking_and_rewards_per_cycle_for_ssn_opt with
+| Some (SSNCycleInfo total_staking total_rewards) =>
+reward_tmp = builtin mul total_rewards staking_of_deleg;
+reward = builtin div reward_tmp total_staking;
+IncreaseReward deleg reward
 | None =>
-deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := last_amt
 end
 end
 end
@@ -589,29 +601,6 @@ msg_to_gzil = {_tag: "Mint"; _recipient: addr; _amount: uint128_zero;
 recipient: recipient; amount: amount};
 msgs = one_msg msg_to_gzil;
 send msgs
-end
-procedure IncreaseReward(ssn: ByStr20, deleg: ByStr20, reward: Uint128)
-exist_reward <- cycle_rewards_deleg;
-new_reward = builtin add exist_reward reward;
-cycle_rewards_deleg := new_reward
-end
-procedure CalcRewardsDelegPerCycle(tmp_arg: TmpArg)
-match tmp_arg with
-| TmpArg deleg ssn_operator reward_cycle =>
-staking_per_cycle_for_deleg_opt <- deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle];
-staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
-match staking_per_cycle_for_deleg_opt with
-| Some staking_of_deleg =>
-match staking_and_rewards_per_cycle_for_ssn_opt with
-| Some (SSNCycleInfo total_staking total_rewards) =>
-reward_tmp = builtin mul total_rewards staking_of_deleg;
-reward = builtin div reward_tmp total_staking;
-IncreaseReward ssn_operator deleg reward
-| None =>
-end
-| None =>
-end
-end
 end
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
 last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
@@ -623,9 +612,8 @@ list_need_compute_rewards = iota m n;
 mapper = @list_map Uint32 TmpArg;
 f = fun (cycle: Uint32) => TmpArg deleg ssn_operator cycle;
 combined_args_list = mapper f list_need_compute_rewards;
-forall combined_args_list CalcStakeDelegPerCycle;
 cycle_rewards_deleg := uint128_zero;
-forall combined_args_list CalcRewardsDelegPerCycle;
+forall combined_args_list CalcStakeRewards;
 reward <- cycle_rewards_deleg;
 SendDelegRewards deleg reward;
 MintCall deleg reward;
@@ -639,7 +627,11 @@ ssnlist[ssn_operator] := ssn
 end;
 e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
 event e;
-last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc
+last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc;
+msg_to_delegator = {_tag : "WithdrawStakeRewardsSuccessCallBack"; _recipient : deleg; _amount : uint128_zero;
+ssnaddr : ssn_operator; rewards : reward};
+msg = one_msg msg_to_delegator;
+send msg
 end
 procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
 curval <- ssnlist[ssnaddr];
@@ -837,7 +829,11 @@ accept;
 amount = _amount;
 Delegate ssnaddr initiator amount;
 e = { _eventname: "DelegateStake"; ssn_addr: ssnaddr; delegator: initiator; amount: amount };
-event e
+event e;
+msg_to_delegator = {_tag : "DelegateStakeSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr : ssnaddr; amount : amount};
+msg = one_msg msg_to_delegator;
+send msg
 end
 transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
 IsNotPaused;
@@ -848,7 +844,11 @@ end
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
 IsNotPaused;
 IsProxy;
-WithdrawalStakeAmt initiator ssnaddr amt
+WithdrawalStakeAmt initiator ssnaddr amt;
+msg_to_delegator = {_tag : "WithdrawStakeAmtSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr : ssnaddr; amount : amt};
+msg = one_msg msg_to_delegator;
+send msg
 end
 transition CompleteWithdrawal(initiator: ByStr20)
 IsNotPaused;
@@ -867,11 +867,19 @@ transfer = builtin eq withdraw_amt uint128_zero;
 match transfer with
 | True =>
 e = { _eventname: "NoUnbondedStake"; ssnaddr: initiator };
-event e
+event e;
+msg_to_delegator = {_tag : "CompleteWithdrawalNoUnbondedStakeCallBack"; _recipient : initiator; _amount : uint128_zero;
+amount : uint128_zero};
+msg = one_msg msg_to_delegator;
+send msg
 | False =>
 e = { _eventname: "CompleteWithdrawal"; ssnaddr: initiator; amount: withdraw_amt };
 event e;
-TransferFunds addfunds_tag withdraw_amt initiator
+TransferFunds addfunds_tag withdraw_amt initiator;
+msg_to_delegator = {_tag : "CompleteWithdrawalSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+amount : withdraw_amt};
+msg = one_msg msg_to_delegator;
+send msg
 end
 | None =>
 e = { _eventname: "NoPendingWithdrawal"; ssnaddr: initiator };
@@ -890,11 +898,15 @@ ThrowError e
 UnDelegateStakeAmt initiator ssnaddr amount;
 Delegate to_ssn initiator amount;
 e = { _eventname: "ReDelegateStakeSuccess"; ssnaddr: ssnaddr; to_ssn: to_ssn; delegator: initiator; delegate_amount: amount };
-event e
+event e;
+msg_to_delegator = {_tag : "ReDelegateStakeSuccessCallBack"; _recipient : initiator; _amount : uint128_zero;
+ssnaddr: ssnaddr; tossn: to_ssn; amount : amount};
+msg = one_msg msg_to_delegator;
+send msg
 end
 end
 transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
-IsPaused;
+IsNotPaused;
 IsProxy;
 CallerIsVerifier initiator;
 lrc <- lastrewardcycle;
