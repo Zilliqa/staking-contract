@@ -861,7 +861,7 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
     lrc <- lastrewardcycle;
     (* The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
-    (* If it is the first time delegator delegates to a give SSN, then we need to fill last_withdraw_cycle_deleg with lastrewardcycle *)
+    (* If it is the first time delegator delegates to a given SSN, then we need to fill last_withdraw_cycle_deleg with lastrewardcycle *)
     (* otherwise, the rewards calculation will start from cycle 1 which is wrong *)
     FillLastWithdrawCycle ssnaddr initiator;
     (* It is buffered if the SSN is active if not it is added to the stake_amount. *)
