@@ -399,7 +399,7 @@ e = DelegDoesNotExistAtSSN;
 ThrowError e
 end
 end
-procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
+procedure FillLastWithdrawCycle(ssnaddr: ByStr20, deleg : ByStr20)
 lwcd_o <- last_withdraw_cycle_deleg[deleg][ssnaddr];
 match lwcd_o with
 | Some lwcd =>
@@ -643,7 +643,7 @@ ThrowError e
 IsDelegstakeSufficient amount;
 lrc <- lastrewardcycle;
 FillInDepositDelegAmt ssnaddr initiator amount;
-FillLastRewardCycle ssnaddr initiator;
+FillLastWithdrawCycle ssnaddr initiator;
 match active_status with
 | True  =>
 last_buf_deposit_cycle_deleg[initiator][ssnaddr] := lrc;

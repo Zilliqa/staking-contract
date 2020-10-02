@@ -576,7 +576,7 @@ procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
     end
 end
 
-procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
+procedure FillLastWithdrawCycle(ssnaddr: ByStr20, deleg : ByStr20)
   lwcd_o <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   match lwcd_o with
   | Some lwcd =>
@@ -859,9 +859,11 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     IsDelegstakeSufficient amount;
     lrc <- lastrewardcycle;
-    (*The delegated stake can be accepted. *) 
+    (* The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
-    FillLastRewardCycle ssnaddr initiator;
+    (* If it is the first time delegate deposit to a give SSN, then we need to fill last_withdraw_cycle_deleg with lastrewardcycle *)
+    (* otherwise, the rewards calculation will start from cycle 1 which is wrong *)
+    FillLastWithdrawCycle ssnaddr initiator;
     (* It is buffered if the SSN is active if not it is added to the stake_amount. *)
     match active_status with
     | True  =>
