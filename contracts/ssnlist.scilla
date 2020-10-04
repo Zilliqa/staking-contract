@@ -483,7 +483,13 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
           delete withdrawal_pending[current_deleg][withdraw_number];
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          available_withdrawal := current_amt
+          available_withdrawal := current_amt;
+          has_other_records <- withdrawal_pending[current_deleg];
+          match has_other_records with
+          | Some inner =>
+          | None =>
+            delete withdrawal_pending[current_deleg]
+          end
       | False => 
       end
     end
