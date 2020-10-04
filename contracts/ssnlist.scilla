@@ -954,6 +954,8 @@ transition ClaimAdmin(initiator: ByStr20)
     match is_valid with
     | True =>
       contractadmin := admin;
+      staging_admin = None {ByStr20};
+      stagingcontractadmin := staging_admin;
       e = { _eventname: "ClaimAdmin"; new_admin: admin };
       event e
     | False =>
