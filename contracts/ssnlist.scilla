@@ -184,6 +184,8 @@ type Error =
   | ContractFrozenFailure
   | VerifierValidationFailed
   | AdminValidationFailed
+  | StagingAdminNotExist
+  | StagingAdminValidationFailed
   | ProxyValidationFailed
   | DelegDoesNotExistAtSSN
   | DelegHasBufferedDeposit
@@ -209,6 +211,8 @@ let make_error =
       | ContractFrozenFailure => Int32 -1
       | VerifierValidationFailed => Int32 -2
       | AdminValidationFailed => Int32 -3
+      | StagingAdminNotExist => Int32 -4
+      | StagingAdminValidationFailed => Int32 -4
       | ProxyValidationFailed => Int32 -4
       | DelegDoesNotExistAtSSN => Int32 -5
       | DelegHasBufferedDeposit => Int32 -6
@@ -307,6 +311,7 @@ field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 
 field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -927,13 +932,38 @@ transition UnPause(initiator: ByStr20)
   paused := bool_inactive
 end
 
-(* @dev: Set the admin of the contract. Used by admin only. *)
+(* @dev: Start a proposal for new contract admin. Used by admin only. *)
 (* @param admin: New admin value *)
 (* @param initiator: The original caller who called the proxy. *)
 transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  contractadmin := admin
+  staging_admin = Some {ByStr20} initiator;
+  stagingcontractadmin := staging_admin
+end
+
+
+(* @dev: Claim to be the new admin of contract. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition ClaimAdmin(initiator: ByStr20)
+  IsProxy;
+  staging_admin <- stagingcontractadmin;
+  match staging_admin with
+  | Some admin =>
+    is_valid = builtin eq initiator admin;
+    match is_valid with
+    | True =>
+      contractadmin := admin;
+      e = { _eventname: "ClaimAdmin"; new_admin: admin };
+      event e
+    | False =>
+      e = StagingAdminValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingAdminNotExist;
+    ThrowError e
+  end
 end
 
 (* @dev: Set the verifier of the contract. Used by admin only. *)

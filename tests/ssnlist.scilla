@@ -106,6 +106,8 @@ type Error =
 | ContractFrozenFailure
 | VerifierValidationFailed
 | AdminValidationFailed
+| StagingAdminNotExist
+| StagingAdminValidationFailed
 | ProxyValidationFailed
 | DelegDoesNotExistAtSSN
 | DelegHasBufferedDeposit
@@ -130,6 +132,8 @@ match result with
 | ContractFrozenFailure => Int32 -1
 | VerifierValidationFailed => Int32 -2
 | AdminValidationFailed => Int32 -3
+| StagingAdminNotExist => Int32 -4
+| StagingAdminValidationFailed => Int32 -4
 | ProxyValidationFailed => Int32 -4
 | DelegDoesNotExistAtSSN => Int32 -5
 | DelegHasBufferedDeposit => Int32 -6
@@ -176,6 +180,7 @@ field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -689,7 +694,28 @@ end
 transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
 IsProxy;
 IsAdmin initiator;
-contractadmin := admin
+staging_admin = Some {ByStr20} initiator;
+stagingcontractadmin := staging_admin
+end
+transition ClaimAdmin(initiator: ByStr20)
+IsProxy;
+staging_admin <- stagingcontractadmin;
+match staging_admin with
+| Some admin =>
+is_valid = builtin eq initiator admin;
+match is_valid with
+| True =>
+contractadmin := admin;
+e = { _eventname: "ClaimAdmin"; new_admin: admin };
+event e
+| False =>
+e = StagingAdminValidationFailed;
+ThrowError e
+end
+| None =>
+e = StagingAdminNotExist;
+ThrowError e
+end
 end
 transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
 IsProxy;

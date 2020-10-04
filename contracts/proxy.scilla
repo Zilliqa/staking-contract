@@ -86,6 +86,13 @@ transition UpdateAdmin(new_admin: ByStr20)
     send msgs
 end
 
+transition ClaimAdmin()
+    current_impl <- implementation;
+    msg = {_tag: "ClaimAdmin"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (* @dev: Set the verifier of contract. Used by admin only. *)
 (* @param verif: New verifier value *)
 transition UpdateVerifier(verif: ByStr20)

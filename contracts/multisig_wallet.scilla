@@ -98,6 +98,8 @@ type CalleeTransaction =
 | UnPause
 (* UpdateAdmin(new_admin: ByStr20) *)
 | UpdateAdmin of ByStr20
+(* ClaimAdmin() *)
+| ClaimAdmin
 (* UpdateVerifier(verif: ByStr20)  *)
 | UpdateVerifier of ByStr20
 (* UpdateVerifierRewardAddr(addr: ByStr20) *)
@@ -211,6 +213,11 @@ let custom_transaction_msg_as_list =
          _tag: "UpdateAdmin";
          _amount: Uint128 0;
          new_admin: new_admin}
+        (* ClaimAdmin() *)
+      | ClaimAdmin => 
+        {_recipient: calleeContract;
+        _tag: "ClaimAdmin";
+        _amount: Uint128 0}
         (* UpdateVerifier(verif: ByStr20)  *)
       | UpdateVerifier verif =>
         {_recipient: calleeContract;
@@ -578,6 +585,12 @@ end
 (* Submit a new UpdateAdmin transaction for future signoff *)
 transition SubmitCustomUpdateAdminTransaction(calleeContract: ByStr20, new_admin: ByStr20)
   transaction = UpdateAdmin new_admin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new ClaimAdmin transaction for future signoff *)
+transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
+  transaction = ClaimAdmin;
   SubmitCustomTransaction calleeContract transaction
 end
 
