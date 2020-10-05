@@ -355,7 +355,7 @@ parameter `initiator` for the `SSNList` contract.
 |`Pause()` | `Pause(initiator : ByStr20)` |
 |`UnPause()` | `UnPause(initiator : ByStr20)` |
 |`UpdateAdmin(new_admin: ByStr20)` | `UpdateAdmin(admin: ByStr20, initiator : ByStr20)`|
-|`ClaimAdmin()` | `UpdateAdmin(initiator : ByStr20)`|
+|`ClaimAdmin()` | `ClaimAdmin(initiator : ByStr20)`|
 |`UpdateVerifier(verif : ByStr20)` | `UpdateVerifier (verif : ByStr20, initiator: ByStr20)`|
 |`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
