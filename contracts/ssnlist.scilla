@@ -68,7 +68,8 @@ type SsnStakeRewardShare =
 
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
-(* Used in order to be able to iterate over the procedure CalcStakeDelegPerCycle and CalcRewardsDelegPerCycleAndSend *)
+
+(* Used in order to be able to iterate over the procedure CalcStakeRewards *)
 (* deleg, ssn_operator, reward_cycle *)
 
 type TmpArg =
@@ -183,6 +184,8 @@ type Error =
   | ContractFrozenFailure
   | VerifierValidationFailed
   | AdminValidationFailed
+  | StagingAdminNotExist
+  | StagingAdminValidationFailed
   | ProxyValidationFailed
   | DelegDoesNotExistAtSSN
   | DelegHasBufferedDeposit
@@ -208,23 +211,25 @@ let make_error =
       | ContractFrozenFailure => Int32 -1
       | VerifierValidationFailed => Int32 -2
       | AdminValidationFailed => Int32 -3
-      | ProxyValidationFailed => Int32 -4
-      | DelegDoesNotExistAtSSN => Int32 -5
-      | DelegHasBufferedDeposit => Int32 -6
-      | ChangeCommError => Int32 -7
-      | SSNNotExist => Int32 -8
-      | SSNAlreadyExist => Int32 -9
-      | DelegHasUnwithdrawRewards => Int32 -10
-      | DelegHasNoSufficientAmt => Int32 -11
-      | SSNNoComm => Int32 -12
-      | DelegStakeNotEnough => Int32 -13
-      | ExceedMaxChangeRate => Int32 -14
-      | ExceedMaxCommRate => Int32 -15
-      | InvalidTotalAmt => Int32 -16
-      | VerifierNotSet => Int32 -17
-      | VerifierRecvAddrNotSet => Int32 -18
-      | ReDelegInvalidSSNAddr => Int32 -19
-      | AvailableRewardsError => Int32 -20
+      | StagingAdminNotExist => Int32 -4
+      | StagingAdminValidationFailed => Int32 -5
+      | ProxyValidationFailed => Int32 -6
+      | DelegDoesNotExistAtSSN => Int32 -7
+      | DelegHasBufferedDeposit => Int32 -8
+      | ChangeCommError => Int32 -9
+      | SSNNotExist => Int32 -10
+      | SSNAlreadyExist => Int32 -11
+      | DelegHasUnwithdrawRewards => Int32 -12
+      | DelegHasNoSufficientAmt => Int32 -13
+      | SSNNoComm => Int32 -14
+      | DelegStakeNotEnough => Int32 -15
+      | ExceedMaxChangeRate => Int32 -16
+      | ExceedMaxCommRate => Int32 -17
+      | InvalidTotalAmt => Int32 -18
+      | VerifierNotSet => Int32 -19
+      | VerifierRecvAddrNotSet => Int32 -20
+      | ReDelegInvalidSSNAddr => Int32 -21
+      | AvailableRewardsError => Int32 -22
       end
     in
     { _exception: "Error"; code: result_code }
@@ -285,7 +290,6 @@ field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum
 field bnum_req: Uint128 = Uint128 24000
 
 (* Temporary storage maps *)
-(* Used during CalcRewardsDelegPerCycle *)
 field cycle_rewards_deleg: Uint128 = uint128_zero
 
 (* Used during AssignStakeReward *)
@@ -307,6 +311,7 @@ field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 
 field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -483,7 +488,13 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
           delete withdrawal_pending[current_deleg][withdraw_number];
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          available_withdrawal := current_amt
+          available_withdrawal := current_amt;
+          has_other_records <- withdrawal_pending[current_deleg];
+          match has_other_records with
+          | Some inner =>
+          | None =>
+            delete withdrawal_pending[current_deleg]
+          end
       | False => 
       end
     end
@@ -575,7 +586,7 @@ procedure DelegExists(ssnaddr: ByStr20, deleg: ByStr20)
     end
 end
 
-procedure FillLastRewardCycle(ssnaddr: ByStr20, deleg : ByStr20)
+procedure FillLastWithdrawCycle(ssnaddr: ByStr20, deleg : ByStr20)
   lwcd_o <- last_withdraw_cycle_deleg[deleg][ssnaddr];
   match lwcd_o with
   | Some lwcd =>
@@ -858,9 +869,11 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
   | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
     IsDelegstakeSufficient amount;
     lrc <- lastrewardcycle;
-    (*The delegated stake can be accepted. *) 
+    (* The delegated stake can be accepted. *) 
     FillInDepositDelegAmt ssnaddr initiator amount;
-    FillLastRewardCycle ssnaddr initiator;
+    (* If it is the first time delegator delegates to a given SSN, then we need to fill last_withdraw_cycle_deleg with lastrewardcycle *)
+    (* otherwise, the rewards calculation will start from cycle 1 which is wrong *)
+    FillLastWithdrawCycle ssnaddr initiator;
     (* It is buffered if the SSN is active if not it is added to the stake_amount. *)
     match active_status with
     | True  =>
@@ -925,13 +938,40 @@ transition UnPause(initiator: ByStr20)
   paused := bool_inactive
 end
 
-(* @dev: Set the admin of the contract. Used by admin only. *)
+(* @dev: Start a proposal for new contract admin. Used by admin only. *)
 (* @param admin: New admin value *)
 (* @param initiator: The original caller who called the proxy. *)
 transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  contractadmin := admin
+  staging_admin = Some {ByStr20} admin;
+  stagingcontractadmin := staging_admin
+end
+
+
+(* @dev: Claim to be the new admin of contract. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition ClaimAdmin(initiator: ByStr20)
+  IsProxy;
+  staging_admin <- stagingcontractadmin;
+  match staging_admin with
+  | Some admin =>
+    is_valid = builtin eq initiator admin;
+    match is_valid with
+    | True =>
+      contractadmin := admin;
+      staging_admin = None {ByStr20};
+      stagingcontractadmin := staging_admin;
+      e = { _eventname: "ClaimAdmin"; new_admin: admin };
+      event e
+    | False =>
+      e = StagingAdminValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingAdminNotExist;
+    ThrowError e
+  end
 end
 
 (* @dev: Set the verifier of the contract. Used by admin only. *)

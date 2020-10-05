@@ -243,7 +243,8 @@ Each of these category of transitions are presented in further detail below.
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
 | `Pause` | `initiator : ByStr20`| Pause the contract temporarily to stop any critical transition from being invoked. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
 | `Unpause` | `initiator : ByStr20`| Un-pause the contract to re-allow the invocation of all transitions. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | :heavy_check_mark: |
-| `UpdateAdmin` | `admin : ByStr20, initiator : ByStr20` | Replace the current `contractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
+| `UpdateAdmin` | `admin : ByStr20, initiator : ByStr20` | Set a new `stagingcontractadmin` by `admin`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
+| `ClaimAdmin` | ` initiator : ByStr20` | Claim to be new `contract admin`. <br>  :warning: **Note:** `initiator` must be the current `stagingcontractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateVerifier` | `verif : ByStr20, initiator : ByStr20` | Replace the current `verifier` by `verif`. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateVerifierRewardAddr` | `addr : ByStr20, initiator : ByStr20` | Replace the current reward receiving address `verifier_receiving_addr` for the `verifier` by `addr`. Since the verifier is currently run by Zilliqa Research, its receiving address is currently updated by the admin not the verifier itself. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
 | `UpdateStakingParameters` | `min_stake: ByStr20, min_deleg_stake : Uint128, max_comm_change_rate : Uint128, initiator : ByStr20` | Replace the current values of the fields `minstake`, `mindelegstake`,  and `maxcommchangerate` to the input values.  <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.| :heavy_check_mark: | :heavy_check_mark: |
@@ -354,6 +355,7 @@ parameter `initiator` for the `SSNList` contract.
 |`Pause()` | `Pause(initiator : ByStr20)` |
 |`UnPause()` | `UnPause(initiator : ByStr20)` |
 |`UpdateAdmin(new_admin: ByStr20)` | `UpdateAdmin(admin: ByStr20, initiator : ByStr20)`|
+|`ClaimAdmin()` | `ClaimAdmin(initiator : ByStr20)`|
 |`UpdateVerifier(verif : ByStr20)` | `UpdateVerifier (verif : ByStr20, initiator: ByStr20)`|
 |`UpdateVerifierRewardAddr(addr: ByStr20)` | `UpdateVerifierRewardAddr(addr: ByStr20, initiator : ByStr20)`|
 |`UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)` | `UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator : ByStr20) `|
@@ -520,6 +522,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomPauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUnpauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateAdminTransaction`| `calleeContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `UpdateAdmin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomClaimAdminTransaction`| `calleeContract : ByStr20 | Submit a request to invoke the `ClaimAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateVerifierTransaction`| `calleeContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `UpdateVerifier` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateStakingParametersTransaction`| `calleeContract : ByStr20, min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128` | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeBNumReqTransaction`| `calleeContract : ByStr20, input_bnum_req : Uint128` | Submit a request to invoke the `ChangeBNumReq` transition in the `SSNListProxy` contract. |
