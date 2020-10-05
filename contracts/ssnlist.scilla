@@ -938,7 +938,7 @@ end
 transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   IsProxy;
   IsAdmin initiator;
-  staging_admin = Some {ByStr20} initiator;
+  staging_admin = Some {ByStr20} admin;
   stagingcontractadmin := staging_admin
 end
 
