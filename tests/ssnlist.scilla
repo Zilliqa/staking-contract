@@ -106,6 +106,8 @@ type Error =
 | ContractFrozenFailure
 | VerifierValidationFailed
 | AdminValidationFailed
+| StagingAdminNotExist
+| StagingAdminValidationFailed
 | ProxyValidationFailed
 | DelegDoesNotExistAtSSN
 | DelegHasBufferedDeposit
@@ -130,23 +132,25 @@ match result with
 | ContractFrozenFailure => Int32 -1
 | VerifierValidationFailed => Int32 -2
 | AdminValidationFailed => Int32 -3
-| ProxyValidationFailed => Int32 -4
-| DelegDoesNotExistAtSSN => Int32 -5
-| DelegHasBufferedDeposit => Int32 -6
-| ChangeCommError => Int32 -7
-| SSNNotExist => Int32 -8
-| SSNAlreadyExist => Int32 -9
-| DelegHasUnwithdrawRewards => Int32 -10
-| DelegHasNoSufficientAmt => Int32 -11
-| SSNNoComm => Int32 -12
-| DelegStakeNotEnough => Int32 -13
-| ExceedMaxChangeRate => Int32 -14
-| ExceedMaxCommRate => Int32 -15
-| InvalidTotalAmt => Int32 -16
-| VerifierNotSet => Int32 -17
-| VerifierRecvAddrNotSet => Int32 -18
-| ReDelegInvalidSSNAddr => Int32 -19
-| AvailableRewardsError => Int32 -20
+| StagingAdminNotExist => Int32 -4
+| StagingAdminValidationFailed => Int32 -5
+| ProxyValidationFailed => Int32 -6
+| DelegDoesNotExistAtSSN => Int32 -7
+| DelegHasBufferedDeposit => Int32 -8
+| ChangeCommError => Int32 -9
+| SSNNotExist => Int32 -10
+| SSNAlreadyExist => Int32 -11
+| DelegHasUnwithdrawRewards => Int32 -12
+| DelegHasNoSufficientAmt => Int32 -13
+| SSNNoComm => Int32 -14
+| DelegStakeNotEnough => Int32 -15
+| ExceedMaxChangeRate => Int32 -16
+| ExceedMaxCommRate => Int32 -17
+| InvalidTotalAmt => Int32 -18
+| VerifierNotSet => Int32 -19
+| VerifierRecvAddrNotSet => Int32 -20
+| ReDelegInvalidSSNAddr => Int32 -21
+| AvailableRewardsError => Int32 -22
 end
 in
 { _exception: "Error"; code: result_code }
@@ -176,6 +180,7 @@ field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
 field mindelegstake: Uint128 = Uint128 1000000000000000
 field contractadmin: ByStr20  = init_admin
+field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
@@ -689,7 +694,30 @@ end
 transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
 IsProxy;
 IsAdmin initiator;
-contractadmin := admin
+staging_admin = Some {ByStr20} admin;
+stagingcontractadmin := staging_admin
+end
+transition ClaimAdmin(initiator: ByStr20)
+IsProxy;
+staging_admin <- stagingcontractadmin;
+match staging_admin with
+| Some admin =>
+is_valid = builtin eq initiator admin;
+match is_valid with
+| True =>
+contractadmin := admin;
+staging_admin = None {ByStr20};
+stagingcontractadmin := staging_admin;
+e = { _eventname: "ClaimAdmin"; new_admin: admin };
+event e
+| False =>
+e = StagingAdminValidationFailed;
+ThrowError e
+end
+| None =>
+e = StagingAdminNotExist;
+ThrowError e
+end
 end
 transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
 IsProxy;
