@@ -44,7 +44,7 @@ func (t *Testing) WithDrawStakeAmount() {
 	t.AssertError(err)
 	receipt :=  t.GetReceiptString(txn)
 	t.LogPrettyReceipt(txn)
-	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -5))])")
+	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -7))])")
 	ssnlist.LogContractStateJson()
 
 	// delegator (addr1) withdraw from ssn1 (addr1), remain active

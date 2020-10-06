@@ -24,8 +24,14 @@ func (t *Testing) UpdateComm() {
 
 	// update verifier to ssn1
 	proxy.UpdateVerifier("0x" + addr1)
-	proxy.PopulateTotalStakeAmt("100")
+	// update verifier receiving addr to addr1
+	proxy.UpdateVerifierRewardAddr("0x" + addr1)
 
+	// pause
+	proxy.Pause()
+	proxy.PopulateTotalStakeAmt("400000")
+	// unpause
+	proxy.Unpause()
 
 	// add ssn1
 	proxy.AddSSNAfterUpgrade("0x"+addr1, "200000")
@@ -43,28 +49,22 @@ func (t *Testing) UpdateComm() {
 	receipt, _ = json.Marshal(txn.Receipt)
 	recp = string(receipt)
 	log.Println(recp)
-	t.AssertContain(recp, "Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -8))])")
+	t.AssertContain(recp, "Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -9))])")
 	ssnlist.LogContractStateJson()
 
 	// reward to increase cycle
-	proxy.AssignStakeReward("0x"+addr1, "10")
+	proxy.AssignStakeReward("0x"+addr1, "52000000")
 	ssnlist.LogContractStateJson()
 
-	// update commission with a illegal numner
-	txn, err6 := proxy.UpdateComm("400000000")
-	t.AssertError(err6)
-
+	// update commission with a legal number
+	txn, err6 := proxy.UpdateComm("200000000")
+	if err6 != nil {
+		t.LogError("UpdateComm", err6)
+	}
 
 	// update commission again
-	txn, err4 := proxy.UpdateComm("100000000")
-	if err4 != nil {
-		t.LogError("UpdateComm", err4)
-	}
-	receipt, _ = json.Marshal(txn.Receipt)
-	recp = string(receipt)
-	log.Println(recp)
-	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"{\"1\":\"0\",\"2\":\"100000000\"}")
+	txn, err4 := proxy.UpdateComm("300000000")
+	t.AssertError(err4)
 
 	// as non ssn, update commission
 	proxy.UpdateWallet(key2)
@@ -73,7 +73,7 @@ func (t *Testing) UpdateComm() {
 	receipt, _ = json.Marshal(txn.Receipt)
 	recp = string(receipt)
 	log.Println(recp)
-	t.AssertContain(recp,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -9))])")
+	t.AssertContain(recp,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -10))])")
 	ssnlist.LogContractStateJson()
 
 	t.LogEnd("UpdateComm")

@@ -16,6 +16,8 @@ func (t *Testing) WithDrawStakeAmount2() {
 	proxy.UpdateStakingParameters(min,delegMin)
 	// update verifier to addr1
 	proxy.UpdateVerifier(ssn1)
+	// update verifier receiving addr to addr2
+	proxy.UpdateVerifierRewardAddr("0x" + addr2)
 	// add ssn1
 	proxy.AddSSN(ssn1, "ssn1")
 	proxy.AddFunds(min)

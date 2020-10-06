@@ -27,7 +27,7 @@ type Proxy struct {
 func (p *Proxy) WithdrawStakeAmount(ssn, amt string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
-			"ssn",
+			"ssnaddr",
 			"ByStr20",
 			ssn,
 		},
@@ -341,7 +341,7 @@ func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
 
 func (p *Proxy) WithdrawStakeRewards(addr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
-		"ssn_operator",
+		"ssnaddr",
 		"ByStr20",
 		addr,
 	}}
