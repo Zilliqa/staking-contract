@@ -26,8 +26,17 @@ func (t Testing) DrainContractBalance() {
 		},
 	}
 
+	// drain balance while contract is unpaused
 	tnx,err := proxy.Call("DrainContractBalance",args,"0")
-	if err != nil {
+	t.AssertError(err)
+
+	// pause contract
+	proxy.Pause()
+
+	// drain balance again
+	tnx,err1 := proxy.Call("DrainContractBalance",args,"0")
+
+	if err1 != nil {
 		t.LogError("DrainContractBalance",err)
 	}
 

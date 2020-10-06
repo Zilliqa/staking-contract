@@ -371,6 +371,11 @@ func (p *Proxy) Unpause() (*transaction.Transaction, error) {
 	return p.Call("UnPause", args, "0")
 }
 
+func (p *Proxy) Pause() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("Pause", args, "0")
+}
+
 func (p *Proxy) ClaimAdmin() (*transaction.Transaction, error) {
 	args := []core.ContractValue{}
 	return p.Call("ClaimAdmin", args, "0")
