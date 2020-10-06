@@ -358,11 +358,7 @@ func (p *Proxy) AddFunds(amount string) {
 }
 
 func (p *Proxy) WithdrawComm(ssnaddr string) (*transaction.Transaction, error) {
-	args := []core.ContractValue{{
-		"ssnaddr",
-		"ByStr20",
-		ssnaddr,
-	}}
+	args := []core.ContractValue{}
 	return p.Call("WithdrawComm", args, "0")
 }
 
