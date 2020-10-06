@@ -20,7 +20,7 @@ type SSNList struct {
 }
 
 func (s *SSNList) LogContractStateJson() string {
-	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
 	rsp, _ := provider.GetSmartContractState(s.Addr)
 	j, _ := json.Marshal(rsp)
 	s.LogPrettyStateJson(rsp)
@@ -33,7 +33,7 @@ func (s *SSNList) LogPrettyStateJson(data interface{}) {
 }
 
 func (s *SSNList) GetBalance() string {
-	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
 	balAndNonce, _ := provider.GetBalance(s.Addr)
 	return balAndNonce.Balance
 }
