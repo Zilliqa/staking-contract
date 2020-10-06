@@ -371,6 +371,11 @@ func (p *Proxy) Unpause() (*transaction.Transaction, error) {
 	return p.Call("UnPause", args, "0")
 }
 
+func (p *Proxy) ClaimAdmin() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("ClaimAdmin", args, "0")
+}
+
 func (p *Proxy) GetBalance() string {
 	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
 	balAndNonce, _ := provider.GetBalance(p.Addr)
@@ -454,11 +459,6 @@ func NewProxy(key string) (*Proxy, error) {
 			VName: "init_implementation",
 			Type:  "ByStr20",
 			Value: "0x" + adminAddr,
-		},
-		{
-			"init_gzil_contract",
-			"ByStr20",
-			"0x" + adminAddr,
 		},
 	}
 

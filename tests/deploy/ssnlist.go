@@ -52,12 +52,12 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 			Type:  "ByStr20",
 			Value: "0x" + adminAddr,
 		}, {
-			VName: "proxy_address",
+			VName: "init_proxy_address",
 			Type:  "ByStr20",
 			Value: "0x" + proxy,
 		},
 		{
-			VName: "gzil_address",
+			VName: "init_gzil_address",
 			Type: "ByStr20",
 			Value: "0x" + adminAddr,
 		},
