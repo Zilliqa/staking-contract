@@ -1383,10 +1383,11 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, ini
   end
 end
 
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128, initiator: ByStr20)
   IsPaused;
   IsProxy;
   IsAdmin initiator;
+  info = SSNCycleInfo totalAmt rewards;
   stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 
@@ -1409,6 +1410,29 @@ transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: 
   IsProxy;
   IsAdmin initiator;
   direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+
+transition PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  deposit_amt_deleg[deleg_addr][ssn_addr] := amt;
+  ssn_deleg_amt[ssn_addr][deleg_addr] := amt
+end
+
+
+transition PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  deleg_stake_per_cycle[deleg_addr][ssn_addr][cycle] := amt
+end
+
+transition PopulateLastRewardCycle(cycle: Uint32, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  lastrewardcycle := cycle
 end
 
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)

@@ -318,7 +318,7 @@ end
 procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
 current_deleg_o <- current_deleg;
 match current_deleg_o with
-| Some current_deleg =>
+| Some deleg =>
 match withdraw with
 | Pair withdraw_number amt =>
 current_bnum <- & BLOCKNUMBER;
@@ -327,15 +327,15 @@ bnum = builtin badd withdraw_number current_bnum_req;
 can_withdraw = builtin blt bnum current_bnum;
 match can_withdraw with
 | True =>
-delete withdrawal_pending[current_deleg][withdraw_number];
+delete withdrawal_pending[deleg][withdraw_number];
 current_amt <- available_withdrawal;
 current_amt = builtin add current_amt amt;
 available_withdrawal := current_amt;
-has_other_records <- withdrawal_pending[current_deleg];
+has_other_records <- withdrawal_pending[deleg];
 match has_other_records with
 | Some inner =>
 | None =>
-delete withdrawal_pending[current_deleg]
+delete withdrawal_pending[deleg]
 end
 | False =>
 end
@@ -1030,10 +1030,11 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo, initiator: ByStr20)
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
 IsAdmin initiator;
+info = SSNCycleInfo totalAmt rewards;
 stake_ssn_per_cycle[ssn_addr][cycle] := info
 end
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
@@ -1053,6 +1054,25 @@ IsPaused;
 IsProxy;
 IsAdmin initiator;
 direct_deposit_deleg[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128, initiator: ByStr20)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+deposit_amt_deleg[deleg_addr][ssn_addr] := amt;
+ssn_deleg_amt[ssn_addr][deleg_addr] := amt
+end
+transition PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+deleg_stake_per_cycle[deleg_addr][ssn_addr][cycle] := amt
+end
+transition PopulateLastRewardCycle(cycle: Uint32, initiator: ByStr20)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+lastrewardcycle := cycle
 end
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20)
 IsPaused;
