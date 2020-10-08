@@ -318,7 +318,7 @@ end
 procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
 current_deleg_o <- current_deleg;
 match current_deleg_o with
-| Some current_deleg =>
+| Some deleg =>
 match withdraw with
 | Pair withdraw_number amt =>
 current_bnum <- & BLOCKNUMBER;
@@ -327,15 +327,15 @@ bnum = builtin badd withdraw_number current_bnum_req;
 can_withdraw = builtin blt bnum current_bnum;
 match can_withdraw with
 | True =>
-delete withdrawal_pending[current_deleg][withdraw_number];
+delete withdrawal_pending[deleg][withdraw_number];
 current_amt <- available_withdrawal;
 current_amt = builtin add current_amt amt;
 available_withdrawal := current_amt;
-has_other_records <- withdrawal_pending[current_deleg];
+has_other_records <- withdrawal_pending[deleg];
 match has_other_records with
 | Some inner =>
 | None =>
-delete withdrawal_pending[current_deleg]
+delete withdrawal_pending[deleg]
 end
 | False =>
 end
@@ -496,7 +496,6 @@ end
 procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
-lrc <- lastrewardcycle;
 match ssn_o with
 | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
 match deleg with
@@ -573,7 +572,7 @@ e = SSNNotExist;
 ThrowError e
 end
 end
-procedure IncreaseReward(deleg: ByStr20, reward: Uint128)
+procedure IncreaseReward(reward: Uint128)
 exist_reward <- cycle_rewards_deleg;
 new_reward = builtin add exist_reward reward;
 cycle_rewards_deleg := new_reward
@@ -601,17 +600,22 @@ match staking_and_rewards_per_cycle_for_ssn_opt with
 | Some (SSNCycleInfo total_staking total_rewards) =>
 reward_tmp = builtin mul total_rewards staking_of_deleg;
 reward = builtin div reward_tmp total_staking;
-IncreaseReward deleg reward
+IncreaseReward reward
 | None =>
 end
 end
 end
 procedure MintCall(recipient: ByStr20, amount: Uint128)
+to_send = builtin eq amount uint128_zero;
+match to_send with
+| True =>
+| False =>
 addr <- gziladdr;
 msg_to_gzil = {_tag: "Mint"; _recipient: addr; _amount: uint128_zero;
 recipient: recipient; amount: amount};
 msgs = one_msg msg_to_gzil;
 send msgs
+end
 end
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
 last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
