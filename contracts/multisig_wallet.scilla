@@ -124,14 +124,20 @@ type CalleeTransaction =
 (***************************************************)
 (* UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128) *)
 | UpdateDeleg of ByStr20 ByStr20 Uint128
-(* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
-| PopulateStakeSSNPerCycle of ByStr20 Uint32 SSNCycleInfo 
+(* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128) *)
+| PopulateStakeSSNPerCycle of ByStr20 Uint32 Uint128 Uint128 
 (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
 | PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint32
 (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
 | PopulateBuffDeposit of ByStr20 ByStr20 Uint32 Uint128
 (* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
 | PopulateDirectDeposit of ByStr20 ByStr20 Uint32 Uint128
+(* PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128) *)
+| PopulateDepositAmtDeleg of ByStr20 ByStr20 Uint128
+(* PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
+| PopulateDelegStakePerCycle of ByStr20 ByStr20 Uint32 Uint128
+(* PopulateLastRewardCycle(cycle: Uint32) *)
+| PopulateLastRewardCycle of Uint32
 (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128) *)
 | PopulateCommForSSN of ByStr20 Uint32 Uint128
 (* PopulateTotalStakeAmt(amt: Uint128) *)
@@ -292,14 +298,15 @@ let custom_transaction_msg_as_list =
          ssnaddr: ssnaddr;
          deleg: deleg;
          stake_amt: stake_amt}
-        (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo) *)
-      | PopulateStakeSSNPerCycle ssn_address cycle info =>
+        (* PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128) *)
+      | PopulateStakeSSNPerCycle ssn_addr cycle totalAmt rewards =>
         {_recipient: calleeContract;
          _tag: "PopulateStakeSSNPerCycle";
          _amount : Uint128 0;
-         ssn_address: ssn_address;
+         ssn_addr: ssn_addr;
          cycle: cycle;
-         info: info}
+         totalAmt: totalAmt;
+         rewards: rewards}
         (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
       | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
         {_recipient: calleeContract;
@@ -326,6 +333,29 @@ let custom_transaction_msg_as_list =
          ssn_addr: ssn_addr;
          cycle: cycle;
          amt: amt}
+        (* PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128) *)
+      | PopulateDepositAmtDeleg deleg_addr ssn_addr amt =>
+        {_recipient: calleeContract;
+         _tag: "PopulateDepositAmtDeleg";
+         _amount: Uint128 0;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
+         amt: amt}
+        (* PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
+      | PopulateDelegStakePerCycle deleg_addr ssn_addr cycle amt =>
+        {_recipient: calleeContract;
+         _tag: "PopulateDelegStakePerCycle";
+         _amount: Uint128 0;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
+         cycle: cycle;
+         amt: amt}
+        (* PopulateLastRewardCycle(cycle: Uint32) *)
+      | PopulateLastRewardCycle cycle => 
+        {_recipient: calleeContract;
+         _tag: "PopulateLastRewardCycle";
+         _amount: Uint128 0;
+         cycle: cycle}
         (* PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128) *)
       | PopulateCommForSSN ssn_addr cycle comm =>
         {_recipient : calleeContract;
@@ -654,8 +684,8 @@ transition SubmitUpdateDelegTransaction(calleeContract: ByStr20, ssnaddr: ByStr2
 end
 
 (* Submit a new PopulateStakeSSNPerCycle transaction for future signoff *)
-transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
-  transaction = PopulateStakeSSNPerCycle ssn_addr cycle info;
+transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128)
+  transaction = PopulateStakeSSNPerCycle ssn_addr cycle totalAmt rewards;
   SubmitCustomTransaction calleeContract transaction
 end
 
@@ -674,6 +704,24 @@ end
 (* Submit a new PopulateDirectDeposit transaction for future signoff *)
 transition SubmitPopulateDirectDepositTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
   transaction = PopulateDirectDeposit deleg_addr ssn_addr cycle amt;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateDepositAmtDeleg transaction for future signoff *)
+transition SubmitPopulateDepositAmtDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
+  transaction = PopulateDepositAmtDeleg deleg_addr ssn_addr amt;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateDelegStakePerCycle transaction for future signoff *)
+transition SubmitPopulateDelegStakePerCycleTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+  transaction = PopulateDelegStakePerCycle deleg_addr ssn_addr cycle amt;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateLastRewardCycle transaction for future signoff *)
+transition SubmitPopulateLastRewardCycleTransaction(calleeContract: ByStr20, cycle: Uint32)
+  transaction = PopulateLastRewardCycle cycle;
   SubmitCustomTransaction calleeContract transaction
 end
 
