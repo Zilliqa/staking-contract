@@ -476,7 +476,7 @@ end
 procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
   current_deleg_o <- current_deleg;
   match current_deleg_o with
-  | Some current_deleg =>
+  | Some deleg =>
     match withdraw with
     | Pair withdraw_number amt =>
       current_bnum <- & BLOCKNUMBER;
@@ -485,15 +485,15 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       can_withdraw = builtin blt bnum current_bnum;
       match can_withdraw with
       | True =>
-          delete withdrawal_pending[current_deleg][withdraw_number];
+          delete withdrawal_pending[deleg][withdraw_number];
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
           available_withdrawal := current_amt;
-          has_other_records <- withdrawal_pending[current_deleg];
+          has_other_records <- withdrawal_pending[deleg];
           match has_other_records with
           | Some inner =>
           | None =>
-            delete withdrawal_pending[current_deleg]
+            delete withdrawal_pending[deleg]
           end
       | False => 
       end
