@@ -606,8 +606,8 @@ end
 end
 end
 procedure MintCall(recipient: ByStr20, amount: Uint128)
-to_send = builtin eq amount uint128_zero;
-match to_send with
+is_zero = builtin eq amount uint128_zero;
+match is_zero with
 | True =>
 | False =>
 addr <- gziladdr;
