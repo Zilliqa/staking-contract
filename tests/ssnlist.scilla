@@ -987,8 +987,6 @@ minstake_tmp <- minstake;
 status = uint128_le minstake_tmp stake_amt;
 s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr;
 ssnlist[ssnaddr] := s;
-lrc <- lastrewardcycle;
-comm_for_ssn[ssnaddr][lrc] := comm;
 e = { _eventname: "SSN added"; ssn_addr: ssnaddr };
 event e
 end
