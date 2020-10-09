@@ -17,9 +17,15 @@ func (t *Testing) WithdrawComm() {
 	proxy.UpdateStakingParameters(min,delegMin)
 	// update verifier to addr2
 	proxy.UpdateVerifier("0x" + addr1)
-	proxy.PopulateTotalStakeAmt("100000000000000")
+	// update verifier receiving addr to add1
+	proxy.UpdateVerifierRewardAddr("0x" + addr1)
 	// add ssn1
 	proxy.AddSSN("0x"+addr1, "ssn1")
+	// pause
+	proxy.Pause()
+	proxy.PopulateTotalStakeAmt("1000000000000000")
+	// unpause
+	proxy.Unpause()
 	// delegate stake
 	proxy.AddDelegator("0x"+addr1, "0x"+addr3, "100000000000000")
 	proxy.AssignStakeReward("0x"+addr1, "10000000")

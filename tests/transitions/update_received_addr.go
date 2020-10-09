@@ -27,7 +27,7 @@ func (t *Testing) UpdateReceiveAddr() {
 	t.AssertError(err1)
 	receipt = t.GetReceiptString(txn)
 	log.Println(receipt)
-	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -9))])")
+	t.AssertContain(receipt,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -10))])")
 
 	t.LogEnd("UpdateReceiveAddr")
 }

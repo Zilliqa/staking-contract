@@ -28,14 +28,14 @@ func (t *Testing) WithDrawStakeAmount3() {
 
 
 	// try withdraw more than delegate
-	txn, err := proxy.WithdrawStakeAmount("0x" + addr1,min3)
+	txn, err := proxy.WithdrawStakeAmt("0x" + addr1,min3)
 	t.AssertError(err)
 	t.LogPrettyReceipt(txn)
 	ssnlist.LogContractStateJson()
 
 
 	// try withdraw half
-	txn, err1 := proxy.WithdrawStakeAmount("0x" + addr1,min)
+	txn, err1 := proxy.WithdrawStakeAmt("0x" + addr1,min)
 	if err1 != nil {
 		t.LogError("WithDrawStakeAmount3",err)
 	}
