@@ -294,6 +294,13 @@ transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: BySt
     send msgs
 end
 
+transition PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateLastBufDepositCycleDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};

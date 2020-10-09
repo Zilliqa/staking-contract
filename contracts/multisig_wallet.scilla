@@ -128,6 +128,8 @@ type CalleeTransaction =
 | PopulateStakeSSNPerCycle of ByStr20 Uint32 Uint128 Uint128 
 (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
 | PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint32
+(* PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
+| PopulateLastBufDepositCycleDeleg of ByStr20 ByStr20 Uint32
 (* PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
 | PopulateBuffDeposit of ByStr20 ByStr20 Uint32 Uint128
 (* PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128) *)
@@ -311,6 +313,14 @@ let custom_transaction_msg_as_list =
       | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
         {_recipient: calleeContract;
          _tag: "PopulateLastWithdrawCycleFordeleg";
+         _amount: Uint128 0;
+         deleg_addr: deleg_addr;
+         ssn_addr: ssn_addr;
+         cycle: cycle}
+        (* PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
+      | PopulateLastBufDepositCycleDeleg deleg_addr ssn_addr cycle =>
+        {_recipient: calleeContract;
+         _tag: "PopulateLastBufDepositCycleDeleg";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
          ssn_addr: ssn_addr;
@@ -692,6 +702,12 @@ end
 (* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
 transition SubmitPopulateLastWithdrawCycleFordelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
   transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulateLastBufDepositCycleDeleg transaction for future signoff *)
+transition SubmitPopulateLastBufDepositCycleDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+  transaction = PopulateLastBufDepositCycleDeleg deleg_addr ssn_addr cycle;
   SubmitCustomTransaction calleeContract transaction
 end
 

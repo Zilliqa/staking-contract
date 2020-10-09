@@ -1041,6 +1041,12 @@ IsProxy;
 IsAdmin initiator;
 last_withdraw_cycle_deleg[deleg_addr][ssn_addr] := cycle
 end
+transition PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, initiator: ByStr20)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+last_buf_deposit_cycle_deleg[deleg_addr][ssn_addr] := cycle
+end
 transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;
