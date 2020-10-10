@@ -280,9 +280,9 @@ transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
     send msgs
 end
 
-transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, info: SSNCycleInfo)
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128)
     current_impl <- implementation;
-    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; info: info; initiator: _sender};
+    msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; totalAmt: totalAmt; rewards: rewards; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -290,6 +290,13 @@ end
 transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
     current_impl <- implementation;
     msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateLastBufDepositCycleDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
@@ -308,6 +315,27 @@ transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: 
     send msgs
 end
 
+transition PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateDepositAmtDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateDelegStakePerCycle"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateLastRewardCycle(cycle: Uint32)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateLastRewardCycle"; _recipient: current_impl; _amount: zero; cycle: cycle; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
@@ -318,6 +346,13 @@ end
 transition PopulateTotalStakeAmt(amt: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulatePendingWithdrawal"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; block_number: block_number; stake: stake; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
