@@ -442,8 +442,32 @@ lrc <- lastrewardcycle;
 has_reward = builtin lt lrcd lrc;
 match has_reward with
 | True =>
+offset = builtin sub lrc lrcd;
+offset_only_one = builtin eq offset uint32_one;
+match offset_only_one with
+| True =>
+last_reward_cycle = builtin sub lrc uint32_one;
+last2_reward_cycle = sub_one_to_zero last_reward_cycle;
+cur_opt <- direct_deposit_deleg[deleg][ssnaddr][last_reward_cycle];
+buf_opt <- buff_deposit_deleg[deleg][ssnaddr][last2_reward_cycle];
+comb_opt = option_add cur_opt buf_opt;
+last_amt_o <- deleg_stake_per_cycle[deleg][ssnaddr][last_reward_cycle];
+last_amt = option_uint128_value last_amt_o;
+staking_of_deleg = match comb_opt with
+| Some stake => builtin add last_amt stake
+| None => last_amt
+end;
+no_rewards = builtin eq staking_of_deleg uint128_zero;
+match no_rewards with
+| True =>
+| False =>
 e = DelegHasUnwithdrawRewards;
 ThrowError e
+end
+| False =>
+e = DelegHasUnwithdrawRewards;
+ThrowError e
+end
 | False =>
 end
 end
