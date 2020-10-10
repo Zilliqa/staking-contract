@@ -350,6 +350,13 @@ transition PopulateTotalStakeAmt(amt: Uint128)
     send msgs
 end
 
+transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
+    current_impl <- implementation;
+    msg = {_tag: "PopulatePendingWithdrawal"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; block_number: block_number; stake: stake; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (* @dev: Set the admin of contract. Used by current admin only. *)
 transition DrainContractBalance(amt: Uint128)
     current_impl <- implementation;

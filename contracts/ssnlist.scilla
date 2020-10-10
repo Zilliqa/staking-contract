@@ -1454,6 +1454,13 @@ transition PopulateTotalStakeAmt(amt: Uint128, initiator: ByStr20)
   totalstakeamount := amt
 end
 
+transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  withdrawal_pending[ssn_addr][block_number] := stake
+end
+
 (* @dev:  Drain the contract's balance. Used by current admin only *)
 (*        in event of contract upgrade or emergency. *)
 (* @param initiator: The original caller who called the proxy *)

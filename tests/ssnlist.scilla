@@ -1090,6 +1090,12 @@ IsProxy;
 IsAdmin initiator;
 totalstakeamount := amt
 end
+transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128, initiator: ByStr20)
+IsPaused;
+IsProxy;
+IsAdmin initiator;
+withdrawal_pending[ssn_addr][block_number] := stake
+end
 transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
 IsPaused;
 IsProxy;

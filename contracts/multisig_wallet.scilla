@@ -144,6 +144,8 @@ type CalleeTransaction =
 | PopulateCommForSSN of ByStr20 Uint32 Uint128
 (* PopulateTotalStakeAmt(amt: Uint128) *)
 | PopulateTotalStakeAmt of Uint128
+(* PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128) *)
+| PopulatePendingWithdrawal of ByStr20 BNum Uint128
 (* DrainContractBalance(amt: Uint128) *)
 | DrainContractBalance of Uint128
 
@@ -380,6 +382,14 @@ let custom_transaction_msg_as_list =
          _tag: "PopulateTotalStakeAmt";
          _amount: Uint128 0;
          amt: amt}
+        (* PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128) *)
+      | PopulatePendingWithdrawal ssn_addr block_number stake =>
+        {_recipient: calleeContract;
+         _tag: "PopulatePendingWithdrawal";
+         _amount: Uint128 0;
+         ssn_addr: ssn_addr;
+         block_number: block_number;
+         stake: stake}
         (* DrainContractBalance(amt: Uint128) *)
       | DrainContractBalance amt =>
         {_recipient : calleeContract;
@@ -750,6 +760,12 @@ end
 (* Submit a new PopulateTotalStakeAmt transaction for future signoff *)
 transition SubmitPopulateTotalStakeAmtTransaction(calleeContract: ByStr20, amt: Uint128)
   transaction = PopulateTotalStakeAmt amt;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new PopulatePendingWithdrawal transaction for future signoff *)
+transition SubmitPopulatePendingWithdrawalTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
+  transaction = PopulatePendingWithdrawal ssn_addr block_number stake;
   SubmitCustomTransaction calleeContract transaction
 end
 

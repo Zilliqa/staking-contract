@@ -532,6 +532,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitCustomUpdateAdminTransaction`| `calleeContract : ByStr20, admin : ByStr20` | Submit a request to invoke the `UpdateAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomClaimAdminTransaction`| `calleeContract : ByStr20 | Submit a request to invoke the `ClaimAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateVerifierTransaction`| `calleeContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `UpdateVerifier` transition in the `SSNListProxy` contract. |
+|`SubmitCustomUpdateVerifierRewardAddrTransaction`| `calleeContract : ByStr20, verif : ByStr20` | Submit a request to invoke the `UpdateVerifierRewardAddr` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateStakingParametersTransaction`| `calleeContract : ByStr20, min_stake : Uint128, min_deleg_stake : Uint128, max_comm_change_rate : Uint128` | Submit a request to invoke the `UpdateStakingParameters` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeBNumReqTransaction`| `calleeContract : ByStr20, input_bnum_req : Uint128` | Submit a request to invoke the `ChangeBNumReq` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUpdateGzilAddrTransaction`| `calleeContract : ByStr20, gzil_addr: ByStr20` | Submit a request to invoke the `UpdateGzilAddr` transition in the `SSNListProxy` contract. |
@@ -549,7 +550,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitPopulateLastRewardCycleTransaction`| `calleeContract: ByStr20, cycle: Uint32` | Submit a request to invoke the `PopulateLastRewardCycle` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateCommForSSNTransaction`| `calleeContract : ByStr20, ssn_address : ByStr20, cycle : Uint32, comm : Uint128` | Submit a request to invoke the `PopulateCommForSSN` transition in the `SSNListProxy` contract. |
 |`SubmitPopulateTotalStakeAmtTransaction`| `calleeContract : ByStr20, amt : Uint128` | Submit a request to invoke the `PopulateTotalStakeAmt` transition in the `SSNListProxy` contract. |
-|`SubmitPopulateDepositAmountFordelegTransaction`| `calleeContract : ByStr20, deleg_address : ByStr20, ssn_address : ByStr20, amount : Uint128` | Submit a request to invoke the `PopulateDepositAmountFordeleg` transition in the `SSNListProxy` contract. |
+|`SubmitPopulatePendingWithdrawalTransaction`| `calleeContract : ByStr20, ssn_addr : ByStr20, block_number : BNum, stake : Uint128` | Submit a request to invoke the `PopulatePendingWithdrawal` transition in the `SSNListProxy` contract. |
 |`SubmitCustomDrainContractBalanceTransaction`| `calleeContract : ByStr20, amt : Uint128` | Submit a request to invoke the `DrainContractBalance` transition in the `SSNListProxy` contract. |
 
 ### Action Transitions
