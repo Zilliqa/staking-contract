@@ -15,7 +15,6 @@ func main() {
 	t.UpdateStakingParameters()
 	t.AddSSN()
 	t.AddDelegator()
-	t.RemoveSSN()
 	t.DelegateStake()
 	t.UpdateReceiveAddr()
 	t.AssignStakeReward()

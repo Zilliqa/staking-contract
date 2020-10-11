@@ -24,10 +24,10 @@ type Proxy struct {
 	Wallet *account.Wallet
 }
 
-func (p *Proxy) WithdrawStakeAmount(ssn, amt string) (*transaction.Transaction, error) {
+func (p *Proxy) WithdrawStakeAmt(ssn, amt string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{
-			"ssn",
+			"ssnaddr",
 			"ByStr20",
 			ssn,
 		},
@@ -239,7 +239,15 @@ func (p *Proxy) UpdateReceiveAddr(newAddr string) (*transaction.Transaction, err
 		"ByStr20",
 		newAddr,
 	}}
-	return p.Call("UpdateReceivedAddr", args, "0")
+	return p.Call("UpdateReceivingAddr", args, "0")
+}
+func (p *Proxy) UpdateVerifierRewardAddr(newAddr string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{{
+		"addr",
+		"ByStr20",
+		newAddr,
+	}}
+	return p.Call("UpdateVerifierRewardAddr", args, "0")
 }
 
 type SSNRewardShare struct {
@@ -258,13 +266,9 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 				[]string{ssn, percent},
 			},
 		},
-	}, {
-		"verifier_reward",
-		"Uint128",
-		"0",
 	}}
 
-	return p.Call("AssignStakeReward", args, "0")
+	return p.Call("AssignStakeReward", args, percent)
 }
 
 func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
@@ -283,13 +287,9 @@ func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*tran
 				[]string{ssn2, percent2},
 			},
 		},
-	}, {
-		"verifier_reward",
-		"Uint128",
-		"0",
 	}}
 
-	return p.Call("AssignStakeReward", args, "0")
+	return p.Call("AssignStakeReward", args, percent1)
 }
 
 func (p *Proxy) AssignStakeRewardBatch(ssn, percent string) []account.BatchSendingResult {
@@ -341,7 +341,7 @@ func (p *Proxy) UpdateVerifier(addr string) (*transaction.Transaction, error) {
 
 func (p *Proxy) WithdrawStakeRewards(addr string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
-		"ssn_operator",
+		"ssnaddr",
 		"ByStr20",
 		addr,
 	}}
@@ -358,11 +358,7 @@ func (p *Proxy) AddFunds(amount string) {
 }
 
 func (p *Proxy) WithdrawComm(ssnaddr string) (*transaction.Transaction, error) {
-	args := []core.ContractValue{{
-		"ssnaddr",
-		"ByStr20",
-		ssnaddr,
-	}}
+	args := []core.ContractValue{}
 	return p.Call("WithdrawComm", args, "0")
 }
 
@@ -371,8 +367,18 @@ func (p *Proxy) Unpause() (*transaction.Transaction, error) {
 	return p.Call("UnPause", args, "0")
 }
 
+func (p *Proxy) Pause() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("Pause", args, "0")
+}
+
+func (p *Proxy) ClaimAdmin() (*transaction.Transaction, error) {
+	args := []core.ContractValue{}
+	return p.Call("ClaimAdmin", args, "0")
+}
+
 func (p *Proxy) GetBalance() string {
-	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
 	balAndNonce, _ := provider.GetBalance(p.Addr)
 	return balAndNonce.Balance
 }
@@ -384,7 +390,7 @@ func (p *Proxy) UpdateWallet(newKey string) {
 }
 
 func (p *Proxy) LogContractStateJson() {
-	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
 	rsp, _ := provider.GetSmartContractState(p.Addr)
 	j, _ := json.Marshal(rsp)
 	log.Println(string(j))
@@ -422,7 +428,7 @@ func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount
 			Version:      strconv.FormatInt(int64(util.Pack(1, 1)), 10),
 			SenderPubKey: util.EncodeHex(p.Wallet.DefaultAccount.PublicKey),
 			ToAddr:       p.Bech32,
-			Amount:       "0",
+			Amount:       amount,
 			GasPrice:     "1000000000",
 			GasLimit:     "40000",
 			Code:         "",
@@ -432,7 +438,7 @@ func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount
 		transactions = append(transactions, txn)
 	}
 
-	rpc := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
+	rpc := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
 	p.Wallet.SignBatch(transactions, *rpc)
 	return p.Wallet.SendBatch(transactions, *rpc)
 
@@ -454,11 +460,6 @@ func NewProxy(key string) (*Proxy, error) {
 			VName: "init_implementation",
 			Type:  "ByStr20",
 			Value: "0x" + adminAddr,
-		},
-		{
-			"init_gzil_contract",
-			"ByStr20",
-			"0x" + adminAddr,
 		},
 	}
 

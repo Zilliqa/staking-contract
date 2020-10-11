@@ -14,6 +14,8 @@ func (t *Testing) AddDelegator() {
 	proxy.AddSSN("0x"+addr2, "ssn2")
 	ssnlist.LogContractStateJson()
 
+	proxy.AddFunds("1000000")
+
 	// as admin, update delegator (addr1) with 100000 to ssn1 (addr1)
 	tnx, err := proxy.AddDelegator("0x"+addr1, "0xd90f2e538ce0df89c8273cad3b63ec44a3c4ed82", "100000")
 	if err != nil {
