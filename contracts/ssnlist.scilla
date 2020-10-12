@@ -1378,7 +1378,7 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
-(* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
+(* Its very crucial that after this operation, we should restore direct and buffered map, as well as *)
 (* lastrewardcycle last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
 transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;
