@@ -25,6 +25,7 @@ contract SSNListProxy(
 (* Mutable fields *)
 field implementation: ByStr20 = init_implementation
 field admin: ByStr20 = init_admin
+field stagingadmin: Option ByStr20 = None {ByStr20}
 
 (***************************************************)
 (*                  Transition                     *)
@@ -52,11 +53,34 @@ transition ChangeProxyAdmin(newAdmin: ByStr20)
     isAdmin = builtin eq currentAdmin _sender;
     match isAdmin with
     | True =>
-      admin := newAdmin;
-      e = {_eventname: "AdminChanged"; oldAdmin: currentAdmin; newAdmin: newAdmin};
+      new_staging_admin = Some {ByStr20} newAdmin;
+      stagingadmin := new_staging_admin;
+      e = {_eventname: "ChangeProxyAdmin"; oldAdmin: currentAdmin; newAdmin: newAdmin};
       event e
     | False =>
-      e = {_eventname: "changeAdmin FailedNotAdmin"; newAdmin: newAdmin};
+      e = {_eventname: "ChangeProxyAdmin FailedNotAdmin"; newAdmin: newAdmin};
+      event e
+    end
+end
+
+transition ClaimProxyAdmin()
+    staging_admin_o <- stagingadmin;
+    match staging_admin_o with
+    | Some staging_admin =>
+      is_stagingadmin = builtin eq staging_admin _sender;
+      match is_stagingadmin with
+      | True =>
+        admin := _sender;
+        tmp_staging_admin = None {ByStr20};
+        stagingadmin := tmp_staging_admin;
+        e = {_eventname: "ClaimProxyAdmin"; newAdmin: _sender};
+        event e
+      | False =>
+        e = {_eventname: "ClaimProxyAdmin FailedNotStagingadmin"; newAdmin: _sender};
+        event e
+      end
+    | None =>
+      e = {_eventname: "ClaimProxyAdmin FailedNoStagingadmin"};
       event e
     end
 end

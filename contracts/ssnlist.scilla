@@ -307,8 +307,8 @@ field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 (* 10 mil ZIL expressed in Qa where 1 ZIL = 10^12 Qa *)
 field minstake: Uint128 = Uint128 10000000000000000000
 
-(* 1000 ZIL expresssed in Qa where 1 ZIL = 10^12 Qa *)
-field mindelegstake: Uint128 = Uint128 1000000000000000
+(* 10 ZIL expresssed in Qa where 1 ZIL = 10^12 Qa *)
+field mindelegstake: Uint128 = Uint128 10000000000000
 
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
@@ -707,7 +707,7 @@ procedure AdjustDeleg(ssnaddr: ByStr20, deleg: ByStr20, total_amount: Uint128, w
   end
 end
 
-procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, undeleg_amt: Uint128)
   ssn_o <- ssnlist[ssn];
   deleg <- deposit_amt_deleg[initiator][ssn];
   match ssn_o with
@@ -716,20 +716,20 @@ procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint
     | Some amt =>
       AssertNoRewards ssn initiator rewards;
       AsseertNoBufferedDeposit ssn initiator;
-      AdjustDeleg ssn initiator amt redeleg_amt;
+      AdjustDeleg ssn initiator amt undeleg_amt;
       (* Illegal withdraw amount could be handled in procedure AdjustDeleg *)
-      new_amt = builtin sub stake_amt redeleg_amt;
+      new_amt = builtin sub stake_amt undeleg_amt;
       minstake_tmp <- minstake;
       status = uint128_le minstake_tmp new_amt;
       ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
       ssnlist[ssn] := ssn_option_tmp;
-      e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
+      e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: undeleg_amt };
       event e;
       match active_status with
       | True =>
         (* If the original status is active, we can substract from totalstakeamt, otherwise dont do so *)
-        DecreaseTotalStakeAmt redeleg_amt;
-        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: redeleg_amt };
+        DecreaseTotalStakeAmt undeleg_amt;
+        event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: undeleg_amt };
         event event_decrease;
         (* If ssn becomes inactive, we need to decrease the rest ones as well *)
         DecreaseTotalStakeAmtOnStatus new_amt status
@@ -1181,7 +1181,6 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   (* Accept the deposit from SSN and add to contract balance. *)
-  (* Transfer back to initiator if any of the validation failed *)
   accept; 
   amount = _amount;
   Delegate ssnaddr initiator amount;
@@ -1203,9 +1202,9 @@ transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   WithdrawalStakeRewards initiator ssnaddr
 end
 
-(* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
+(* @dev: Intitiate the process of unbonding of ZIL for withdrawal purpose. Used by delegs. *)
 (* @param ssnaddr: Address of the SSN to which stake had been delegated. *)
-(* @param amt: The amount which the delegators wanr to withdraw*)
+(* @param amt: The amount which the delegators want to unbond*)
 (* @param initiator: The original caller who called the proxy. *)
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   IsNotPaused;
@@ -1217,6 +1216,8 @@ transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   send msg
 end
 
+(* @dev: Withdrawal of all unbonded stake. Used by delegs. *)
+(* @param initiator: The original caller who called the proxy. *)
 transition CompleteWithdrawal(initiator: ByStr20)
   IsNotPaused;
   IsProxy;
@@ -1257,6 +1258,11 @@ transition CompleteWithdrawal(initiator: ByStr20)
   end
 end
 
+(* @dev: Transfer stake deposit from one SSN to another. Used by delegs. *)
+(* @param ssnaddr: SSN from where the stake deposit will be withdrawn for transfer purpose. *)
+(* @param to_ssn: SSN that will receive the withdrawn stake deposit. *)
+(* @param amount: The amount of stake deposit to transfer. *)
+(* @param initiator: The original caller who called the proxy. *)
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
@@ -1372,7 +1378,7 @@ end
 (* @param deleg: Address of the deleg *)
 (* @param stake_amt: Stake amount *)
 (* @param initiator: The original caller who called the proxy *)
-(* Its very crucial that after this operation, we should recovery direct and buffered map, as well as *)
+(* Its very crucial that after this operation, we should restore direct and buffered map, as well as *)
 (* lastrewardcycle last_withdraw_cycle_deleg last_buf_deposit_cycle_deleg totalstakeamount *)
 transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128, initiator: ByStr20)
   IsProxy;

@@ -212,7 +212,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
 | `minstake`  | `Uint128` | `Uin128 10000000000000000000`       | Minimum stake required to activate an SSN (1 mil ZIL expressed in `Qa`, where `1 ZIL = 10^12 Qa`). |
-| `mindelegstake`  | `Uint128` | `Uin128 1000000000000000`       | Minimum stake for a delegator (1000 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
+| `mindelegstake`  | `Uint128` | `Uin128 10000000000000`       | Minimum stake for a delegator (10 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 | `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
 | `gziladdr` | `ByStr20` |  `init_gzil_address` | Address of the gzil contract. |
@@ -344,7 +344,9 @@ All the transitions in the contract can be categorized into two categories:
 | Name | Params | Description |
 |--|--|--|
 |`UpgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
-|`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `stagingadmin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`ClaimProxyAdmin` | `` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `stagingadmin` can invoke this transition.|
+
 
 ### Relay Transitions
 
@@ -526,6 +528,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
 |`SubmitCustomUpgradeToTransaction`| `calleeContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `UpgradeTo` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeProxyAdminTransaction`| `calleeContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `ChangeProxyAdmin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomClaimProxyAdminTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `ClaimProxyAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeMinterTransaction`| `calleeContract : ByStr20, new_minter : ByStr20` | Submit a request to invoke the `ChangeMinter` transition in the `gZILToken` contract. |
 |`SubmitCustomPauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUnpauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `SSNListProxy` contract. |
