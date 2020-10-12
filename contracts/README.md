@@ -344,7 +344,9 @@ All the transitions in the contract can be categorized into two categories:
 | Name | Params | Description |
 |--|--|--|
 |`UpgradeTo`| `newImplementation : ByStr20` |  Change the current implementation address of the `SSNList` contract. <br> :warning: **Note:** Only the `admin` can invoke this transition|
-|`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`ChangeProxyAdmin`| `newAdmin : ByStr20` |  Change the current `stagingadmin` of the contract. <br> :warning: **Note:** Only the `admin` can invoke this transition.|
+|`ClaimProxyAdmin` | `` |  Change the current `admin` of the contract. <br> :warning: **Note:** Only the `stagingadmin` can invoke this transition.|
+
 
 ### Relay Transitions
 
@@ -526,6 +528,7 @@ The first transition is meant to submit request for transfer of native ZILs whil
 |`SubmitNativeTransaction`| `recipient : ByStr20, amount : Uint128, tag : String` | Submit a request for transfer of native tokens for future signoffs. |
 |`SubmitCustomUpgradeToTransaction`| `calleeContract : ByStr20, newImplementation : ByStr20` | Submit a request to invoke the `UpgradeTo` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeProxyAdminTransaction`| `calleeContract : ByStr20, newAdmin : ByStr20` | Submit a request to invoke the `ChangeProxyAdmin` transition in the `SSNListProxy` contract. |
+|`SubmitCustomClaimProxyAdminTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `ClaimProxyAdmin` transition in the `SSNListProxy` contract. |
 |`SubmitCustomChangeMinterTransaction`| `calleeContract : ByStr20, new_minter : ByStr20` | Submit a request to invoke the `ChangeMinter` transition in the `gZILToken` contract. |
 |`SubmitCustomPauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `Pause` transition in the `SSNListProxy` contract. |
 |`SubmitCustomUnpauseTransaction`| `calleeContract : ByStr20` | Submit a request to invoke the `UnPause` transition in the `SSNListProxy` contract. |
