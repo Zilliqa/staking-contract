@@ -178,7 +178,7 @@ field current_deleg: Option ByStr20 = None {ByStr20}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
-field mindelegstake: Uint128 = Uint128 1000000000000000
+field mindelegstake: Uint128 = Uint128 10000000000000
 field contractadmin: ByStr20  = init_admin
 field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
@@ -517,7 +517,7 @@ e = DelegHasNoSufficientAmt;
 ThrowError e
 end
 end
-procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, redeleg_amt: Uint128)
+procedure UnDelegateStakeAmt(initiator: ByStr20, ssn: ByStr20, undeleg_amt: Uint128)
 ssn_o <- ssnlist[ssn];
 deleg <- deposit_amt_deleg[initiator][ssn];
 match ssn_o with
@@ -526,18 +526,18 @@ match deleg with
 | Some amt =>
 AssertNoRewards ssn initiator rewards;
 AsseertNoBufferedDeposit ssn initiator;
-AdjustDeleg ssn initiator amt redeleg_amt;
-new_amt = builtin sub stake_amt redeleg_amt;
+AdjustDeleg ssn initiator amt undeleg_amt;
+new_amt = builtin sub stake_amt undeleg_amt;
 minstake_tmp <- minstake;
 status = uint128_le minstake_tmp new_amt;
 ssn_option_tmp = Ssn status new_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr;
 ssnlist[ssn] := ssn_option_tmp;
-e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: redeleg_amt };
+e = { _eventname: "Remove delegate from SSN"; ssn_addr: ssn; deleg_address: initiator; amt: undeleg_amt };
 event e;
 match active_status with
 | True =>
-DecreaseTotalStakeAmt redeleg_amt;
-event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: redeleg_amt };
+DecreaseTotalStakeAmt undeleg_amt;
+event_decrease = { _eventname: "DecreaseTotalStakeAmt"; decreased_amt: undeleg_amt };
 event event_decrease;
 DecreaseTotalStakeAmtOnStatus new_amt status
 | False =>
