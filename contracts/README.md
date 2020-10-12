@@ -212,7 +212,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
 | `minstake`  | `Uint128` | `Uin128 10000000000000000000`       | Minimum stake required to activate an SSN (1 mil ZIL expressed in `Qa`, where `1 ZIL = 10^12 Qa`). |
-| `mindelegstake`  | `Uint128` | `Uin128 1000000000000000`       | Minimum stake for a delegator (1000 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
+| `mindelegstake`  | `Uint128` | `Uin128 10000000000000`       | Minimum stake for a delegator (10 ZIL expressed in Qa where 1 ZIL = 10^12 Qa). |
 | `contractadmin` | `ByStr20` |  `init_admin` | Address of the administrator of this contract. |
 | `proxyaddr` | `ByStr20` |  `init_proxy_address` | Address of the proxy contract. |
 | `gziladdr` | `ByStr20` |  `init_gzil_address` | Address of the gzil contract. |
