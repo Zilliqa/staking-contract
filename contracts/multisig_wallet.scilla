@@ -81,6 +81,8 @@ type CalleeTransaction =
 | UpgradeTo of ByStr20
 (* ChangeProxyAdmin(newAdmin: ByStr20) *)
 | ChangeProxyAdmin of ByStr20
+(* ClaimProxyAdmin() *)
+| ClaimProxyAdmin
 (***************************************************)
 (*              gZIL Transitions                   *)
 (***************************************************)
@@ -201,6 +203,11 @@ let custom_transaction_msg_as_list =
          _tag: "ChangeProxyAdmin";
          _amount: Uint128 0;
          newAdmin: newAdmin}
+        (* ClaimProxyAdmin() *)
+      | ClaimProxyAdmin =>
+        {_recipient: calleeContract;
+         _tag: "ClaimProxyAdmin";
+         _amount: Uint128 0}
         (* ChangeMinter(new_minter: ByStr20) *)
       | ChangeMinter new_minter =>
         {_recipient: calleeContract;
@@ -599,6 +606,12 @@ end
 (* Submit a new ChangeProxyAdmin transaction for future signoff *)
 transition SubmitCustomChangeProxyAdminTransaction (calleeContract : ByStr20, newAdmin : ByStr20)
   transaction = ChangeProxyAdmin newAdmin;
+  SubmitCustomTransaction calleeContract transaction
+end
+
+(* Submit a new ClaimProxyAdmin transaction for future signoff *)
+transition SubmitCustomClaimProxyAdminTransaction (calleeContract : ByStr20)
+  transaction = ClaimProxyAdmin;
   SubmitCustomTransaction calleeContract transaction
 end
 
