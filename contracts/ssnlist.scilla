@@ -1202,9 +1202,9 @@ transition WithdrawStakeRewards(ssnaddr: ByStr20, initiator: ByStr20)
   WithdrawalStakeRewards initiator ssnaddr
 end
 
-(* @dev: Withdraw all amount owed by the contract. Used by delegs. *)
+(* @dev: Intitiate the process of unbonding of ZIL for withdrawal purpose. Used by delegs. *)
 (* @param ssnaddr: Address of the SSN to which stake had been delegated. *)
-(* @param amt: The amount which the delegators wanr to withdraw*)
+(* @param amt: The amount which the delegators want to unbond*)
 (* @param initiator: The original caller who called the proxy. *)
 transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   IsNotPaused;
@@ -1216,6 +1216,8 @@ transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator: ByStr20)
   send msg
 end
 
+(* @dev: Withdrawal of all unbonded stake. Used by delegs. *)
+(* @param initiator: The original caller who called the proxy. *)
 transition CompleteWithdrawal(initiator: ByStr20)
   IsNotPaused;
   IsProxy;
@@ -1256,6 +1258,11 @@ transition CompleteWithdrawal(initiator: ByStr20)
   end
 end
 
+(* @dev: Transfer stake deposit from one SSN to another. Used by delegs. *)
+(* @param ssnaddr: SSN where the stake deposit will be withdrawn for transfer purpose. *)
+(* @param to_ssn: SSN that will receive the withdrawn stake deposit. *)
+(* @param amount: The amount of stake deposit to transfer. *)
+(* @param initiator: The original caller who called the proxy. *)
 transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
