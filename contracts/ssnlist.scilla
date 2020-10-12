@@ -1259,7 +1259,7 @@ transition CompleteWithdrawal(initiator: ByStr20)
 end
 
 (* @dev: Transfer stake deposit from one SSN to another. Used by delegs. *)
-(* @param ssnaddr: SSN where the stake deposit will be withdrawn for transfer purpose. *)
+(* @param ssnaddr: SSN from where the stake deposit will be withdrawn for transfer purpose. *)
 (* @param to_ssn: SSN that will receive the withdrawn stake deposit. *)
 (* @param amount: The amount of stake deposit to transfer. *)
 (* @param initiator: The original caller who called the proxy. *)
