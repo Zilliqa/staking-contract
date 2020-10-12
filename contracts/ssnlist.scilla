@@ -1181,7 +1181,6 @@ transition DelegateStake(ssnaddr: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   (* Accept the deposit from SSN and add to contract balance. *)
-  (* Transfer back to initiator if any of the validation failed *)
   accept; 
   amount = _amount;
   Delegate ssnaddr initiator amount;
