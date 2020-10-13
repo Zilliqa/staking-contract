@@ -356,7 +356,7 @@ end
 procedure ValidateChangeRate(old: Uint128, new: Uint128)
   maxcommchangerate_l <- maxcommchangerate;
   absolute_change = change_rate old new;
-  absolute_change = builtin div absolute_change uint128_10_power_7;
+  absolute_change = builtin div absolute_change uint128_10_power_6;
   valid = uint128_le absolute_change maxcommchangerate_l;
   match valid with
   | True =>
