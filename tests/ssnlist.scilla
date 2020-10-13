@@ -18,7 +18,9 @@ Cons {Message} m e
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
 let uint128_10_power_7 = Uint128 10000000
+let uint128_10_power_6 = Uint128 1000000
 let uint128_100 = Uint128 100
+let uint128_10 = Uint128 10
 let uint32_one = Uint32 1
 let uint32_zero = Uint32 0
 let option_value =
@@ -184,7 +186,7 @@ field stagingcontractadmin: Option ByStr20 = None {ByStr20}
 field gziladdr: ByStr20 = init_gzil_address
 field lastrewardcycle: Uint32 = uint32_one
 field paused: Bool = True
-field maxcommchangerate: Uint128 = uint128_one
+field maxcommchangerate: Uint128 = uint128_10
 field maxcommrate: Uint128 = Uint128 1000000000
 field totalstakeamount: Uint128 = uint128_zero
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
