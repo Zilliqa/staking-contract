@@ -1,0 +1,279 @@
+scilla_version 0
+library SSNListProxy
+let zero = Uint128 0
+let one_msg =
+fun (m: Message) =>
+let e = Nil {Message} in
+Cons {Message} m e
+type SsnRewardShare =
+| SsnRewardShare of ByStr20 Uint128
+type SSNCycleInfo =
+| SSNCycleInfo of Uint128 Uint128
+contract SSNListProxy(
+init_implementation: ByStr20,
+init_admin: ByStr20
+)
+field implementation: ByStr20 = init_implementation
+field admin: ByStr20 = init_admin
+field stagingadmin: Option ByStr20 = None {ByStr20}
+transition UpgradeTo(newImplementation: ByStr20)
+currentAdmin <- admin;
+isAdmin = builtin eq currentAdmin _sender;
+match isAdmin with
+| True =>
+implementation := newImplementation;
+e = {_eventname: "Upgraded"; implementation_address: newImplementation};
+event e
+| False =>
+e = {_eventname: "upgradeTo FailedNotAdmin"; newImplementation: newImplementation};
+event e
+end
+end
+transition ChangeProxyAdmin(newAdmin: ByStr20)
+currentAdmin <- admin;
+isAdmin = builtin eq currentAdmin _sender;
+match isAdmin with
+| True =>
+new_staging_admin = Some {ByStr20} newAdmin;
+stagingadmin := new_staging_admin;
+e = {_eventname: "ChangeProxyAdmin"; oldAdmin: currentAdmin; newAdmin: newAdmin};
+event e
+| False =>
+e = {_eventname: "ChangeProxyAdmin FailedNotAdmin"; newAdmin: newAdmin};
+event e
+end
+end
+transition ClaimProxyAdmin()
+staging_admin_o <- stagingadmin;
+match staging_admin_o with
+| Some staging_admin =>
+is_stagingadmin = builtin eq staging_admin _sender;
+match is_stagingadmin with
+| True =>
+admin := _sender;
+tmp_staging_admin = None {ByStr20};
+stagingadmin := tmp_staging_admin;
+e = {_eventname: "ClaimProxyAdmin"; newAdmin: _sender};
+event e
+| False =>
+e = {_eventname: "ClaimProxyAdmin FailedNotStagingadmin"; newAdmin: _sender};
+event e
+end
+| None =>
+e = {_eventname: "ClaimProxyAdmin FailedNoStagingadmin"};
+event e
+end
+end
+transition Pause()
+current_impl <- implementation;
+msg = {_tag: "Pause"; _recipient: current_impl; _amount: zero; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UnPause()
+current_impl <- implementation;
+msg = {_tag: "UnPause"; _recipient: current_impl; _amount: zero; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateAdmin(new_admin: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "UpdateAdmin"; _recipient: current_impl; _amount: zero; admin: new_admin; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition ClaimAdmin()
+current_impl <- implementation;
+msg = {_tag: "ClaimAdmin"; _recipient: current_impl; _amount: zero; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateVerifier(verif: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "UpdateVerifier"; _recipient: current_impl; _amount: zero; verif: verif; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateVerifierRewardAddr(addr: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "UpdateVerifierRewardAddr"; _recipient: current_impl; _amount: zero; addr: addr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
+current_impl <- implementation;
+msg = {_tag: "UpdateStakingParameters"; _recipient: current_impl; _amount: zero; min_stake: min_stake; min_deleg_stake: min_deleg_stake; max_comm_change_rate: max_comm_change_rate; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition ChangeBNumReq(input_bnum_req: Uint128)
+current_impl <- implementation;
+msg = {_tag: "ChangeBNumReq"; _recipient: current_impl; _amount: zero; input_bnum_req: input_bnum_req; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateGzilAddr(gzil_addr: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "UpdateGzilAddr"; _recipient: current_impl; _amount: zero; gzil_addr: gzil_addr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
+current_impl <- implementation;
+msg = {_tag: "AddSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; name: name; urlraw: urlraw; urlapi: urlapi; comm: comm; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
+current_impl <- implementation;
+msg = {_tag: "UpdateSSN"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateComm(new_rate: Uint128)
+current_impl <- implementation;
+msg = {_tag: "UpdateComm"; _recipient: current_impl; _amount: zero; new_rate: new_rate; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition WithdrawComm()
+current_impl <- implementation;
+msg = {_tag: "WithdrawComm"; _recipient: current_impl; _amount: zero; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateReceivingAddr(new_addr: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "UpdateReceivingAddr"; _recipient: current_impl; _amount: zero; new_addr: new_addr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition DelegateStake(ssnaddr: ByStr20)
+current_impl <- implementation;
+accept;
+msg = {_tag: "DelegateStake"; _recipient: current_impl; _amount: _amount; ssnaddr: ssnaddr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition WithdrawStakeRewards(ssnaddr: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "WithdrawStakeRewards"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "WithdrawStakeAmt"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition CompleteWithdrawal()
+current_impl <- implementation;
+msg = {_tag: "CompleteWithdrawal"; _recipient: current_impl; _amount: zero; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
+current_impl <- implementation;
+msg = {_tag: "ReDelegateStake"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; to_ssn: to_ssn; amount: amount; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare)
+current_impl <- implementation;
+accept;
+msg = {_tag: "AssignStakeReward"; _recipient: current_impl; _amount: _amount; ssnreward_list: ssnreward_list; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition AddFunds()
+current_impl <- implementation;
+accept;
+msg = {_tag: "AddFunds"; _recipient: current_impl; _amount: _amount; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
+current_impl <- implementation;
+msg = {_tag: "AddSSNAfterUpgrade"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; stake_amt: stake_amt; rewards: rewards; name: name; urlraw: urlraw; urlapi: urlapi; buff_deposit: buff_deposit; comm: comm; comm_rewards: comm_rewards; rec_addr: rec_addr; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition UpdateDeleg(ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "UpdateDeleg"; _recipient: current_impl; _amount: zero; ssnaddr: ssnaddr; deleg: deleg; stake_amt: stake_amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateStakeSSNPerCycle(ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateStakeSSNPerCycle"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; totalAmt: totalAmt; rewards: rewards; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+current_impl <- implementation;
+msg = {_tag: "PopulateLastWithdrawCycleForDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateLastBufDepositCycleDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+current_impl <- implementation;
+msg = {_tag: "PopulateLastBufDepositCycleDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateBuffDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateBuffDeposit"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateDirectDeposit(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateDirectDeposit"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateDepositAmtDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateDepositAmtDeleg"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateDelegStakePerCycle(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateDelegStakePerCycle"; _recipient: current_impl; _amount: zero; deleg_addr: deleg_addr; ssn_addr: ssn_addr; cycle: cycle; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateLastRewardCycle(cycle: Uint32)
+current_impl <- implementation;
+msg = {_tag: "PopulateLastRewardCycle"; _recipient: current_impl; _amount: zero; cycle: cycle; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateCommForSSN"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; cycle: cycle; comm: comm; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulateTotalStakeAmt(amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulateTotalStakeAmt"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
+current_impl <- implementation;
+msg = {_tag: "PopulatePendingWithdrawal"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; block_number: block_number; stake: stake; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end
+transition DrainContractBalance(amt: Uint128)
+current_impl <- implementation;
+msg = {_tag: "DrainContractBalance"; _recipient: current_impl; _amount: zero; amt: amt; initiator: _sender};
+msgs = one_msg msg;
+send msgs
+end

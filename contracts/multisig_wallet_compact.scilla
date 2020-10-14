@@ -1,0 +1,618 @@
+scilla_version 0
+import ListUtils BoolUtils
+library WalletLib
+let mk_transaction_added_event =
+fun (tc : Uint32) =>
+{ _eventname : "Transaction created" ;
+transactionId : tc }
+let mk_signed_transaction_event =
+fun (tc : Uint32) =>
+{ _eventname : "Transaction signed"; transactionId : tc }
+let mk_signature_revoked_event =
+fun (tc : Uint32) =>
+{ _eventname : "Signature revoked"; transactionId : tc }
+type Error =
+| NonOwnerCannotSign
+| UnknownTransactionId
+| InsufficientFunds
+| NoSignatureListFound
+| AlreadySigned
+| NotAlreadySigned
+| InvalidContract
+| InvalidAmount
+| NotEnoughSignatures
+| SenderMayNotExecute
+| NonOwnerCannotSubmit
+| IncorrectSignatureCount
+let mk_error_event =
+fun (err : Error) =>
+let err_code =
+match err with
+| NonOwnerCannotSign        => Int32 -1
+| UnknownTransactionId      => Int32 -2
+| InsufficientFunds         => Int32 -3
+| NoSignatureListFound      => Int32 -4
+| AlreadySigned             => Int32 -5
+| NotAlreadySigned          => Int32 -6
+| InvalidContract           => Int32 -7
+| InvalidAmount             => Int32 -8
+| NotEnoughSignatures       => Int32 -9
+| SenderMayNotExecute       => Int32 -10
+| NonOwnerCannotSubmit      => Int32 -11
+| IncorrectSignatureCount   => Int32 -12
+end in
+{ _eventname : "WalletError" ; err_code : err_code }
+let t = True
+let f = False
+let zero = Uint32 0
+let zeroUint128 = Uint128 0
+let one = Uint32 1
+let transaction_inc = one
+type SSNCycleInfo =
+| SSNCycleInfo of Uint128 Uint128
+type SsnRewardShare =
+| SsnRewardShare of ByStr20 Uint128
+type CalleeTransaction =
+| UpgradeTo of ByStr20
+| ChangeProxyAdmin of ByStr20
+| ClaimProxyAdmin
+| ChangeMinter of ByStr20
+| Pause
+| UnPause
+| UpdateAdmin of ByStr20
+| ClaimAdmin
+| UpdateVerifier of ByStr20
+| UpdateVerifierRewardAddr of ByStr20
+| UpdateStakingParameters of Uint128 Uint128 Uint128
+| ChangeBNumReq of Uint128
+| UpdateGzilAddr of ByStr20
+| AddSSN of ByStr20 String String String Uint128
+| UpdateSSN of ByStr20 String String String
+| AddSSNAfterUpgrade of ByStr20 Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+| UpdateDeleg of ByStr20 ByStr20 Uint128
+| PopulateStakeSSNPerCycle of ByStr20 Uint32 Uint128 Uint128
+| PopulateLastWithdrawCycleForDeleg of ByStr20 ByStr20 Uint32
+| PopulateLastBufDepositCycleDeleg of ByStr20 ByStr20 Uint32
+| PopulateBuffDeposit of ByStr20 ByStr20 Uint32 Uint128
+| PopulateDirectDeposit of ByStr20 ByStr20 Uint32 Uint128
+| PopulateDepositAmtDeleg of ByStr20 ByStr20 Uint128
+| PopulateDelegStakePerCycle of ByStr20 ByStr20 Uint32 Uint128
+| PopulateLastRewardCycle of Uint32
+| PopulateCommForSSN of ByStr20 Uint32 Uint128
+| PopulateTotalStakeAmt of Uint128
+| PopulatePendingWithdrawal of ByStr20 BNum Uint128
+| DrainContractBalance of Uint128
+type Transaction =
+| NativeTransaction of ByStr20 Uint128 String
+| CustomTransaction of ByStr20 CalleeTransaction
+let mk_owners_map =
+fun (owners : List ByStr20) =>
+let init = Emp ByStr20 Bool in
+let iter =
+fun (acc : Map ByStr20 Bool) =>
+fun (cur_owner : ByStr20) =>
+builtin put acc cur_owner t
+in
+let folder = @list_foldl ByStr20 (Map ByStr20 Bool) in
+folder iter init owners
+let one_msg =
+fun (msg : Message) =>
+let nil_msg = Nil {Message} in
+Cons {Message} msg nil_msg
+let native_transaction_msg_as_list =
+fun (recipient : ByStr20) =>
+fun (amount : Uint128) =>
+fun (tag : String) =>
+let msg = {_tag : tag; _recipient : recipient; _amount : amount } in
+one_msg msg
+let custom_transaction_msg_as_list =
+fun (calleeContract : ByStr20) =>
+fun (calleeTransaction : CalleeTransaction) =>
+let msg =
+match calleeTransaction with
+| UpgradeTo newImplementation =>
+{_recipient: calleeContract ;
+_tag: "UpgradeTo";
+_amount: Uint128 0;
+newImplementation : newImplementation}
+| ChangeProxyAdmin newAdmin =>
+{_recipient: calleeContract;
+_tag: "ChangeProxyAdmin";
+_amount: Uint128 0;
+newAdmin: newAdmin}
+| ClaimProxyAdmin =>
+{_recipient: calleeContract;
+_tag: "ClaimProxyAdmin";
+_amount: Uint128 0}
+| ChangeMinter new_minter =>
+{_recipient: calleeContract;
+_tag: "ChangeMinter";
+_amount: Uint128 0;
+new_minter: new_minter}
+| Pause =>
+{_recipient: calleeContract;
+_tag: "Pause";
+_amount: Uint128 0}
+| UnPause =>
+{_recipient: calleeContract ;
+_tag: "UnPause";
+_amount: Uint128 0}
+| UpdateAdmin new_admin =>
+{_recipient: calleeContract;
+_tag: "UpdateAdmin";
+_amount: Uint128 0;
+new_admin: new_admin}
+| ClaimAdmin =>
+{_recipient: calleeContract;
+_tag: "ClaimAdmin";
+_amount: Uint128 0}
+| UpdateVerifier verif =>
+{_recipient: calleeContract;
+_tag: "UpdateVerifier";
+_amount: Uint128 0;
+verif: verif}
+| UpdateVerifierRewardAddr addr =>
+{_recipient : calleeContract;
+_tag: "UpdateVerifierRewardAddr";
+_amount: Uint128 0;
+addr: addr}
+| UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate =>
+{_recipient : calleeContract;
+_tag: "UpdateStakingParameters";
+_amount: Uint128 0;
+min_stake: min_stake;
+min_deleg_stake: min_deleg_stake;
+max_comm_change_rate: max_comm_change_rate}
+| ChangeBNumReq input_bnum_req =>
+{_recipient : calleeContract;
+_tag: "ChangeBNumReq";
+_amount: Uint128 0;
+input_bnum_req: input_bnum_req}
+| UpdateGzilAddr gzil_addr  =>
+{_recipient : calleeContract;
+_tag: "UpdateGzilAddr";
+_amount: Uint128 0;
+gzil_addr: gzil_addr}
+| AddSSN ssnaddr name urlraw urlapi comm =>
+{_recipient : calleeContract;
+_tag: "AddSSN";
+_amount: Uint128 0;
+ssnaddr: ssnaddr;
+name: name;
+urlraw: urlraw;
+urlapi: urlapi;
+comm: comm}
+| UpdateSSN ssnaddr new_name new_urlraw new_urlapi =>
+{_recipient : calleeContract;
+_tag: "UpdateSSN";
+_amount: Uint128 0;
+ssnaddr: ssnaddr;
+new_name: new_name;
+new_urlraw: new_urlraw;
+new_urlapi: new_urlapi}
+| AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr =>
+{_recipient : calleeContract;
+_tag: "AddSSNAfterUpgrade";
+_amount: Uint128 0;
+ssnaddr: ssnaddr;
+stake_amt: stake_amt;
+rewards: rewards;
+name: name;
+urlraw: urlraw;
+urlapi: urlapi;
+buff_deposit: buff_deposit;
+comm: comm;
+comm_rewards: comm_rewards;
+rec_addr: rec_addr}
+| UpdateDeleg ssnaddr deleg stake_amt =>
+{_recipient : calleeContract;
+_tag: "UpdateDeleg";
+_amount: Uint128 0;
+ssnaddr: ssnaddr;
+deleg: deleg;
+stake_amt: stake_amt}
+| PopulateStakeSSNPerCycle ssn_addr cycle totalAmt rewards =>
+{_recipient: calleeContract;
+_tag: "PopulateStakeSSNPerCycle";
+_amount : Uint128 0;
+ssn_addr: ssn_addr;
+cycle: cycle;
+totalAmt: totalAmt;
+rewards: rewards}
+| PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
+{_recipient: calleeContract;
+_tag: "PopulateLastWithdrawCycleFordeleg";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+cycle: cycle}
+| PopulateLastBufDepositCycleDeleg deleg_addr ssn_addr cycle =>
+{_recipient: calleeContract;
+_tag: "PopulateLastBufDepositCycleDeleg";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+cycle: cycle}
+| PopulateBuffDeposit deleg_addr ssn_addr cycle amt =>
+{_recipient: calleeContract;
+_tag: "PopulateBuffDeposit";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+cycle: cycle;
+amt: amt}
+| PopulateDirectDeposit deleg_addr ssn_addr cycle amt =>
+{_recipient: calleeContract;
+_tag: "PopulateDirectDeposit";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+cycle: cycle;
+amt: amt}
+| PopulateDepositAmtDeleg deleg_addr ssn_addr amt =>
+{_recipient: calleeContract;
+_tag: "PopulateDepositAmtDeleg";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+amt: amt}
+| PopulateDelegStakePerCycle deleg_addr ssn_addr cycle amt =>
+{_recipient: calleeContract;
+_tag: "PopulateDelegStakePerCycle";
+_amount: Uint128 0;
+deleg_addr: deleg_addr;
+ssn_addr: ssn_addr;
+cycle: cycle;
+amt: amt}
+| PopulateLastRewardCycle cycle =>
+{_recipient: calleeContract;
+_tag: "PopulateLastRewardCycle";
+_amount: Uint128 0;
+cycle: cycle}
+| PopulateCommForSSN ssn_addr cycle comm =>
+{_recipient : calleeContract;
+_tag: "PopulateCommForSSN";
+_amount: Uint128 0;
+ssn_addr: ssn_addr;
+cycle: cycle;
+comm: comm}
+| PopulateTotalStakeAmt amt =>
+{_recipient: calleeContract;
+_tag: "PopulateTotalStakeAmt";
+_amount: Uint128 0;
+amt: amt}
+| PopulatePendingWithdrawal ssn_addr block_number stake =>
+{_recipient: calleeContract;
+_tag: "PopulatePendingWithdrawal";
+_amount: Uint128 0;
+ssn_addr: ssn_addr;
+block_number: block_number;
+stake: stake}
+| DrainContractBalance amt =>
+{_recipient : calleeContract;
+_tag : "DrainContractBalance";
+_amount : Uint128 0;
+amt: amt}
+end
+in
+one_msg msg
+contract Wallet
+(
+owners_list         : List ByStr20,
+required_signatures : Uint32
+)
+with
+let len = @list_length ByStr20 in
+let no_of_owners = len owners_list in
+let owners_ok = builtin lt zero no_of_owners in
+let required_sigs_not_too_low = builtin lt zero required_signatures in
+let required_sigs_too_high = builtin lt no_of_owners required_signatures in
+let required_sigs_not_too_high = negb required_sigs_too_high in
+let required_sigs_ok = andb required_sigs_not_too_high required_sigs_not_too_low in
+let all_ok = andb required_sigs_ok owners_ok in
+match all_ok with
+| True =>
+let owners_map = mk_owners_map owners_list in
+let size_of_owners_map = builtin size owners_map in
+builtin eq size_of_owners_map no_of_owners
+| False =>
+False
+end
+=>
+field owners           : Map ByStr20 Bool = mk_owners_map owners_list
+field transactionCount : Uint32 = Uint32 0
+field signatures       : Map Uint32 (Map ByStr20 Bool) =
+Emp Uint32 (Map ByStr20 Bool)
+field signature_counts : Map Uint32 Uint32 =
+Emp Uint32 Uint32
+field transactions     : Map Uint32 Transaction =
+Emp Uint32 Transaction
+procedure MakeError (err : Error)
+e = mk_error_event err;
+event e
+end
+procedure AddSignature (transactionId : Uint32, signee : ByStr20)
+sig <- exists signatures[transactionId][signee];
+match sig with
+| False =>
+count <- signature_counts[transactionId];
+match count with
+| None =>
+signature_counts[transactionId] := one
+| Some c =>
+new_c = builtin add c one;
+signature_counts[transactionId] := new_c
+end;
+signatures[transactionId][signee] := t;
+e = mk_signed_transaction_event transactionId;
+event e
+| True =>
+err = AlreadySigned;
+MakeError err
+end
+end
+procedure SubmitTransaction (transaction : Transaction)
+sender_is_owner <- exists owners[_sender];
+match sender_is_owner with
+| False =>
+err = NonOwnerCannotSubmit;
+MakeError err
+| True =>
+tc <- transactionCount;
+transactions[tc] := transaction;
+AddSignature tc _sender;
+tc_new = builtin add tc transaction_inc;
+transactionCount := tc_new;
+e = mk_transaction_added_event tc;
+event e
+end
+end
+transition SubmitNativeTransaction (recipient : ByStr20, amount : Uint128, tag : String)
+zero = Uint128 0;
+amount_is_zero = builtin eq amount zero;
+match amount_is_zero with
+| True =>
+err = InvalidAmount;
+MakeError err
+| False =>
+transaction = NativeTransaction recipient amount tag;
+SubmitTransaction transaction
+end
+end
+procedure SubmitCustomTransaction (calleeContract : ByStr20, calleeTransaction : CalleeTransaction)
+transaction = CustomTransaction calleeContract calleeTransaction;
+SubmitTransaction transaction
+end
+transition SubmitCustomUpgradeToTransaction (calleeContract : ByStr20, newImplementation : ByStr20)
+transaction = UpgradeTo newImplementation;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomChangeProxyAdminTransaction (calleeContract : ByStr20, newAdmin : ByStr20)
+transaction = ChangeProxyAdmin newAdmin;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomClaimProxyAdminTransaction (calleeContract : ByStr20)
+transaction = ClaimProxyAdmin;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomChangeMinterTransaction (calleeContract : ByStr20, new_minter : ByStr20)
+transaction = ChangeMinter new_minter;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomPauseTransaction(calleeContract: ByStr20)
+transaction = Pause;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUnpauseTransaction(calleeContract: ByStr20)
+transaction = UnPause;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateAdminTransaction(calleeContract: ByStr20, new_admin: ByStr20)
+transaction = UpdateAdmin new_admin;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomClaimAdminTransaction(calleeContract: ByStr20)
+transaction = ClaimAdmin;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateVerifierTransaction(calleeContract: ByStr20, verif: ByStr20)
+transaction = UpdateVerifier verif;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateVerifierRewardAddrTransaction(calleeContract: ByStr20, addr: ByStr20)
+transaction = UpdateVerifierRewardAddr addr;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateStakingParametersTransaction(calleeContract: ByStr20, min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128)
+transaction = UpdateStakingParameters min_stake min_deleg_stake max_comm_change_rate;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomChangeBNumReqTransaction(calleeContract: ByStr20, input_bnum_req: Uint128)
+transaction = ChangeBNumReq input_bnum_req;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateGzilAddrTransaction(calleeContract: ByStr20, gzil_addr: ByStr20)
+transaction = UpdateGzilAddr gzil_addr;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomAddSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128)
+transaction = AddSSN ssnaddr name urlraw urlapi comm;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomUpdateSSNTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String)
+transaction = UpdateSSN ssnaddr new_name new_urlraw new_urlapi;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomAddSSNAfterUpgradeTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128, comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)
+transaction = AddSSNAfterUpgrade ssnaddr stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards rec_addr;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitUpdateDelegTransaction(calleeContract: ByStr20, ssnaddr: ByStr20, deleg: ByStr20, stake_amt: Uint128)
+transaction = UpdateDeleg ssnaddr deleg stake_amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, totalAmt: Uint128, rewards: Uint128)
+transaction = PopulateStakeSSNPerCycle ssn_addr cycle totalAmt rewards;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateLastWithdrawCycleFordelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateLastBufDepositCycleDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+transaction = PopulateLastBufDepositCycleDeleg deleg_addr ssn_addr cycle;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateBuffDepositTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transaction = PopulateBuffDeposit deleg_addr ssn_addr cycle amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateDirectDepositTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transaction = PopulateDirectDeposit deleg_addr ssn_addr cycle amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateDepositAmtDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, amt: Uint128)
+transaction = PopulateDepositAmtDeleg deleg_addr ssn_addr amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateDelegStakePerCycleTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128)
+transaction = PopulateDelegStakePerCycle deleg_addr ssn_addr cycle amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateLastRewardCycleTransaction(calleeContract: ByStr20, cycle: Uint32)
+transaction = PopulateLastRewardCycle cycle;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateCommForSSNTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)
+transaction = PopulateCommForSSN ssn_addr cycle comm;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulateTotalStakeAmtTransaction(calleeContract: ByStr20, amt: Uint128)
+transaction = PopulateTotalStakeAmt amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitPopulatePendingWithdrawalTransaction(calleeContract: ByStr20, ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
+transaction = PopulatePendingWithdrawal ssn_addr block_number stake;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SubmitCustomDrainContractBalanceTransaction(calleeContract : ByStr20, amt: Uint128)
+transaction = DrainContractBalance amt;
+SubmitCustomTransaction calleeContract transaction
+end
+transition SignTransaction (transactionId : Uint32)
+sender_is_owner <- exists owners[_sender];
+match sender_is_owner with
+| False =>
+err = NonOwnerCannotSign;
+MakeError err
+| True =>
+transaction <- transactions[transactionId];
+match transaction with
+| None =>
+err = UnknownTransactionId;
+MakeError err
+| Some _ =>
+AddSignature transactionId _sender
+end
+end
+end
+transition RevokeSignature (transactionId : Uint32)
+sig <- exists signatures[transactionId][_sender];
+match sig with
+| False =>
+err = NotAlreadySigned;
+MakeError err
+| True =>
+count <- signature_counts[transactionId];
+match count with
+| None =>
+err = IncorrectSignatureCount;
+MakeError err
+| Some c =>
+c_is_zero = builtin eq c zero;
+match c_is_zero with
+| True =>
+err = IncorrectSignatureCount;
+MakeError err
+| False =>
+new_c = builtin sub c one;
+signature_counts[transactionId] := new_c;
+delete signatures[transactionId][_sender];
+e = mk_signature_revoked_event transactionId;
+event e
+end
+end
+end
+end
+procedure DeleteTransaction (transactionId : Uint32)
+delete transactions[transactionId];
+delete signatures[transactionId];
+delete signature_counts[transactionId]
+end
+procedure ExecuteNativeTransaction (recipient : ByStr20, amount : Uint128, tag : String)
+recipient_is_sender = builtin eq recipient _sender;
+sender_is_owner <- exists owners[_sender];
+sender_may_execute = orb recipient_is_sender sender_is_owner;
+match sender_may_execute with
+| False =>
+err = SenderMayNotExecute;
+MakeError err
+| True =>
+bal <- _balance;
+not_enough_money = builtin lt bal amount;
+match not_enough_money with
+| True =>
+err = InsufficientFunds;
+MakeError err
+| False =>
+msgs = native_transaction_msg_as_list recipient amount tag;
+send msgs
+end
+end
+end
+procedure ExecuteCustomTransaction (calleeContract : ByStr20, calleeTransaction : CalleeTransaction)
+sender_is_owner <- exists owners[_sender];
+match sender_is_owner with
+| False =>
+err = SenderMayNotExecute;
+MakeError err
+| True =>
+as_msg = custom_transaction_msg_as_list calleeContract calleeTransaction;
+send as_msg
+end
+end
+transition ExecuteTransaction (transactionId : Uint32)
+transaction_opt <- transactions[transactionId];
+match transaction_opt with
+| None =>
+err = UnknownTransactionId;
+MakeError err
+| Some transaction =>
+sig_count_opt <- signature_counts[transactionId];
+match sig_count_opt with
+| None =>
+err = NoSignatureListFound;
+MakeError err
+| Some sig_count =>
+not_enough_signatures = builtin lt sig_count required_signatures;
+match not_enough_signatures with
+| True =>
+err = NotEnoughSignatures;
+MakeError err
+| False =>
+match transaction with
+| NativeTransaction recipient amount tag =>
+ExecuteNativeTransaction recipient amount tag
+| CustomTransaction calleeContract calleeTransaction =>
+ExecuteCustomTransaction calleeContract calleeTransaction
+end;
+DeleteTransaction transactionId
+end
+end
+end
+end
+transition AddFunds ()
+accept;
+e = { _eventname: "FundsAdded"; sender: _sender; amount : _amount};
+event e
+end
