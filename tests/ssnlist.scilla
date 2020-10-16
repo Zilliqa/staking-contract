@@ -102,7 +102,6 @@ let zero = Uint256 0 in
 builtin div zero zero
 | Some x256 => x256
 end
-in
 let muldiv : Uint128 -> Uint128 -> Uint128 -> Uint128 =
 fun (x : Uint128) =>
 fun (y : Uint128) =>

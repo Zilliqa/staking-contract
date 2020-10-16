@@ -180,7 +180,6 @@ let uint128_to_uint256 : Uint128 -> Uint256 =
         builtin div zero zero
       | Some x256 => x256
       end
-in
 
 (* Compute "(x * y) / z" with protection against integer overflows *)
 let muldiv : Uint128 -> Uint128 -> Uint128 -> Uint128 =
