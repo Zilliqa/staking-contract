@@ -569,8 +569,7 @@ procedure UpdateStakeReward(entry: SsnStakeRewardShare)
         verifier_reward := new_current_verifier_reward;
 
         (* To calculate commission *)
-        reward_comm_tmp = builtin mul new_rewards comm;
-        reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
+        reward_comm_tmp = muldiv new_rewards comm uint128_100;
         reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
         total_reward_comm = builtin add reward_comm_tmp comm_rewards;
 
