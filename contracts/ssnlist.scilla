@@ -83,6 +83,7 @@ let one_msg =
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
 let uint128_10_power_7 = Uint128 10000000
+let uint128_10_power_9 = Uint128 1000000000
 let uint128_100 = Uint128 100
 
 let uint32_one = Uint32 1
@@ -569,8 +570,7 @@ procedure UpdateStakeReward(entry: SsnStakeRewardShare)
         verifier_reward := new_current_verifier_reward;
 
         (* To calculate commission *)
-        reward_comm_tmp = muldiv new_rewards comm uint128_100;
-        reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
+        reward_comm_tmp = muldiv new_rewards comm uint128_10_power_9;
         total_reward_comm = builtin add reward_comm_tmp comm_rewards;
 
         (* To calculate rewards can be distributed to delegators *)
