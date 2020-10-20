@@ -18,6 +18,7 @@ Cons {Message} m e
 let uint128_one =  Uint128 1
 let uint128_zero = Uint128 0
 let uint128_10_power_7 = Uint128 10000000
+let uint128_10_power_9 = Uint128 1000000000
 let uint128_100 = Uint128 100
 let uint32_one = Uint32 1
 let uint32_zero = Uint32 0
@@ -92,6 +93,33 @@ match xs_m with
 | Pair xs m => xs
 end
 | False => Nil {Uint32}
+end
+let uint128_to_uint256 : Uint128 -> Uint256 =
+fun (x : Uint128) =>
+let ox256 = builtin to_uint256 x in
+match ox256 with
+| None =>
+let zero = Uint256 0 in
+builtin div zero zero
+| Some x256 => x256
+end
+let muldiv : Uint128 -> Uint128 -> Uint128 -> Uint128 =
+fun (x : Uint128) =>
+fun (y : Uint128) =>
+fun (z : Uint128) =>
+let x256 = uint128_to_uint256 x in
+let y256 = uint128_to_uint256 y in
+let z256 = uint128_to_uint256 z in
+let x_mul_y256 = builtin mul x256 y256 in
+let res256 = builtin div x_mul_y256 z256 in
+let ores128 = builtin to_uint128 res256 in
+match ores128 with
+| None =>
+let max_uint128 = Uint128 340282366920938463463374607431768211455 in
+let fourtytwo128 = Uint128 42 in
+builtin mul max_uint128 fourtytwo128
+| Some res128 =>
+res128
 end
 let map_to_stake_rewards =
 fun (total_stake: Uint128) =>
@@ -367,15 +395,12 @@ match active_status with
 e = { _eventname: "SSN inactive"; ssn_addr: ssnaddr};
 event e
 | True  =>
-new_rewards_tmp = builtin mul stake_amt cycle_reward;
-new_rewards = builtin div new_rewards_tmp total_stake;
+new_rewards = muldiv stake_amt cycle_reward total_stake;
 current_verifier_reward <- verifier_reward;
 AssertCorrectRewards current_verifier_reward new_rewards;
 new_current_verifier_reward = builtin sub current_verifier_reward new_rewards;
 verifier_reward := new_current_verifier_reward;
-reward_comm_tmp = builtin mul new_rewards comm;
-reward_comm_tmp = builtin div reward_comm_tmp uint128_100;
-reward_comm_tmp = builtin div reward_comm_tmp uint128_10_power_7;
+reward_comm_tmp = muldiv new_rewards comm uint128_10_power_9;
 total_reward_comm = builtin add reward_comm_tmp comm_rewards;
 delegate_reward = builtin sub new_rewards reward_comm_tmp;
 p = SSNCycleInfo stake_amt delegate_reward;
@@ -622,8 +647,7 @@ end;
 deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := staking_of_deleg;
 match staking_and_rewards_per_cycle_for_ssn_opt with
 | Some (SSNCycleInfo total_staking total_rewards) =>
-reward_tmp = builtin mul total_rewards staking_of_deleg;
-reward = builtin div reward_tmp total_staking;
+reward = muldiv total_rewards staking_of_deleg total_staking;
 IncreaseReward reward
 | None =>
 end
