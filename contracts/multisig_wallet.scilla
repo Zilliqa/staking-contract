@@ -321,7 +321,7 @@ let custom_transaction_msg_as_list =
         (* PopulateLastWithdrawCycleForDeleg(deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32) *)
       | PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle =>
         {_recipient: calleeContract;
-         _tag: "PopulateLastWithdrawCycleFordeleg";
+         _tag: "PopulateLastWithdrawCycleForDeleg";
          _amount: Uint128 0;
          deleg_addr: deleg_addr;
          ssn_addr: ssn_addr;
@@ -722,8 +722,8 @@ transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ss
   SubmitCustomTransaction calleeContract transaction
 end
 
-(* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+(* Submit a new PopulateLastWithdrawCycleForDeleg transaction for future signoff *)
+transition SubmitPopulateLastWithdrawCycleForDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
   transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
   SubmitCustomTransaction calleeContract transaction
 end
