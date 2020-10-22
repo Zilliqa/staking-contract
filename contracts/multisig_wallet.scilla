@@ -722,8 +722,8 @@ transition SubmitPopulateStakeSSNPerCycleTransaction(calleeContract: ByStr20, ss
   SubmitCustomTransaction calleeContract transaction
 end
 
-(* Submit a new PopulateLastWithdrawCycleFordeleg transaction for future signoff *)
-transition SubmitPopulateLastWithdrawCycleFordelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
+(* Submit a new PopulateLastWithdrawCycleForDeleg transaction for future signoff *)
+transition SubmitPopulateLastWithdrawCycleForDelegTransaction(calleeContract: ByStr20, deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32)
   transaction = PopulateLastWithdrawCycleForDeleg deleg_addr ssn_addr cycle;
   SubmitCustomTransaction calleeContract transaction
 end
