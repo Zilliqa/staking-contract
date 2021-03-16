@@ -1589,13 +1589,13 @@ procedure ActualSwapBuffDeposit(buff_deposit_cycle: Pair Uint32 Uint128)
         | Some recipient_buff_deposit =>
           new_amt = builtin add recipient_buff_deposit current_deposit_amt;
           buff_deposit_deleg[new_recipient][ssn][reward_cycle] := new_amt;
-          e = { _eventname: "SwapBuffDepositExists"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: recipient_buff_deposit; new_amt: new_amt };
+          e = { _eventname: "SwapBuffDepositExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: recipient_buff_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no buff deposit on ssn *)
           (* take amount from current deleg and give to new deleg *)
           buff_deposit_deleg[new_recipient][ssn][reward_cycle] := current_deposit_amt;
-          e = { _eventname: "SwapBuffDepositExistsNewEntry"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
+          e = { _eventname: "SwapBuffDepositNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
           event e
         end
       | None =>
@@ -1655,13 +1655,13 @@ procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
         | Some recipient_direct_deposit =>
           new_amt = builtin add recipient_direct_deposit current_direct_deposit_amt;
           direct_deposit_deleg[new_recipient][ssn][reward_cycle] := new_amt;
-          e = { _eventname: "SwapDirectDepositExists"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: recipient_direct_deposit; new_amt: new_amt };
+          e = { _eventname: "SwapDirectDepositExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: recipient_direct_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no direct deposit on ssn *)
           (* take amount from current deleg and give to new deleg *)
           direct_deposit_deleg[new_recipient][ssn][reward_cycle] := current_direct_deposit_amt;
-          e = { _eventname: "SwapDirectDepositExistsNewEntry"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_direct_deposit_amt };
+          e = { _eventname: "SwapDirectDepositNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_direct_deposit_amt };
           event e
         end
       | None =>
@@ -1721,13 +1721,13 @@ procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
         | Some stake_deposit =>
           new_amt = builtin add stake_deposit current_deposit_amt;
           deleg_stake_per_cycle[new_recipient][ssn][cycle_no] := new_amt;
-          e = { _eventname: "SwapDelegStakePerCycleExists"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
+          e = { _eventname: "SwapDelegStakePerCycleExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no deleg stake per cycle on ssn *)
           (* take amount from current deleg and give to new deleg *)
           deleg_stake_per_cycle[new_recipient][ssn][cycle_no] := current_deposit_amt;
-          e = { _eventname: "SwapDelegStakePerCycleExistsNewEntry"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
+          e = { _eventname: "SwapDelegStakePerCycleNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
           event e
         end
       | None =>
