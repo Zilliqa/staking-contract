@@ -1765,6 +1765,46 @@ procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
+  get_left_val = @get_left_pair_val ByStr20 Ssn;
+  ssn_address = get_left_val ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    deposit_deleg_amt <- deposit_amt_deleg[initial_deleg][ssn_address];
+    match deposit_deleg_amt with
+    | Some deposit_amt =>
+      match new_deleg_o with
+      | Some new_recipient =>
+        current_deposit_deleg_amt <- deposit_amt_deleg[new_recipient][ssn_address];
+        match current_deposit_deleg_amt with
+        | Some existing_deposit_amt =>
+          (* new deleg already has an existing deposit_amt_deleg entry *)
+          new_amt = builtin add existing_deposit_amt deposit_amt;
+          deposit_amt_deleg[new_recipient][ssn_address] := new_amt;
+          delete deposit_amt_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapDepositAmtDelegExists"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
+          event e
+        | None =>
+          (* new deleg has no deposit deleg amt on ssn *)
+          (* take amount from current deleg and give to new deleg *)
+          deposit_amt_deleg[new_recipient][ssn_address] := deposit_amt;
+          delete deposit_amt_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapDepositAmtDelegNewEntry"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; amt: deposit_amt };
+          event e
+        end
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* No deposit at this ssn *)
+    end
+  | None =>
+    e = DelegDoesNotExistAtSSN;
+    ThrowError e
+  end
+end
+
 transition SwapDeleg(initiator: ByStr20, recipient: ByStr20)
   c = Some {ByStr20} initiator;
   current_deleg := c;
@@ -1774,5 +1814,6 @@ transition SwapDeleg(initiator: ByStr20, recipient: ByStr20)
   ssninfo_list = builtin to_list ssnlist_o;
   forall ssninfo_list SwapBuffDeposit;
   forall ssninfo_list SwapDirectDeposit;
-  forall ssninfo_list SwapDelegStakePerCycle
+  forall ssninfo_list SwapDelegStakePerCycle;
+  forall ssninfo_list SwapDepositAmtDeleg
 end
