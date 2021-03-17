@@ -39,6 +39,7 @@ func (t *Testing) ChangeProxyAdmin() {
 	receipt, _ := json.Marshal(txn.Receipt)
 	recp := string(receipt)
 	t.AssertContain(recp, adminChanged)
+	log.Println(recp)
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, change proxy admin
@@ -46,6 +47,7 @@ func (t *Testing) ChangeProxyAdmin() {
 	tnx, _ := proxy.Call("ChangeProxyAdmin", args, "0")
 	receipt, _ = json.Marshal(tnx.Receipt)
 	recp = string(receipt)
+	log.Println(recp)
 	t.AssertContain(recp, adminNotChanged)
 	proxy.LogContractStateJson()
 
