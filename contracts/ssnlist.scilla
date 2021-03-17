@@ -1857,14 +1857,52 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
     | Some cycle_no =>
       match new_deleg_o with
       | Some new_recipient =>
-        lrc <- lastrewardcycle;
-        last_withdraw_cycle_deleg[new_recipient][ssn_address] := lrc;
-        delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
-        e = { _eventname: "SwapLastWithdrawCycleDeleg"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; last_reward_cycle: lrc };
-        event e
+        recipient_lwcd <- last_withdraw_cycle_deleg[new_recipient][ssn_address];
+        match recipient_lwcd with
+        | Some existing_lwcd =>
+          (* initial deleg has a last withdraw cycle *)
+          (* recipient has an existing last withdraw cycle *)
+          (* keep the existing lwcd of recipient *)
+          delete last_withdraw_cycle_deleg[initial_deleg][ssn_address]
+        | None =>
+          (* recipient does not have an entry for this ssn *)
+          lrc <- lastrewardcycle;
+          last_withdraw_cycle_deleg[new_recipient][ssn_address] := lrc;
+          delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; last_reward_cycle: lrc };
+          event e
+        end
       | None => (* no new deleg to transfer to *)
       end
     | None => (* No last withdraw cycle for this ssn *)
+    end
+  | None =>
+    e = DelegDoesNotExistAtSSN;
+    ThrowError e
+  end
+end
+
+procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
+  get_left_val = @get_left_pair_val ByStr20 Ssn;
+  ssn_address = get_left_val ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    lbdc <- last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+    match lbdc with
+    | Some cycle_no =>
+      match new_deleg_o with
+      | Some new_recipient =>
+        lrc <- lastrewardcycle;
+        last_buf_deposit_cycle_deleg[new_recipient][ssn_address] := lrc;
+        delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+        e = { _eventname: "SwapLastBuffDepositCycleDeleg"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; last_reward_cycle: lrc };
+        event e
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* No last buff deposit cycle for this ssn *)
     end
   | None =>
     e = DelegDoesNotExistAtSSN;
@@ -1884,5 +1922,6 @@ transition SwapDeleg(initiator: ByStr20, recipient: ByStr20)
   forall ssninfo_list SwapDelegStakePerCycle;
   forall ssninfo_list SwapDepositAmtDeleg;
   forall ssninfo_list SwapSSNDelegAmt;
+  forall ssninfo_list SwapLastBuffDepositCycleDeleg;
   forall ssninfo_list SwapLastWithdrawCycleDeleg
 end
