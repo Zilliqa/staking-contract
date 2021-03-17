@@ -1578,24 +1578,24 @@ procedure ActualSwapBuffDeposit(buff_deposit_cycle: Pair Uint32 Uint128)
   current_deposit_amt = get_right_val buff_deposit_cycle;
   
   match new_deleg_o with
-  | Some new_recipient =>
+  | Some new_deleg_addr =>
     match current_deleg_o with
     | Some initial_deleg =>
       match current_ssn_o with
       | Some ssn =>
         (* new deleg already has existing buff deposit on ssn *)
-        recipient_buff_deposit_amt <- buff_deposit_deleg[new_recipient][ssn][reward_cycle];
-        match recipient_buff_deposit_amt with
-        | Some recipient_buff_deposit =>
-          new_amt = builtin add recipient_buff_deposit current_deposit_amt;
-          buff_deposit_deleg[new_recipient][ssn][reward_cycle] := new_amt;
-          e = { _eventname: "SwapBuffDepositExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: recipient_buff_deposit; new_amt: new_amt };
+        new_deleg_buff_deposit_amt <- buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle];
+        match new_deleg_buff_deposit_amt with
+        | Some new_deleg_buff_deposit =>
+          new_amt = builtin add new_deleg_buff_deposit current_deposit_amt;
+          buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := new_amt;
+          e = { _eventname: "SwapBuffDepositExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: new_deleg_buff_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no buff deposit on ssn *)
           (* take amount from current deleg and give to new deleg *)
-          buff_deposit_deleg[new_recipient][ssn][reward_cycle] := current_deposit_amt;
-          e = { _eventname: "SwapBuffDepositNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
+          buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := current_deposit_amt;
+          e = { _eventname: "SwapBuffDepositNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_deposit_amt };
           event e
         end
       | None =>
@@ -1644,24 +1644,24 @@ procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
   current_direct_deposit_amt = get_right_val direct_deposit_cycle;
 
   match new_deleg_o with
-  | Some new_recipient =>
+  | Some new_deleg_addr =>
     match current_deleg_o with
     | Some initial_deleg =>
       match current_ssn_o with
       | Some ssn =>
         (* new deleg already has existing direct deposit on ssn *)
-        recipient_direct_deposit_amt <- direct_deposit_deleg[new_recipient][ssn][reward_cycle];
-        match recipient_direct_deposit_amt with
-        | Some recipient_direct_deposit =>
-          new_amt = builtin add recipient_direct_deposit current_direct_deposit_amt;
-          direct_deposit_deleg[new_recipient][ssn][reward_cycle] := new_amt;
-          e = { _eventname: "SwapDirectDepositExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: recipient_direct_deposit; new_amt: new_amt };
+        new_deleg_direct_deposit_amt <- direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle];
+        match new_deleg_direct_deposit_amt with
+        | Some new_deleg_direct_deposit =>
+          new_amt = builtin add new_deleg_direct_deposit current_direct_deposit_amt;
+          direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := new_amt;
+          e = { _eventname: "SwapDirectDepositExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: new_deleg_direct_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no direct deposit on ssn *)
           (* take amount from current deleg and give to new deleg *)
-          direct_deposit_deleg[new_recipient][ssn][reward_cycle] := current_direct_deposit_amt;
-          e = { _eventname: "SwapDirectDepositNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_direct_deposit_amt };
+          direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := current_direct_deposit_amt;
+          e = { _eventname: "SwapDirectDepositNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_direct_deposit_amt };
           event e
         end
       | None =>
@@ -1710,24 +1710,24 @@ procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
   current_deposit_amt = get_right_val deleg_stake_cycle;
 
   match new_deleg_o with
-  | Some new_recipient =>
+  | Some new_deleg_addr =>
     match current_deleg_o with
     | Some initial_deleg =>
       match current_ssn_o with
       | Some ssn =>
         (* new deleg already has existing deleg stake per cycle on ssn *)
-        deleg_stake_deposit <- deleg_stake_per_cycle[new_recipient][ssn][cycle_no];
+        deleg_stake_deposit <- deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no];
         match deleg_stake_deposit with
         | Some stake_deposit =>
           new_amt = builtin add stake_deposit current_deposit_amt;
-          deleg_stake_per_cycle[new_recipient][ssn][cycle_no] := new_amt;
-          e = { _eventname: "SwapDelegStakePerCycleExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
+          deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := new_amt;
+          e = { _eventname: "SwapDelegStakePerCycleExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no deleg stake per cycle on ssn *)
           (* take amount from current deleg and give to new deleg *)
-          deleg_stake_per_cycle[new_recipient][ssn][cycle_no] := current_deposit_amt;
-          e = { _eventname: "SwapDelegStakePerCycleNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn; amt: current_deposit_amt };
+          deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := current_deposit_amt;
+          e = { _eventname: "SwapDelegStakePerCycleNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_deposit_amt };
           event e
         end
       | None =>
@@ -1777,22 +1777,22 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
     match deposit_deleg_amt with
     | Some deposit_amt =>
       match new_deleg_o with
-      | Some new_recipient =>
-        current_deposit_deleg_amt <- deposit_amt_deleg[new_recipient][ssn_address];
+      | Some new_deleg_addr =>
+        current_deposit_deleg_amt <- deposit_amt_deleg[new_deleg_addr][ssn_address];
         match current_deposit_deleg_amt with
         | Some existing_deposit_amt =>
           (* new deleg already has an existing deposit_amt_deleg entry *)
           new_amt = builtin add existing_deposit_amt deposit_amt;
-          deposit_amt_deleg[new_recipient][ssn_address] := new_amt;
+          deposit_amt_deleg[new_deleg_addr][ssn_address] := new_amt;
           delete deposit_amt_deleg[initial_deleg][ssn_address];
-          e = { _eventname: "SwapDepositAmtDelegExists"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
+          e = { _eventname: "SwapDepositAmtDelegExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no deposit deleg amt on ssn *)
           (* take amount from current deleg and give to new deleg *)
-          deposit_amt_deleg[new_recipient][ssn_address] := deposit_amt;
+          deposit_amt_deleg[new_deleg_addr][ssn_address] := deposit_amt;
           delete deposit_amt_deleg[initial_deleg][ssn_address];
-          e = { _eventname: "SwapDepositAmtDelegNewEntry"; inital_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; amt: deposit_amt };
+          e = { _eventname: "SwapDepositAmtDelegNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: deposit_amt };
           event e
         end
       | None => (* no new deleg to transfer to *)
@@ -1817,21 +1817,21 @@ procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
     match ssn_deleg_deposit with
     | Some ssn_deleg_deposit_amt =>
       match new_deleg_o with
-      | Some new_recipient =>
-        recipient_ssn_deleg_amt <- ssn_deleg_amt[ssn_address][new_recipient];
-        match recipient_ssn_deleg_amt with
+      | Some new_deleg_addr =>
+        new_ssn_deleg_amt <- ssn_deleg_amt[ssn_address][new_deleg_addr];
+        match new_ssn_deleg_amt with
         | Some existing_deleg_amt =>
           new_amt = builtin add existing_deleg_amt ssn_deleg_deposit_amt;
-          ssn_deleg_amt[ssn_address][new_recipient] := new_amt;
+          ssn_deleg_amt[ssn_address][new_deleg_addr] := new_amt;
           delete ssn_deleg_amt[ssn_address][initial_deleg];
-          e = { _eventname: "SwapSSNDelegAmtExists"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; existing_amt: existing_deleg_amt; transferred_amt: ssn_deleg_deposit_amt; new_amt: new_amt };
+          e = { _eventname: "SwapSSNDelegAmtExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deleg_amt; transferred_amt: ssn_deleg_deposit_amt; new_amt: new_amt };
           event e
         | None =>
           (* new deleg has no deposit deleg amt on ssn *)
           (* take amount from current deleg and give to new deleg *)
-          ssn_deleg_amt[ssn_address][new_recipient] := ssn_deleg_deposit_amt;
+          ssn_deleg_amt[ssn_address][new_deleg_addr] := ssn_deleg_deposit_amt;
           delete ssn_deleg_amt[ssn_address][initial_deleg];
-          e = { _eventname: "SwapSSNDelegAmtNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; amt: ssn_deleg_deposit_amt };
+          e = { _eventname: "SwapSSNDelegAmtNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: ssn_deleg_deposit_amt };
           event e
         end
       | None => (* no new deleg to transfer to *)
@@ -1856,9 +1856,9 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
     match lwcd with
     | Some cycle_no =>
       match new_deleg_o with
-      | Some new_recipient =>
-        recipient_lwcd <- last_withdraw_cycle_deleg[new_recipient][ssn_address];
-        match recipient_lwcd with
+      | Some new_deleg_addr =>
+        new_deleg_lwcd <- last_withdraw_cycle_deleg[new_deleg_addr][ssn_address];
+        match new_deleg_lwcd with
         | Some existing_lwcd =>
           (* initial deleg has a last withdraw cycle *)
           (* recipient has an existing last withdraw cycle *)
@@ -1867,9 +1867,9 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
         | None =>
           (* recipient does not have an entry for this ssn *)
           lrc <- lastrewardcycle;
-          last_withdraw_cycle_deleg[new_recipient][ssn_address] := lrc;
+          last_withdraw_cycle_deleg[new_deleg_addr][ssn_address] := lrc;
           delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
-          e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; last_reward_cycle: lrc };
+          e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; last_reward_cycle: lrc };
           event e
         end
       | None => (* no new deleg to transfer to *)
@@ -1894,11 +1894,11 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
     match lbdc with
     | Some cycle_no =>
       match new_deleg_o with
-      | Some new_recipient =>
+      | Some new_deleg_addr =>
         lrc <- lastrewardcycle;
-        last_buf_deposit_cycle_deleg[new_recipient][ssn_address] := lrc;
+        last_buf_deposit_cycle_deleg[new_deleg_addr][ssn_address] := lrc;
         delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
-        e = { _eventname: "SwapLastBuffDepositCycleDeleg"; initial_deleg: initial_deleg; new_deleg: new_recipient; ssn_addr: ssn_address; last_reward_cycle: lrc };
+        e = { _eventname: "SwapLastBuffDepositCycleDeleg"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; last_reward_cycle: lrc };
         event e
       | None => (* no new deleg to transfer to *)
       end
@@ -1910,10 +1910,12 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
-transition SwapDeleg(initiator: ByStr20, recipient: ByStr20)
+(* @dev : Change a delegator's stake from initiator -> new_deleg_addr. *)
+(* TODO : ADD IS PROXY CHECK *)
+transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
   c = Some {ByStr20} initiator;
   current_deleg := c;
-  n = Some {ByStr20} recipient;
+  n = Some {ByStr20} new_deleg_addr;
   new_deleg := n;
   ssnlist_o <- ssnlist;
   ssninfo_list = builtin to_list ssnlist_o;
