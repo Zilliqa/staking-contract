@@ -127,6 +127,20 @@ fun (element: SsnRewardShare) =>
 match element with
 | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake
 end
+let get_left_pair_val =
+tfun 'A =>
+tfun 'B =>
+fun (p : Pair ('A) ('B)) =>
+match p with
+| Pair a b => a
+end
+let get_right_pair_val =
+tfun 'A =>
+tfun 'B =>
+fun (p : Pair ('A) ('B)) =>
+match p with
+| Pair a b => b
+end
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
@@ -203,6 +217,8 @@ field cycle_rewards_deleg: Uint128 = uint128_zero
 field verifier_reward: Uint128 = uint128_zero
 field available_withdrawal: Uint128 = uint128_zero
 field current_deleg: Option ByStr20 = None {ByStr20}
+field current_ssn: Option ByStr20 = None {ByStr20}
+field new_deleg: Option ByStr20 = None {ByStr20}
 field verifier: Option ByStr20 = None {ByStr20}
 field verifier_receiving_addr: Option ByStr20 = None {ByStr20}
 field minstake: Uint128 = Uint128 10000000000000000000
@@ -1159,4 +1175,309 @@ match less_than with
 | False =>
 TransferFunds addfunds_tag amt initiator
 end
+end
+procedure ActualSwapBuffDeposit(buff_deposit_cycle: Pair Uint32 Uint128)
+current_ssn_o <- current_ssn;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+get_left_val = @get_left_pair_val Uint32 Uint128;
+get_right_val = @get_right_pair_val Uint32 Uint128;
+reward_cycle = get_left_val buff_deposit_cycle;
+current_deposit_amt = get_right_val buff_deposit_cycle;
+match new_deleg_o with
+| Some new_deleg_addr =>
+match current_deleg_o with
+| Some initial_deleg =>
+match current_ssn_o with
+| Some ssn =>
+new_deleg_buff_deposit_amt <- buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle];
+match new_deleg_buff_deposit_amt with
+| Some new_deleg_buff_deposit =>
+new_amt = builtin add new_deleg_buff_deposit current_deposit_amt;
+buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := new_amt;
+e = { _eventname: "SwapBuffDepositExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: new_deleg_buff_deposit; new_amt: new_amt };
+event e
+| None =>
+buff_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := current_deposit_amt;
+e = { _eventname: "SwapBuffDepositNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_deposit_amt };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+end
+end
+procedure SwapBuffDeposit(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+match current_deleg_o with
+| Some deleg =>
+buff_deposit_cycle_map <- buff_deposit_deleg[deleg][ssn_address];
+match buff_deposit_cycle_map with
+| Some buff_deposit_cycle_map_o =>
+buff_deposit_cycle_list = builtin to_list buff_deposit_cycle_map_o;
+ssn = Some {ByStr20} ssn_address;
+current_ssn := ssn;
+forall buff_deposit_cycle_list ActualSwapBuffDeposit;
+delete buff_deposit_deleg[deleg][ssn_address]
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
+current_ssn_o <- current_ssn;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+get_left_val = @get_left_pair_val Uint32 Uint128;
+get_right_val = @get_right_pair_val Uint32 Uint128;
+reward_cycle = get_left_val direct_deposit_cycle;
+current_direct_deposit_amt = get_right_val direct_deposit_cycle;
+match new_deleg_o with
+| Some new_deleg_addr =>
+match current_deleg_o with
+| Some initial_deleg =>
+match current_ssn_o with
+| Some ssn =>
+new_deleg_direct_deposit_amt <- direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle];
+match new_deleg_direct_deposit_amt with
+| Some new_deleg_direct_deposit =>
+new_amt = builtin add new_deleg_direct_deposit current_direct_deposit_amt;
+direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := new_amt;
+e = { _eventname: "SwapDirectDepositExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: new_deleg_direct_deposit; new_amt: new_amt };
+event e
+| None =>
+direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := current_direct_deposit_amt;
+e = { _eventname: "SwapDirectDepositNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_direct_deposit_amt };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+end
+end
+procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+match current_deleg_o with
+| Some deleg =>
+direct_deposit_cycle_map <- direct_deposit_deleg[deleg][ssn_address];
+match direct_deposit_cycle_map with
+| Some direct_deposit_cycle_map_o =>
+direct_deposit_list = builtin to_list direct_deposit_cycle_map_o;
+ssn = Some {ByStr20} ssn_address;
+current_ssn := ssn;
+forall direct_deposit_list ActualSwapDirectDeposit;
+delete direct_deposit_deleg[deleg][ssn_address]
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
+current_ssn_o <- current_ssn;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+get_left_val = @get_left_pair_val Uint32 Uint128;
+get_right_val = @get_right_pair_val Uint32 Uint128;
+cycle_no = get_left_val deleg_stake_cycle;
+current_deposit_amt = get_right_val deleg_stake_cycle;
+match new_deleg_o with
+| Some new_deleg_addr =>
+match current_deleg_o with
+| Some initial_deleg =>
+match current_ssn_o with
+| Some ssn =>
+deleg_stake_deposit <- deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no];
+match deleg_stake_deposit with
+| Some stake_deposit =>
+new_amt = builtin add stake_deposit current_deposit_amt;
+deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := new_amt;
+e = { _eventname: "SwapDelegStakePerCycleExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
+event e
+| None =>
+deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := current_deposit_amt;
+e = { _eventname: "SwapDelegStakePerCycleNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_deposit_amt };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+end
+end
+procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+match current_deleg_o with
+| Some deleg =>
+deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg][ssn_address];
+match deleg_stake_per_cycle_map with
+| Some deleg_stake_per_cycle_map_o =>
+deleg_stake_per_cycle_list = builtin to_list deleg_stake_per_cycle_map_o;
+ssn = Some {ByStr20} ssn_address;
+current_ssn := ssn;
+forall deleg_stake_per_cycle_list ActualSwapDelegStakePerCycle;
+delete deleg_stake_per_cycle[deleg][ssn_address]
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+match current_deleg_o with
+| Some initial_deleg =>
+deposit_deleg_amt <- deposit_amt_deleg[initial_deleg][ssn_address];
+match deposit_deleg_amt with
+| Some deposit_amt =>
+match new_deleg_o with
+| Some new_deleg_addr =>
+current_deposit_deleg_amt <- deposit_amt_deleg[new_deleg_addr][ssn_address];
+match current_deposit_deleg_amt with
+| Some existing_deposit_amt =>
+new_amt = builtin add existing_deposit_amt deposit_amt;
+deposit_amt_deleg[new_deleg_addr][ssn_address] := new_amt;
+delete deposit_amt_deleg[initial_deleg][ssn_address];
+e = { _eventname: "SwapDepositAmtDelegExists"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
+event e
+| None =>
+deposit_amt_deleg[new_deleg_addr][ssn_address] := deposit_amt;
+delete deposit_amt_deleg[initial_deleg][ssn_address];
+e = { _eventname: "SwapDepositAmtDelegNewEntry"; inital_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: deposit_amt };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+match current_deleg_o with
+| Some initial_deleg =>
+ssn_deleg_deposit <- ssn_deleg_amt[ssn_address][initial_deleg];
+match ssn_deleg_deposit with
+| Some ssn_deleg_deposit_amt =>
+match new_deleg_o with
+| Some new_deleg_addr =>
+new_ssn_deleg_amt <- ssn_deleg_amt[ssn_address][new_deleg_addr];
+match new_ssn_deleg_amt with
+| Some existing_deleg_amt =>
+new_amt = builtin add existing_deleg_amt ssn_deleg_deposit_amt;
+ssn_deleg_amt[ssn_address][new_deleg_addr] := new_amt;
+delete ssn_deleg_amt[ssn_address][initial_deleg];
+e = { _eventname: "SwapSSNDelegAmtExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deleg_amt; transferred_amt: ssn_deleg_deposit_amt; new_amt: new_amt };
+event e
+| None =>
+ssn_deleg_amt[ssn_address][new_deleg_addr] := ssn_deleg_deposit_amt;
+delete ssn_deleg_amt[ssn_address][initial_deleg];
+e = { _eventname: "SwapSSNDelegAmtNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: ssn_deleg_deposit_amt };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+match current_deleg_o with
+| Some initial_deleg =>
+lwcd <- last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+match lwcd with
+| Some cycle_no =>
+match new_deleg_o with
+| Some new_deleg_addr =>
+new_deleg_lwcd <- last_withdraw_cycle_deleg[new_deleg_addr][ssn_address];
+match new_deleg_lwcd with
+| Some existing_lwcd =>
+delete last_withdraw_cycle_deleg[initial_deleg][ssn_address]
+| None =>
+lrc <- lastrewardcycle;
+last_withdraw_cycle_deleg[new_deleg_addr][ssn_address] := lrc;
+delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; last_reward_cycle: lrc };
+event e
+end
+| None =>
+end
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
+get_left_val = @get_left_pair_val ByStr20 Ssn;
+ssn_address = get_left_val ssninfo;
+current_deleg_o <- current_deleg;
+new_deleg_o <- new_deleg;
+match current_deleg_o with
+| Some initial_deleg =>
+lbdc <- last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+match lbdc with
+| Some cycle_no =>
+match new_deleg_o with
+| Some new_deleg_addr =>
+lrc <- lastrewardcycle;
+last_buf_deposit_cycle_deleg[new_deleg_addr][ssn_address] := lrc;
+delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+e = { _eventname: "SwapLastBuffDepositCycleDeleg"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; last_reward_cycle: lrc };
+event e
+| None =>
+end
+| None =>
+end
+| None =>
+e = DelegDoesNotExistAtSSN;
+ThrowError e
+end
+end
+transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
+c = Some {ByStr20} initiator;
+current_deleg := c;
+n = Some {ByStr20} new_deleg_addr;
+new_deleg := n;
+ssnlist_o <- ssnlist;
+ssninfo_list = builtin to_list ssnlist_o;
+forall ssninfo_list SwapBuffDeposit;
+forall ssninfo_list SwapDirectDeposit;
+forall ssninfo_list SwapDelegStakePerCycle;
+forall ssninfo_list SwapDepositAmtDeleg;
+forall ssninfo_list SwapSSNDelegAmt;
+forall ssninfo_list SwapLastBuffDepositCycleDeleg;
+forall ssninfo_list SwapLastWithdrawCycleDeleg
 end

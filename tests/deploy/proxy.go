@@ -473,7 +473,7 @@ func NewProxy(key string) (*Proxy, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo("isolated")
+	tx, err := contract.DeployTo("isolated", "40000")
 	if err != nil {
 		return nil, err
 	}
