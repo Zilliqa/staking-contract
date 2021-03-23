@@ -35,20 +35,6 @@ library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 
-(* SSNRewardShare Data Type *)
-(* SSNRewardShare has the following fields: *)
-(* CycleReward is in Qa *)
-
-(*  SSNAddress        : ByStr20 *)
-(*                      Address of the SSN. *)
-(*  CycleReward       : Uint128 *)
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-(* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
-
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)

@@ -9,9 +9,6 @@ let one_msg =
     let e = Nil {Message} in
     Cons {Message} m e
 
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-
 type SSNCycleInfo =
 | SSNCycleInfo of Uint128 Uint128
 (***************************************************)
@@ -259,7 +256,7 @@ end
 (***************************************************)
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param ssnrewardlist: List of ssnreward. Each ssnreward is a Pair ssn_address cycle_reward *)
 transition AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128))
     current_impl <- implementation;
     accept;
