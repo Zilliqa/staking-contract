@@ -1467,6 +1467,8 @@ ThrowError e
 end
 end
 transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
+IsNotPaused;
+IsProxy;
 c = Some {ByStr20} initiator;
 current_deleg := c;
 n = Some {ByStr20} new_deleg_addr;
