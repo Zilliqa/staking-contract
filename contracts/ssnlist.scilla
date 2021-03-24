@@ -359,6 +359,37 @@ field totalstakeamount: Uint128 = uint128_zero
 
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
+procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
+  withdraw_amt <- withdrawal_pending[deleg][withdraw_number];
+  match withdraw_amt with
+  | Some amt =>
+    withdrawal_map <- withdrawal_pending[deleg];
+    match withdrawal_map with
+     | Some deleg_blk_entry =>
+       (* removes the entire deleg_withdraw_number map-key *)
+       deleg_blk_map = builtin remove deleg_blk_entry withdraw_number;
+
+       (* checks for remaining map-key entries for this deleg *)
+       deleg_blk_list = builtin to_list deleg_blk_map;
+       deleg_blk_list_size = let entry_length = @list_length (Pair BNum Uint128) in entry_length deleg_blk_list;
+       is_deleg_blk_entry_empty = builtin eq deleg_blk_list_size uint32_zero;
+
+       match is_deleg_blk_entry_empty with
+         | True =>
+           (* no more entries - remove the entire deleg from the map *)
+           withdrawal_pending_o <- withdrawal_pending;
+           new_withdrawal_pending = builtin remove withdrawal_pending_o deleg;
+           withdrawal_pending := new_withdrawal_pending
+         | False =>
+           (* contains other withdraw_number - reassign the new deleg_withdraw_number map *)
+           withdrawal_pending[deleg] := deleg_blk_map
+       end
+     | None => (* no pending withdrawal for this deleg *)
+    end
+  | None => (* no pending withdrawal for this deleg *)
+  end
+end
+
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete deposit_amt_deleg[deleg][ssnaddr];
   delete ssn_deleg_amt[ssnaddr][deleg];
@@ -519,16 +550,10 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       can_withdraw = builtin blt bnum current_bnum;
       match can_withdraw with
       | True =>
-          delete withdrawal_pending[deleg][withdraw_number];
+          DeletePendingWithdrawal deleg withdraw_number;
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          available_withdrawal := current_amt;
-          has_other_records <- withdrawal_pending[deleg];
-          match has_other_records with
-          | Some inner =>
-          | None =>
-            delete withdrawal_pending[deleg]
-          end
+          available_withdrawal := current_amt
       | False => 
       end
     end
