@@ -1910,6 +1910,35 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+procedure SwapPendingWithdrawal(blk_reward_cycle: Pair BNum Uint128)
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+  get_left_val = @get_left_pair_val BNum Uint128;
+  get_right_val = @get_right_pair_val BNum Uint128;
+  blk_num = get_left_val blk_reward_cycle;
+  reward = get_right_val blk_reward_cycle;
+  
+  match new_deleg_o with
+  | Some new_deleg_addr =>
+    new_deleg_pending_withdrawal <- withdrawal_pending[new_deleg_addr][blk_num];
+    match new_deleg_pending_withdrawal with
+    | Some existing_reward =>
+      (* new deleg has exisiting blk_num *)
+      new_reward = builtin add existing_reward reward;
+      withdrawal_pending[new_deleg_addr][blk_num] := new_reward;
+      e = { _eventname: "SwapPendingWithdrawalExists"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; existing_reward: existing_reward; new_reward: new_reward };
+      event e
+    | None =>
+      (* new deleg has no blk_num entry*)
+      withdrawal_pending[new_deleg_addr][blk_num] := reward;
+      e = { _eventname: "SwapPendingWithdrawalNewEntry"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; reward: reward };
+      event e
+    end
+  | None => (* no new deleg to transfer to *)
+  end
+end
+
+
 (* @dev : Change a delegator's stake from initiator -> new_deleg_addr. *)
 transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
   IsNotPaused;
@@ -1926,5 +1955,21 @@ transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
   forall ssninfo_list SwapDepositAmtDeleg;
   forall ssninfo_list SwapSSNDelegAmt;
   forall ssninfo_list SwapLastBuffDepositCycleDeleg;
-  forall ssninfo_list SwapLastWithdrawCycleDeleg
+  forall ssninfo_list SwapLastWithdrawCycleDeleg;
+  
+  (* swap pending withdrawal *)
+  match c with
+  | Some initial_deleg =>
+    deleg_blk_map <- withdrawal_pending[initial_deleg];
+    match deleg_blk_map with
+    | Some deleg_blk_entry =>
+      cycle_reward_list = builtin to_list deleg_blk_entry;
+      forall cycle_reward_list SwapPendingWithdrawal;
+      delete withdrawal_pending[initial_deleg]
+    | None => (* no pending withdrawal *)
+    end
+  | None =>
+    e = DelegDoesNotExistAtSSN;
+    ThrowError e
+  end
 end
