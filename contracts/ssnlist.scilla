@@ -350,8 +350,12 @@ field available_withdrawal: Uint128 = uint128_zero
 
 field current_deleg: Option ByStr20 = None {ByStr20}
 
+(* Used during SwapDelegator *)
+(* Keeps tracks of the ssn address to pass to other procedures in forall calls *)
 field current_ssn: Option ByStr20 = None {ByStr20}
 
+(* Used during SwapDelegator *)
+(* Keeps tracks of the new deleg address to pass to other procedures*)
 field new_deleg: Option ByStr20 = None {ByStr20}
 
 field verifier: Option ByStr20 = None {ByStr20}
