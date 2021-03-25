@@ -1954,7 +1954,7 @@ end
 
 
 (* @dev : Change a delegator's stake from initiator -> new_deleg_addr. *)
-transition SwapDeleg(initiator: ByStr20, new_deleg_addr: ByStr20)
+transition SwapDelegator(initiator: ByStr20, new_deleg_addr: ByStr20)
   IsNotPaused;
   IsProxy;
   c = Some {ByStr20} initiator;
