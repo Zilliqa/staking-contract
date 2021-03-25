@@ -359,6 +359,58 @@ field totalstakeamount: Uint128 = uint128_zero
 
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
+procedure DeleteBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  buff_deposit_amt <- buff_deposit_deleg[deleg][ssnaddr][cycle];
+  match buff_deposit_amt with
+  | Some amt =>
+    buff_deposit_cycle_map <- buff_deposit_deleg[deleg][ssnaddr];
+    match buff_deposit_cycle_map with
+    | Some buff_deposit_cycle_entry =>
+      (* remove cycle map-key *)
+      buff_deposit_cycle_map_x = builtin remove buff_deposit_cycle_entry cycle;
+
+      (* checks for remaining map-key entries for this ssn *)
+      deleg_ssn_cycle_list = builtin to_list buff_deposit_cycle_map_x;
+      deleg_ssn_cycle_list_size = let entry_length = @list_length (Pair Uint32 Uint128) in entry_length deleg_ssn_cycle_list;
+      is_deleg_ssn_cycle_entry_empty = builtin eq deleg_ssn_cycle_list_size uint32_zero;
+
+      match is_deleg_ssn_cycle_entry_empty with
+      | True =>
+        (* no other cycles for this ssn - remove entire ssn *)
+        deleg_ssn_map <- buff_deposit_deleg[deleg];
+
+        match deleg_ssn_map with
+        | Some deleg_ssn_entry =>
+          deleg_ssn_map_x = builtin remove deleg_ssn_entry ssnaddr;
+          
+          (* check if deleg has other ssn entries *)
+          deleg_ssn_list = builtin to_list deleg_ssn_map_x;
+          deleg_ssn_list_size = let entry_length = @list_length (Pair (ByStr20) (Map Uint32 Uint128)) in entry_length deleg_ssn_list;
+          is_deleg_ssn_entry_empty = builtin eq deleg_ssn_list_size uint32_zero;
+
+          match is_deleg_ssn_entry_empty with
+          | True =>
+            (* no other ssn entries - remove deleg *)
+            buff_deposit_deleg_o <- buff_deposit_deleg;
+            buff_deposit_deleg_x = builtin remove buff_deposit_deleg_o deleg;
+            buff_deposit_deleg := buff_deposit_deleg_x
+          | False =>
+            (* contains other ssn - reassign deleg_ssn map *)
+            buff_deposit_deleg[deleg] := deleg_ssn_map_x
+          end
+
+        | None => (* won't reach *)
+        end
+      | False =>
+        (* contains other cycles *)
+        buff_deposit_deleg[deleg][ssnaddr] := buff_deposit_cycle_map_x
+      end
+    | None => (* no buff deposit *)
+    end
+  | None => (* no buff deposit *)
+  end
+end
+
 procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
   withdraw_amt <- withdrawal_pending[deleg][withdraw_number];
   match withdraw_amt with
@@ -869,7 +921,7 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     (* the rewards for this cycle also computed within this procedure, so we no long keep histric data *)
     delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
     delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-    delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+    DeleteBuffDeposit deleg ssn_operator last2_reward_cycle;
 
     staking_of_deleg = match comb_opt with
     | Some stake => builtin add last_amt stake
