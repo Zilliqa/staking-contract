@@ -1609,6 +1609,8 @@ procedure ActualSwapBuffDeposit(buff_deposit_cycle: Pair Uint32 Uint128)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in buff_deposit_deleg *)
+(* @see ActualSwapBuffDeposit *)
 procedure SwapBuffDeposit(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1675,6 +1677,8 @@ procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in direct_deposit_deleg *)
+(* @see ActualSwapDirectDeposit *)
 procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1741,6 +1745,8 @@ procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in deleg_stake_cycle *)
+(* @see ActualSwapDelegStakePerCycle *)
 procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1765,6 +1771,7 @@ procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in deposit_amt_deleg *)
 procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1805,6 +1812,7 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in ssn_deleg_amt *)
 procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1844,6 +1852,9 @@ procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in last_withdraw_cycle_deleg *)
+(*      If the new deleg has an existing withdraw cycle, it is retained. *)
+(*      Otherwise, it is set the the last reward cycle *)
 procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1882,6 +1893,8 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in last_buf_deposit_cycle_deleg *)
+(*      The last buff deposit cycle of the new deleg is always set to the last reward cycle *)
 procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   get_left_val = @get_left_pair_val ByStr20 Ssn;
   ssn_address = get_left_val ssninfo;
@@ -1910,6 +1923,7 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   end
 end
 
+(* @dev Swap deleg address from current_deleg -> new_deleg in withdrawal_pending *)
 procedure SwapPendingWithdrawal(blk_reward_cycle: Pair BNum Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
