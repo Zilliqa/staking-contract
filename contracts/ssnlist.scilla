@@ -455,6 +455,14 @@ procedure RemoveDirectDepositDeleg(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint
   event e
 end
 
+procedure RemoveDelegStakePerCycle(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  deleg_stake_per_cycle_o <- deleg_stake_per_cycle;
+  deleg_stake_per_cycle_x = remove_addr_addr_cycle_reward deleg_stake_per_cycle_o deleg ssnaddr cycle;
+  deleg_stake_per_cycle := deleg_stake_per_cycle_x;
+  e = { _eventname: "RemoveDelegStakePerCycle"; deleg: deleg; ssnaddr: ssnaddr; cycle: cycle };
+  event e
+end
+
 procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
   withdraw_amt <- withdrawal_pending[deleg][withdraw_number];
   match withdraw_amt with
@@ -963,7 +971,7 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     last_amt = option_uint128_value last_amt_o;
     staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
     (* the rewards for this cycle also computed within this procedure, so we no long keep histric data *)
-    delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+    RemoveDelegStakePerCycle deleg ssn_operator last_reward_cycle;
     RemoveDirectDepositDeleg deleg ssn_operator last_reward_cycle;
     RemoveBuffDeposit deleg ssn_operator last2_reward_cycle;
 
