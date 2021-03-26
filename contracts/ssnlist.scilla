@@ -210,6 +210,86 @@ let map_to_stake_rewards =
     | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
+(* check if there are more than 1 entry *)
+let has_other_map_entries =
+  fun (m : Map Uint32 Uint128) =>
+  fun (cycle: Uint32) =>
+    let reward_val = builtin get m cycle in
+    match reward_val with
+    | Some reward =>
+      let m_size = builtin size m in
+      let has_other_records = uint32_gt m_size uint32_one in
+      match has_other_records with
+        | True => True
+        | False => False
+      end
+    | None => False
+    end
+
+(* used for clean removal of map-key values *)
+let remove_cycle_reward = 
+  fun (m : Map Uint32 Uint128) =>
+  fun (cycle: Uint32) =>
+    let reward_val = builtin get m cycle in
+      match reward_val with
+      | Some reward =>
+          builtin remove m cycle (* return map with entry removed *)
+      | None => m (* return original map *)
+      end
+
+(* used for clean removal of map-(map-key) values *)
+let remove_addr_cycle_reward =
+  fun (m : Map ByStr20 (Map Uint32 Uint128)) =>
+  fun (k1 : ByStr20) =>
+  fun (k2: Uint32) =>
+    (* fetch m[k1] inner map *)
+    let m_k1_map = builtin get m k1 in
+    match m_k1_map with
+      | Some m_k1_entry => 
+        (* check if m[k1] only has k2 and no other k2' *)
+        (* if only one k2, straight away remove m[k1] *)
+        let has_other_k2 = has_other_map_entries m_k1_entry k2 in
+        match has_other_k2 with
+        | True =>
+          (* contains other k2' *)
+          (* remove [k2] = val & k2 - returns new k2' *)
+          (* reassign m[k1] = k2' *)
+          let m_k1_x = remove_cycle_reward m_k1_entry k2 in
+          builtin put m k1 m_k1_x
+        | False =>
+            (* no more k2 for this k1 - remove entire k1 from m *)
+            builtin remove m k1
+        end
+      | None => m (* return original map *)
+    end
+
+(* used for clean removal of map-(map-(map-key)) *)
+(* e.g. buff_deposit_deleg *)
+let remove_addr_addr_cycle_reward =
+  fun (m : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))) =>
+  fun (k1 : ByStr20) =>
+  fun (k2 : ByStr20) =>
+  fun (k3 : Uint32) =>
+    (* fetch m[k1] inner map *)
+    let m_k1_map = builtin get m k1 in
+    match m_k1_map with
+      | Some m_k1_entry =>
+        (* remove m[k1][k2][k3] = val, k2, k3 *)
+        let m_k1_x = remove_addr_cycle_reward m_k1_entry k2 k3 in
+        (* check if m[k1] has other k2' *)
+        let m_k1_x_size = builtin size m_k1_x in
+        let is_map_empty = builtin eq m_k1_x_size uint32_zero in
+        match is_map_empty with
+          | True =>
+            (* no other k2' - remove k1 *)
+            builtin remove m k1
+          | False =>
+            (* contains other k2' - reassign map *)
+            builtin put m k1 m_k1_x
+        end
+      | None => m (* return original map *)
+    end
+
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
@@ -359,56 +439,12 @@ field totalstakeamount: Uint128 = uint128_zero
 
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
-procedure DeleteBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
-  buff_deposit_amt <- buff_deposit_deleg[deleg][ssnaddr][cycle];
-  match buff_deposit_amt with
-  | Some amt =>
-    buff_deposit_cycle_map <- buff_deposit_deleg[deleg][ssnaddr];
-    match buff_deposit_cycle_map with
-    | Some buff_deposit_cycle_entry =>
-      (* remove cycle map-key *)
-      buff_deposit_cycle_map_x = builtin remove buff_deposit_cycle_entry cycle;
-
-      (* checks for remaining map-key entries for this ssn *)
-      deleg_ssn_cycle_list = builtin to_list buff_deposit_cycle_map_x;
-      deleg_ssn_cycle_list_size = let entry_length = @list_length (Pair Uint32 Uint128) in entry_length deleg_ssn_cycle_list;
-      is_deleg_ssn_cycle_entry_empty = builtin eq deleg_ssn_cycle_list_size uint32_zero;
-
-      match is_deleg_ssn_cycle_entry_empty with
-      | True =>
-        (* no other cycles for this ssn - remove entire ssn *)
-        deleg_ssn_map <- buff_deposit_deleg[deleg];
-
-        match deleg_ssn_map with
-        | Some deleg_ssn_entry =>
-          deleg_ssn_map_x = builtin remove deleg_ssn_entry ssnaddr;
-          
-          (* check if deleg has other ssn entries *)
-          deleg_ssn_list = builtin to_list deleg_ssn_map_x;
-          deleg_ssn_list_size = let entry_length = @list_length (Pair (ByStr20) (Map Uint32 Uint128)) in entry_length deleg_ssn_list;
-          is_deleg_ssn_entry_empty = builtin eq deleg_ssn_list_size uint32_zero;
-
-          match is_deleg_ssn_entry_empty with
-          | True =>
-            (* no other ssn entries - remove deleg *)
-            buff_deposit_deleg_o <- buff_deposit_deleg;
-            buff_deposit_deleg_x = builtin remove buff_deposit_deleg_o deleg;
-            buff_deposit_deleg := buff_deposit_deleg_x
-          | False =>
-            (* contains other ssn - reassign deleg_ssn map *)
-            buff_deposit_deleg[deleg] := deleg_ssn_map_x
-          end
-
-        | None => (* won't reach *)
-        end
-      | False =>
-        (* contains other cycles *)
-        buff_deposit_deleg[deleg][ssnaddr] := buff_deposit_cycle_map_x
-      end
-    | None => (* no buff deposit *)
-    end
-  | None => (* no buff deposit *)
-  end
+procedure RemoveBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  buff_deposit_deleg_o <- buff_deposit_deleg;
+  buff_deposit_deleg_x = remove_addr_addr_cycle_reward buff_deposit_deleg_o deleg ssnaddr cycle;
+  buff_deposit_deleg := buff_deposit_deleg_x;
+  e = { _eventname: "RemoveBuffDeposit"; deleg: deleg; ssnaddr: ssnaddr; cycle: cycle };
+  event e
 end
 
 procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
@@ -921,7 +957,7 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     (* the rewards for this cycle also computed within this procedure, so we no long keep histric data *)
     delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
     delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-    DeleteBuffDeposit deleg ssn_operator last2_reward_cycle;
+    RemoveBuffDeposit deleg ssn_operator last2_reward_cycle;
 
     staking_of_deleg = match comb_opt with
     | Some stake => builtin add last_amt stake
