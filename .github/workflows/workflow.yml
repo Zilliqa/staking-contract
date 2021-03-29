@@ -9,8 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-18.04
+        os: [ubuntu-18.04, ubuntu-20.04]
         ocaml-version:
           - 4.08.1
 
