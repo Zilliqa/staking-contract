@@ -490,6 +490,92 @@ procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
   delete deleg_stake_per_cycle[deleg][ssnaddr];
   delete last_buf_deposit_cycle_deleg[deleg][ssnaddr];
+
+  (* no need to clean ssn_deleg_amt as there will always be some deleg *)
+
+  deposit_amt_deleg_map <- deposit_amt_deleg[deleg];
+  match deposit_amt_deleg_map with
+  | Some deposit_amt_deleg_entry =>
+    deposit_amt_deleg_entry_size = builtin size deposit_amt_deleg_entry;
+    is_empty = builtin eq deposit_amt_deleg_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete deposit_amt_deleg[deleg]
+    | False =>
+    end
+  | None =>
+    delete deposit_amt_deleg[deleg]
+  end;
+
+  buff_deposit_deleg_map <- buff_deposit_deleg[deleg];
+  match buff_deposit_deleg_map with
+  | Some buff_deposit_deleg_entry =>
+    buff_deposit_deleg_entry_size = builtin size buff_deposit_deleg_entry;
+    is_empty = builtin eq buff_deposit_deleg_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete buff_deposit_deleg[deleg]
+    | False =>
+    end
+  | None =>
+    delete buff_deposit_deleg[deleg]
+  end;
+
+  direct_deposit_deleg_map <- direct_deposit_deleg[deleg];
+  match direct_deposit_deleg_map with
+  | Some direct_deposit_deleg_entry =>
+    direct_deposit_deleg_entry_size = builtin size direct_deposit_deleg_entry;
+    is_empty = builtin eq direct_deposit_deleg_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete direct_deposit_deleg[deleg]
+    | False =>
+    end
+  | None =>
+    delete direct_deposit_deleg[deleg]
+  end;
+
+  deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg];
+  match deleg_stake_per_cycle_map with
+  | Some deleg_stake_per_cycle_entry =>
+    deleg_stake_per_cycle_entry_size = builtin size deleg_stake_per_cycle_entry;
+    is_empty = builtin eq deleg_stake_per_cycle_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete deleg_stake_per_cycle[deleg]
+    | False =>
+    end
+  | None =>
+    delete deleg_stake_per_cycle[deleg]
+  end;
+
+  last_withdraw_cycle_map <- last_withdraw_cycle_deleg[deleg];
+  match last_withdraw_cycle_map with
+  | Some last_withdraw_deleg_entry =>
+    last_withdraw_deleg_entry_size = builtin size last_withdraw_deleg_entry;
+    is_empty = builtin eq last_withdraw_deleg_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete last_withdraw_cycle_deleg[deleg]
+    | False =>
+    end
+  | None =>
+    delete last_withdraw_cycle_deleg[deleg]
+  end;
+  
+  last_buf_deposit_map <- last_buf_deposit_cycle_deleg[deleg];
+  match last_buf_deposit_map with
+  | Some last_buf_deposit_entry =>
+    last_buf_deposit_entry_size = builtin size last_buf_deposit_entry;
+    is_empty = builtin eq last_buf_deposit_entry_size uint32_zero;
+    match is_empty with
+    | True =>
+      delete last_buf_deposit_cycle_deleg[deleg]
+    | False =>
+    end
+  | None =>
+    delete last_buf_deposit_cycle_deleg[deleg]
+  end
 end
 
 procedure ThrowError(err: Error)
