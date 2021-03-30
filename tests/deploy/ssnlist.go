@@ -76,7 +76,7 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo(NETWORK, "30000")
+	tx, err := contract.DeployTo(NETWORK, "40000")
 	if err != nil {
 		return nil, err
 	}

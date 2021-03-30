@@ -3,12 +3,16 @@ package transitions
 import (
 	"Zilliqa/stake-test/deploy"
 	"encoding/json"
-	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"log"
+
+	"github.com/Zilliqa/gozilliqa-sdk/core"
+	"github.com/Zilliqa/gozilliqa-sdk/keytools"
+	"github.com/Zilliqa/gozilliqa-sdk/util"
 )
 
-const adminChanged = "AdminChanged"
-const adminNotChanged = "changeAdmin FailedNotAdmin"
+const adminChanged = "ChangeProxyAdmin"
+const proxyAdminClaimed = "ClaimProxyAdmin"
+const notStagingAdmin = "ClaimProxyAdmin FailedNotStagingadmin"
 
 func (t *Testing) ChangeProxyAdmin() {
 	t.LogStart("ChangeProxyAdmin")
@@ -30,9 +34,9 @@ func (t *Testing) ChangeProxyAdmin() {
 		},
 	}
 
-	txn, err1 := proxy.Call("ChangeProxyAdmin", args,"0")
+	txn, err1 := proxy.Call("ChangeProxyAdmin", args, "0")
 	if err1 != nil {
-		t.LogError("ChangeProxyAdmin failed", err1)
+		t.LogError("ChangeProxyAdmin FailedNotAdmin", err1)
 	}
 
 	receipt, _ := json.Marshal(txn.Receipt)
@@ -41,12 +45,33 @@ func (t *Testing) ChangeProxyAdmin() {
 	log.Println(recp)
 	proxy.LogContractStateJson()
 
-	// 2. as non-admin, change proxy admin
-	tnx, _ := proxy.Call("ChangeProxyAdmin", args,"0")
+	// 2. as non-admin, claim proxy admin
+	args2 := []core.ContractValue{}
+	tnx, _ := proxy.Call("ClaimProxyAdmin", args2, "0")
 	receipt, _ = json.Marshal(tnx.Receipt)
 	recp = string(receipt)
 	log.Println(recp)
-	t.AssertContain(recp, adminNotChanged)
+	t.AssertContain(recp, notStagingAdmin)
+	proxy.LogContractStateJson()
+
+	// 3. change back to original staging admin
+	newStagingAdmin := keytools.GetAddressFromPrivateKey(util.DecodeHex(key2))
+	args = []core.ContractValue{
+		{
+			"newAdmin",
+			"ByStr20",
+			"0x" + newStagingAdmin,
+		},
+	}
+	proxy.Call("ChangeProxyAdmin", args, "0")
+
+	// as key2, claim proxy admin
+	proxy.UpdateWallet(key2)
+	tnx, _ = proxy.Call("ClaimProxyAdmin", args2, "0")
+	receipt, _ = json.Marshal(tnx.Receipt)
+	recp = string(receipt)
+	log.Println(recp)
+	t.AssertContain(recp, proxyAdminClaimed)
 	proxy.LogContractStateJson()
 
 	t.LogEnd("ChangeProxyAdmin")
