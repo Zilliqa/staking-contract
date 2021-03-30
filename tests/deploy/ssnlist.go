@@ -3,14 +3,15 @@ package deploy
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
+
 	"github.com/Zilliqa/gozilliqa-sdk/account"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
 	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"github.com/Zilliqa/gozilliqa-sdk/keytools"
 	provider2 "github.com/Zilliqa/gozilliqa-sdk/provider"
 	"github.com/Zilliqa/gozilliqa-sdk/util"
-	"io/ioutil"
-	"log"
 )
 
 type SSNList struct {
@@ -20,7 +21,7 @@ type SSNList struct {
 }
 
 func (s *SSNList) LogContractStateJson() string {
-	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
 	rsp, _ := provider.GetSmartContractState(s.Addr)
 	j, _ := json.Marshal(rsp)
 	s.LogPrettyStateJson(rsp)
@@ -33,7 +34,7 @@ func (s *SSNList) LogPrettyStateJson(data interface{}) {
 }
 
 func (s *SSNList) GetBalance() string {
-	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
 	balAndNonce, _ := provider.GetBalance(s.Addr)
 	return balAndNonce.Balance
 }
@@ -58,7 +59,7 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 		},
 		{
 			VName: "init_gzil_address",
-			Type: "ByStr20",
+			Type:  "ByStr20",
 			Value: "0x" + adminAddr,
 		},
 	}
@@ -72,7 +73,7 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo("isolated")
+	tx, err := contract.DeployTo("mainnet", "50000")
 	if err != nil {
 		return nil, err
 	}
