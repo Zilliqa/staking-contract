@@ -343,7 +343,7 @@ field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum
 
 (* AddressOfInitialDeleg -> AddressofNewDeleg *)
 (* used to transfer all stakes, rewards, pending withdrawal of deleg_A -> deleg_B *)
-(* see RequestDelegatorTransfer *)
+(* see RequestDelegatorSwap *)
 field deleg_swap_request: Map ByStr20 ByStr20 = Emp ByStr20 ByStr20
 
 field bnum_req: Uint128 = Uint128 24000
@@ -2036,6 +2036,23 @@ transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
       ThrowError e
     end
   | None => (* throw error *)
+    e = InvalidSwapAddr;
+    ThrowError e
+  end
+end
+
+(* @dev: Cancels a swap request. *)
+(* @param initiator: Address of requestor who wants to cancel the swap process *)
+transition CancelDelegatorSwap(initiator: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  swap_addr <- deleg_swap_request[initiator];
+  match swap_addr with
+  | Some requestor_swap_addr =>
+    delete deleg_swap_request[initiator];
+    e = { _eventname: "CancelDelegatorSwap"; initial_deleg: initiator; new_deleg: requestor_swap_addr };
+    event e
+  | None =>
     e = InvalidSwapAddr;
     ThrowError e
   end

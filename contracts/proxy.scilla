@@ -275,6 +275,13 @@ transition ConfirmDelegatorSwap(requestor: ByStr20)
     send msgs
 end
 
+transition CancelDelegatorSwap()
+    current_impl <- implementation;
+    msg = {_tag: "CancelDelegatorSwap"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (***************************************************)
 (*                 Verifier transition             *)
 (***************************************************)
