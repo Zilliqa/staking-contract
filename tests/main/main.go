@@ -8,11 +8,7 @@ func main() {
 	// t.UpgradeTo()
 	// t.ChangeProxyAdmin()
 	// t.Pause()
-
-	// test in progress
-	t.Unpause()
-
-	// haven't tested
+	// t.Unpause()
 	// t.UpdateAdmin()
 	// t.UpdateVerifier()
 	// t.AddFunds()
@@ -21,6 +17,10 @@ func main() {
 	// t.AddSSN()
 	// t.AddDelegator()
 	// t.DelegateStake()
+
+	// test in progress
+
+	// haven't tested
 	// t.UpdateReceiveAddr()
 	// t.AssignStakeReward()
 	// t.AssignStakeReward2()
