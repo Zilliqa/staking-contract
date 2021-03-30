@@ -1999,7 +1999,11 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   end
 end
 
-(* can override by sending a new request *)
+
+(* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
+(* @param initiator: Address of the requestor; the one who call the proxy *)
+(* @param new_deleg_addr: Address of the new deleg that will be receiving all the stakes from requestor *)
+(* requestor can override the new deleg address by sending a new request *)
 transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
   IsNotPaused;
   IsProxy;
@@ -2008,7 +2012,11 @@ transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
   event e
 end
 
-(* initiator is new_deleg confirming the request *)
+(* @dev: Accepts a swap request from a requestor. *)
+(* Once confirmed, everything which was under the requestor would be transferred over to the new deleg *)
+(* @param initiator: Address of the new_deleg confirming the request *)
+(* @param requestor: Address of the one that creates the swap request *)
+(* Transfer cannot be reverted once confirmed *)
 transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
   IsNotPaused;
   IsProxy;
@@ -2019,7 +2027,9 @@ transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
     match is_new_deleg_valid with
     | True =>
       SwapDelegator requestor requestor_swap_addr;
-      delete deleg_swap_request[requestor]
+      delete deleg_swap_request[requestor];
+      e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
+      event e
     | False =>
       (* throw error - requestor swap address is different from this initiator *)
       e = SwapAddrValidationFailed;
