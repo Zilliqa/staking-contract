@@ -14,6 +14,9 @@ import (
 	"github.com/Zilliqa/gozilliqa-sdk/util"
 )
 
+const URL = contract2.MainNetHost
+const NETWORK = "mainnet"
+
 type SSNList struct {
 	Code string
 	Init []core.ContractValue
@@ -21,7 +24,7 @@ type SSNList struct {
 }
 
 func (s *SSNList) LogContractStateJson() string {
-	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
+	provider := provider2.NewProvider(URL)
 	rsp, _ := provider.GetSmartContractState(s.Addr)
 	j, _ := json.Marshal(rsp)
 	s.LogPrettyStateJson(rsp)
@@ -34,7 +37,7 @@ func (s *SSNList) LogPrettyStateJson(data interface{}) {
 }
 
 func (s *SSNList) GetBalance() string {
-	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
+	provider := provider2.NewProvider(URL)
 	balAndNonce, _ := provider.GetBalance(s.Addr)
 	return balAndNonce.Balance
 }
@@ -73,7 +76,7 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo("mainnet", "50000")
+	tx, err := contract.DeployTo(NETWORK, "50000")
 	if err != nil {
 		return nil, err
 	}

@@ -379,7 +379,7 @@ func (p *Proxy) ClaimAdmin() (*transaction.Transaction, error) {
 }
 
 func (p *Proxy) GetBalance() string {
-	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
+	provider := provider2.NewProvider(URL)
 	balAndNonce, _ := provider.GetBalance(p.Addr)
 	return balAndNonce.Balance
 }
@@ -391,7 +391,7 @@ func (p *Proxy) UpdateWallet(newKey string) {
 }
 
 func (p *Proxy) LogContractStateJson() {
-	provider := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
+	provider := provider2.NewProvider(URL)
 	rsp, _ := provider.GetSmartContractState(p.Addr)
 	j, _ := json.Marshal(rsp)
 	log.Println(string(j))
@@ -403,7 +403,7 @@ func (p *Proxy) Call(transition string, params []core.ContractValue, amount stri
 		Signer:  p.Wallet,
 	}
 
-	tx, err := contract.CallFor(transition, params, false, amount, "mainnet")
+	tx, err := contract.CallFor(transition, params, false, amount, NETWORK)
 	if err != nil {
 		return tx, err
 	}
@@ -439,7 +439,7 @@ func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount
 		transactions = append(transactions, txn)
 	}
 
-	rpc := provider2.NewProvider("https://migrate3-api.dev.z7a.xyz/")
+	rpc := provider2.NewProvider(URL)
 	p.Wallet.SignBatch(transactions, *rpc)
 	return p.Wallet.SendBatch(transactions, *rpc)
 
@@ -473,7 +473,7 @@ func NewProxy(key string) (*Proxy, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo("mainnet", "50000")
+	tx, err := contract.DeployTo(NETWORK, "50000")
 	if err != nil {
 		return nil, err
 	}
