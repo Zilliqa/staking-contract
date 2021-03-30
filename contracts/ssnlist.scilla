@@ -1307,7 +1307,7 @@ end
 (*  CycleReward       : Uint128 *)
 (*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
 (*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-(* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
+(* https://github.com/Zilliqa/ZIP/blob/master/zips/zip-11.md#verifier *)
 
 (* @param initiator: The original caller who called the proxy *)
 transition AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator: ByStr20)
