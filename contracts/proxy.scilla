@@ -261,6 +261,20 @@ transition SwapDelegator(new_deleg: ByStr20)
     send msgs
 end
 
+transition RequestDelegatorSwap(new_deleg: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "RequestDelegatorSwap"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition ConfirmDelegatorSwap(requestor: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "ConfirmDelegatorSwap"; _recipient: current_impl; _amount: zero; requestor: requestor; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (***************************************************)
 (*                 Verifier transition             *)
 (***************************************************)

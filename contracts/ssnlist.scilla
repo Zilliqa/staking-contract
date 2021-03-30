@@ -253,6 +253,8 @@ type Error =
   | VerifierRecvAddrNotSet
   | ReDelegInvalidSSNAddr
   | AvailableRewardsError
+  | InvalidSwapAddr
+  | SwapAddrValidationFailed
 
 let make_error =
   fun (result: Error) =>
@@ -280,6 +282,8 @@ let make_error =
       | VerifierRecvAddrNotSet => Int32 -20
       | ReDelegInvalidSSNAddr => Int32 -21
       | AvailableRewardsError => Int32 -22
+      | InvalidSwapAddr => Int32 -23
+      | SwapAddrValidationFailed => Int32 -24
       end
     in
     { _exception: "Error"; code: result_code }
@@ -336,6 +340,11 @@ field stake_ssn_per_cycle: Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (
 field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+
+(* AddressOfInitialDeleg -> AddressofNewDeleg *)
+(* used to transfer all stakes, rewards, pending withdrawal of deleg_A -> deleg_B *)
+(* see RequestDelegatorTransfer *)
+field deleg_swap_request: Map ByStr20 ByStr20 = Emp ByStr20 ByStr20
 
 field bnum_req: Uint128 = Uint128 24000
 
@@ -1958,10 +1967,8 @@ end
 
 
 (* @dev : Change a delegator's stake from initiator -> new_deleg_addr. *)
-transition SwapDelegator(initiator: ByStr20, new_deleg_addr: ByStr20)
-  IsNotPaused;
-  IsProxy;
-  c = Some {ByStr20} initiator;
+procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
+  c = Some {ByStr20} requestor;
   current_deleg := c;
   n = Some {ByStr20} new_deleg_addr;
   new_deleg := n;
@@ -1988,6 +1995,38 @@ transition SwapDelegator(initiator: ByStr20, new_deleg_addr: ByStr20)
     end
   | None =>
     e = DelegDoesNotExistAtSSN;
+    ThrowError e
+  end
+end
+
+(* can override by sending a new request *)
+transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  deleg_swap_request[initiator] := new_deleg_addr;
+  e = { _eventname: "RequestDelegatorSwap"; initial_deleg: initiator; new_deleg: new_deleg_addr };
+  event e
+end
+
+(* initiator is new_deleg confirming the request *)
+transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  swap_addr <- deleg_swap_request[requestor];
+  match swap_addr with
+  | Some requestor_swap_addr =>
+    is_new_deleg_valid = builtin eq requestor_swap_addr initiator;
+    match is_new_deleg_valid with
+    | True =>
+      SwapDelegator requestor requestor_swap_addr;
+      delete deleg_swap_request[requestor]
+    | False =>
+      (* throw error - requestor swap address is different from this initiator *)
+      e = SwapAddrValidationFailed;
+      ThrowError e
+    end
+  | None => (* throw error *)
+    e = InvalidSwapAddr;
     ThrowError e
   end
 end
