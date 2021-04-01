@@ -84,6 +84,27 @@ func (p *Proxy) PopulateTotalStakeAmt(amt string) (*transaction.Transaction, err
 	return p.Call("PopulateTotalStakeAmt", args, "0")
 }
 
+func (p *Proxy) PopulateCommForSSN(ssnaddr string, cycle string, comm string) (*transaction.Transaction, error) {
+	args := []core.ContractValue{
+		{
+			"ssn_addr",
+			"ByStr20",
+			ssnaddr,
+		},
+		{
+			"cycle",
+			"Uint32",
+			cycle,
+		},
+		{
+			"comm",
+			"Uint128",
+			comm,
+		},
+	}
+	return p.Call("PopulateCommForSSN", args, "0")
+}
+
 func (p *Proxy) DelegateStake(ssnaddr string, amount string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{
 		{

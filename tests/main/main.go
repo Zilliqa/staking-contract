@@ -17,10 +17,6 @@ func main() {
 	// t.AddSSN()
 	// t.AddDelegator()
 	// t.DelegateStake()
-
-	// test in progress
-
-	// haven't tested
 	// t.UpdateReceiveAddr()
 	// t.AssignStakeReward()
 	// t.AssignStakeReward2()
@@ -28,9 +24,11 @@ func main() {
 	// t.WithDrawStakeAmount2()
 	// t.WithDrawStakeAmount3()
 	// t.AddSSNAfterUpgrade()
-	// t.UpdateComm()
 	// t.WithdrawComm()
 	// t.WithdrawStakeReward()
 	// t.WithdrawStakeReward2()
 	// t.WithdrawStakeReward3()
+
+	// test in progress
+	t.UpdateComm()
 }

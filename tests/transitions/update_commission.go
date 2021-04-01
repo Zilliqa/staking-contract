@@ -14,7 +14,7 @@ func (t *Testing) UpdateComm() {
 
 	min := "100000"
 	delegMin := "50000"
-	txn, err1 := proxy.UpdateStakingParameters(min,delegMin)
+	txn, err1 := proxy.UpdateStakingParameters(min, delegMin)
 	if err1 != nil {
 		t.LogError("UpdateComm failed", err1)
 	}
@@ -30,12 +30,13 @@ func (t *Testing) UpdateComm() {
 	// pause
 	proxy.Pause()
 	proxy.PopulateTotalStakeAmt("400000")
+	proxy.PopulateCommForSSN("0x"+addr1, "1", "100000000")
 	// unpause
 	proxy.Unpause()
 
 	// add ssn1
 	proxy.AddSSNAfterUpgrade("0x"+addr1, "200000")
-	txn, err2 := proxy.UpdateStakingParameters(min,delegMin)
+	txn, err2 := proxy.UpdateStakingParameters(min, delegMin)
 	if err2 != nil {
 		t.LogError("UpdateComm failed", err2)
 	}
@@ -73,7 +74,7 @@ func (t *Testing) UpdateComm() {
 	receipt, _ = json.Marshal(txn.Receipt)
 	recp = string(receipt)
 	log.Println(recp)
-	t.AssertContain(recp,"Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -10))])")
+	t.AssertContain(recp, "Exception thrown: (Message [(_exception : (String \\\"Error\\\")) ; (code : (Int32 -10))])")
 	ssnlist.LogContractStateJson()
 
 	t.LogEnd("UpdateComm")
