@@ -255,6 +255,7 @@ type Error =
   | AvailableRewardsError
   | InvalidSwapAddr
   | SwapAddrValidationFailed
+  | SwapAddrAlreadyExistsAsRequest
 
 let make_error =
   fun (result: Error) =>
@@ -284,6 +285,7 @@ let make_error =
       | AvailableRewardsError => Int32 -22
       | InvalidSwapAddr => Int32 -23
       | SwapAddrValidationFailed => Int32 -24
+      | SwapAddrAlreadyExistsAsRequest => Int32 -25
       end
     in
     { _exception: "Error"; code: result_code }
@@ -1999,6 +2001,22 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   end
 end
 
+(* prevent B -> A if there exists A -> B due to potential cyclic swap issue *)
+procedure IsCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+ cyclic_initiator <- deleg_swap_request[new_deleg_addr];
+ match cyclic_initiator with
+ | Some addr =>
+   (* is there a B -> X, where X == A? *)
+   is_cyclic_request = builtin eq addr initiator;
+   match is_cyclic_request with
+   | True =>
+     e = SwapAddrAlreadyExistsAsRequest;
+     ThrowError e
+   | False =>
+   end
+ | None =>
+ end
+end
 
 (* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
 (* @param initiator: Address of the requestor; the one who call the proxy *)
@@ -2007,6 +2025,7 @@ end
 transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
   IsNotPaused;
   IsProxy;
+  IsCyclicSwap initiator new_deleg_addr;
   deleg_swap_request[initiator] := new_deleg_addr;
   e = { _eventname: "RequestDelegatorSwap"; initial_deleg: initiator; new_deleg: new_deleg_addr };
   event e
