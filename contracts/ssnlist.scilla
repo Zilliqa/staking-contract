@@ -2006,7 +2006,7 @@ procedure IsNotCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
  end
 end
 
-(* check if A -> A request *)
+(* check for A -> A request *)
 procedure IsNotSelfSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
   is_identical_addr = builtin eq initiator new_deleg_addr;
   match is_identical_addr with
@@ -2014,6 +2014,25 @@ procedure IsNotSelfSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
     e = InvalidSwapAddr;
     ThrowError e
   | False =>
+  end
+end
+
+(* checks if new delegator matches that of stored request *)
+procedure IsValidSwapAddr(requestor: ByStr20, new_deleg_addr: ByStr20)
+  swap_addr <- deleg_swap_request[requestor];
+  match swap_addr with
+  | Some requestor_swap_addr =>
+    is_new_deleg_valid = builtin eq requestor_swap_addr new_deleg_addr;
+    match is_new_deleg_valid with
+    | True => (* new_deleg address matches requestor swap address *)
+    | False =>
+      (* throw error - requestor swap address is different *)
+      e = SwapAddrValidationFailed;
+      ThrowError e
+    end
+  | None => (* throw error *)
+    e = InvalidSwapAddr;
+    ThrowError e
   end
 end
 
@@ -2039,40 +2058,41 @@ end
 transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
   IsNotPaused;
   IsProxy;
-  swap_addr <- deleg_swap_request[requestor];
-  match swap_addr with
-  | Some requestor_swap_addr =>
-    is_new_deleg_valid = builtin eq requestor_swap_addr initiator;
-    match is_new_deleg_valid with
-    | True =>
-      SwapDelegator requestor requestor_swap_addr;
-      delete deleg_swap_request[requestor];
-      e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
-      event e
-    | False =>
-      (* throw error - requestor swap address is different from this initiator *)
-      e = SwapAddrValidationFailed;
-      ThrowError e
-    end
-  | None => (* throw error *)
-    e = InvalidSwapAddr;
-    ThrowError e
-  end
+  IsValidSwapAddr requestor initiator;
+  SwapDelegator requestor initiator;
+  delete deleg_swap_request[requestor];
+  e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
+  event e
 end
 
-(* @dev: Cancels a swap request. *)
-(* @param initiator: Address of requestor who wants to cancel the swap process *)
-transition CancelDelegatorSwap(initiator: ByStr20)
+(* @dev: Revokes a swap request. *)
+(* for requestor use *)
+(* @param initiator: Address of requestor who wants to revoke the swap process *)
+transition RevokeDelegatorSwap(initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   swap_addr <- deleg_swap_request[initiator];
   match swap_addr with
   | Some requestor_swap_addr =>
     delete deleg_swap_request[initiator];
-    e = { _eventname: "CancelDelegatorSwap"; initial_deleg: initiator; new_deleg: requestor_swap_addr };
+    e = { _eventname: "RevokeDelegatorSwap"; initial_deleg: initiator; new_deleg: requestor_swap_addr };
     event e
   | None =>
     e = InvalidSwapAddr;
     ThrowError e
   end
+end
+
+(* @dev: Rejects a swap request from a requestor. *)
+(* for swap recipient use *)
+(* Once rejected, requestor must create swap request again *)
+(* @param initiator: Address of the new_deleg rejecting the request *)
+(* @param requestor: Address of the one that creates the swap request *)
+transition RejectDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  IsValidSwapAddr requestor initiator;
+  delete deleg_swap_request[requestor];
+  e = { _eventname: "RejectDelegatorSwap"; requestor: requestor; new_deleg: initiator };
+  event e
 end

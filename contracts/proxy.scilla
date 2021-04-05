@@ -254,13 +254,6 @@ transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
     send msgs
 end
 
-transition SwapDelegator(new_deleg: ByStr20)
-    current_impl <- implementation;
-    msg = {_tag: "SwapDelegator"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg; initiator: _sender};
-    msgs = one_msg msg;
-    send msgs
-end
-
 transition RequestDelegatorSwap(new_deleg: ByStr20)
     current_impl <- implementation;
     msg = {_tag: "RequestDelegatorSwap"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg; initiator: _sender};
@@ -275,9 +268,16 @@ transition ConfirmDelegatorSwap(requestor: ByStr20)
     send msgs
 end
 
-transition CancelDelegatorSwap()
+transition RevokeDelegatorSwap()
     current_impl <- implementation;
-    msg = {_tag: "CancelDelegatorSwap"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msg = {_tag: "RevokeDelegatorSwap"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition RejectDelegatorSwap(requestor: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "RejectDelegatorSwap"; _recipient: current_impl; _amount: zero; requestor: requestor; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
