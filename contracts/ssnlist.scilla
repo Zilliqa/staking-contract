@@ -1,6 +1,6 @@
 scilla_version 0
 
-import ListUtils IntUtils
+import ListUtils IntUtils PairUtils
 
 library SSNList
 
@@ -208,22 +208,6 @@ let map_to_stake_rewards =
   fun (element: SsnRewardShare) =>
     match element with
     | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
-    end
-
-let get_left_pair_val =
-  tfun 'A =>
-  tfun 'B =>
-  fun (p : Pair ('A) ('B)) =>
-    match p with
-    | Pair a b => a
-    end
-
-let get_right_pair_val =
-  tfun 'A =>
-  tfun 'B =>
-  fun (p : Pair ('A) ('B)) =>
-    match p with
-    | Pair a b => b
     end
 
 let bool_active = True
@@ -1587,10 +1571,10 @@ procedure ActualSwapBuffDeposit(buff_deposit_cycle: Pair Uint32 Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
   
-  get_left_val = @get_left_pair_val Uint32 Uint128;
-  get_right_val = @get_right_pair_val Uint32 Uint128;
-  reward_cycle = get_left_val buff_deposit_cycle;
-  current_deposit_amt = get_right_val buff_deposit_cycle;
+  fst = @fst Uint32 Uint128;
+  snd = @snd Uint32 Uint128;
+  reward_cycle = fst buff_deposit_cycle;
+  current_deposit_amt = snd buff_deposit_cycle;
   
   match new_deleg_o with
   | Some new_deleg_addr =>
@@ -1627,8 +1611,8 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in buff_deposit_deleg *)
 (* @see ActualSwapBuffDeposit *)
 procedure SwapBuffDeposit(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
   match current_deleg_o with
   | Some deleg =>
@@ -1655,10 +1639,10 @@ procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
-  get_left_val = @get_left_pair_val Uint32 Uint128;
-  get_right_val = @get_right_pair_val Uint32 Uint128;
-  reward_cycle = get_left_val direct_deposit_cycle;
-  current_direct_deposit_amt = get_right_val direct_deposit_cycle;
+  fst = @fst Uint32 Uint128;
+  snd = @snd Uint32 Uint128;
+  reward_cycle = fst direct_deposit_cycle;
+  current_direct_deposit_amt = snd direct_deposit_cycle;
 
   match new_deleg_o with
   | Some new_deleg_addr =>
@@ -1695,8 +1679,8 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in direct_deposit_deleg *)
 (* @see ActualSwapDirectDeposit *)
 procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
 
   match current_deleg_o with
@@ -1723,10 +1707,10 @@ procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
-  get_left_val = @get_left_pair_val Uint32 Uint128;
-  get_right_val = @get_right_pair_val Uint32 Uint128;
-  cycle_no = get_left_val deleg_stake_cycle;
-  current_deposit_amt = get_right_val deleg_stake_cycle;
+  fst = @fst Uint32 Uint128;
+  snd = @snd Uint32 Uint128;
+  cycle_no = fst deleg_stake_cycle;
+  current_deposit_amt = snd deleg_stake_cycle;
 
   match new_deleg_o with
   | Some new_deleg_addr =>
@@ -1763,8 +1747,8 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in deleg_stake_cycle *)
 (* @see ActualSwapDelegStakePerCycle *)
 procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
 
   match current_deleg_o with
@@ -1788,8 +1772,8 @@ end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in deposit_amt_deleg *)
 procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -1829,8 +1813,8 @@ end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in ssn_deleg_amt *)
 procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -1871,8 +1855,8 @@ end
 (*      If the new deleg has an existing withdraw cycle, it is retained. *)
 (*      Otherwise, it is set the the last reward cycle *)
 procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -1911,8 +1895,8 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in last_buf_deposit_cycle_deleg *)
 (*      The last buff deposit cycle of the new deleg is always set to the last reward cycle *)
 procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
-  get_left_val = @get_left_pair_val ByStr20 Ssn;
-  ssn_address = get_left_val ssninfo;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -1942,10 +1926,10 @@ end
 procedure SwapPendingWithdrawal(blk_reward_cycle: Pair BNum Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
-  get_left_val = @get_left_pair_val BNum Uint128;
-  get_right_val = @get_right_pair_val BNum Uint128;
-  blk_num = get_left_val blk_reward_cycle;
-  reward = get_right_val blk_reward_cycle;
+  fst = @fst BNum Uint128;
+  snd = @snd BNum Uint128;
+  blk_num = fst blk_reward_cycle;
+  reward = snd blk_reward_cycle;
   
   match new_deleg_o with
   | Some new_deleg_addr =>
