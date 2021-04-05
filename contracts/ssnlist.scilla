@@ -2001,8 +2001,12 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   end
 end
 
-(* prevent B -> A if there exists A -> B due to potential cyclic swap issue *)
-procedure IsCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+(* checks if there exists A -> B to prevent B -> A due to potential cyclic swap issue *)
+(* if there is A -> B, and B -> A, then a cyclic swap issue may occur deppending on who accepts first *)
+(* A -> (B) -> A, A is final inheritor *)
+(* B -> (A) -> B, B is final inheritor *)
+(* to prevent this scenario, prevent B -A from happening *)
+procedure IsNotCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
  cyclic_initiator <- deleg_swap_request[new_deleg_addr];
  match cyclic_initiator with
  | Some addr =>
@@ -2018,6 +2022,17 @@ procedure IsCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
  end
 end
 
+(* check if A -> A request *)
+procedure IsNotSelfSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+  is_identical_addr = builtin eq initiator new_deleg_addr;
+  match is_identical_addr with
+  | True =>
+    e = InvalidSwapAddr;
+    ThrowError e
+  | False =>
+  end
+end
+
 (* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
 (* @param initiator: Address of the requestor; the one who call the proxy *)
 (* @param new_deleg_addr: Address of the new deleg that will be receiving all the stakes from requestor *)
@@ -2025,7 +2040,8 @@ end
 transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
   IsNotPaused;
   IsProxy;
-  IsCyclicSwap initiator new_deleg_addr;
+  IsNotSelfSwap initiator new_deleg_addr;
+  IsNotCyclicSwap initiator new_deleg_addr;
   deleg_swap_request[initiator] := new_deleg_addr;
   e = { _eventname: "RequestDelegatorSwap"; initial_deleg: initiator; new_deleg: new_deleg_addr };
   event e
