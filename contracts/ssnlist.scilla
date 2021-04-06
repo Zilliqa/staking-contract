@@ -1320,6 +1320,14 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   end
 end
 
+procedure CleanPendingWithdrawalMap(deleg: ByStr20)
+  delete withdrawal_pending[deleg]
+end
+
+transition CleanPendingWithdrawal(addr_list: List ByStr20)
+  forall addr_list CleanPendingWithdrawalMap
+end
+
 (***************************************************)
 (*             SSN operator transition             *)
 (***************************************************)
