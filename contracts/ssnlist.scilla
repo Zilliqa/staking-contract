@@ -290,6 +290,38 @@ let remove_addr_addr_cycle_reward =
       | None => m (* return original map *)
     end
 
+(* check if last_withdraw_cycle_deleg[deleg] is empty *)
+let is_ssn_cycle_map_empty =
+  fun(m : Map ByStr20 Uint32) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if deposit_amt_deleg[deleg] is empty *)
+let is_ssn_deposit_map_empty =
+  fun(m : Map ByStr20 Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if withdrawal_pending[deleg] is empty *)
+let is_block_reward_map_empty =
+  fun(m : Map BNum Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if nested maps are empty *)
+(* buff_deposit_deleg[deleg] *)
+let is_ssn_cycle_reward_map_empty =
+  fun(m : Map ByStr20 (Map Uint32 Uint128)) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if final inner map is empty *)
+(* buff_deposit_deleg[deleg][ssn] *)
+let is_cycle_reward_map_empty =
+  fun(m : Map Uint32 Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
@@ -1320,12 +1352,179 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
   end
 end
 
-procedure CleanPendingWithdrawalMap(deleg: ByStr20)
-  delete withdrawal_pending[deleg]
+procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
+  block_reward_map <- withdrawal_pending[deleg];
+  match block_reward_map with
+  | Some block_reward_entry =>
+    is_map_empty = is_block_reward_map_empty block_reward_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete withdrawal_pending[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete withdrawal_pending[deleg]
+  end
 end
 
-transition CleanPendingWithdrawal(addr_list: List ByStr20)
-  forall addr_list CleanPendingWithdrawalMap
+procedure CleanBuffDepositDelegAddr(deleg: ByStr20)
+  buff_deposit_deleg_map <- buff_deposit_deleg[deleg];
+  match buff_deposit_deleg_map with
+  | Some buff_deposit_deleg_entry =>
+    is_map_empty = is_ssn_cycle_reward_map_empty buff_deposit_deleg_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete buff_deposit_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete buff_deposit_deleg[deleg]
+  end
+end
+
+procedure CleanBuffDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    cycle_reward_map <- buff_deposit_deleg[deleg][ssn];
+    match cycle_reward_map with
+    | Some cycle_reward_entry =>
+      is_map_empty = is_cycle_reward_map_empty cycle_reward_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete buff_deposit_deleg[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None =>
+      delete buff_deposit_deleg[deleg][ssn]
+    end
+  end
+end
+
+procedure CleanDirectDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    cycle_reward_map <- direct_deposit_deleg[deleg][ssn];
+    match cycle_reward_map with
+    | Some cycle_reward_entry =>
+      is_map_empty = is_cycle_reward_map_empty cycle_reward_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete direct_deposit_deleg[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None =>
+      delete direct_deposit_deleg[deleg][ssn]
+    end
+  end
+end
+
+procedure CleanDirectDepositDelegAddr(deleg: ByStr20)
+  direct_deposit_deleg_map <- direct_deposit_deleg[deleg];
+  match direct_deposit_deleg_map with
+  | Some direct_deposit_deleg_entry =>
+    is_map_empty = is_ssn_cycle_reward_map_empty direct_deposit_deleg_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete direct_deposit_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete direct_deposit_deleg[deleg]
+  end
+end
+
+procedure CleanDelegStakePerCycleSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    cycle_reward_map <- deleg_stake_per_cycle[deleg][ssn];
+    match cycle_reward_map with
+    | Some cycle_reward_entry =>
+      is_map_empty = is_cycle_reward_map_empty cycle_reward_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete deleg_stake_per_cycle[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None =>
+      delete deleg_stake_per_cycle[deleg][ssn]
+    end
+  end
+end
+
+procedure CleanDelegStakePerCycleDelegAddr(deleg: ByStr20)
+  deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg];
+  match deleg_stake_per_cycle_map with
+  | Some deleg_stake_per_cycle_entry =>
+    is_map_empty = is_ssn_cycle_reward_map_empty deleg_stake_per_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete deleg_stake_per_cycle[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete deleg_stake_per_cycle[deleg]
+  end
+end
+
+procedure CleanDepositAmtDelegAddr(deleg: ByStr20)
+  ssn_deposit_map <- deposit_amt_deleg[deleg];
+  match ssn_deposit_map with
+  | Some ssn_deposit_entry =>
+    is_map_empty = is_ssn_deposit_map_empty ssn_deposit_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete deposit_amt_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete deposit_amt_deleg[deleg]
+  end
+end
+
+procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
+  ssn_cycle_map <- last_withdraw_cycle_deleg[deleg];
+  match ssn_cycle_map with
+  | Some ssn_cycle_entry =>
+    is_map_empty = is_ssn_cycle_map_empty ssn_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete last_withdraw_cycle_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete last_withdraw_cycle_deleg[deleg]
+  end
+end
+
+
+transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanBuffDepositSSNAddr;
+  forall deleg_addr_list CleanBuffDepositDelegAddr
+end
+
+transition CleanDirectDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanDirectDepositSSNAddr;
+  forall deleg_addr_list CleanDirectDepositDelegAddr
+end
+
+transition CleanDelegStakePerCycle(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanDelegStakePerCycleSSNAddr;
+  forall deleg_addr_list CleanDelegStakePerCycleDelegAddr
+end
+
+transition CleanDepositAmt(deleg_addr_list: List ByStr20)
+  forall deleg_addr_list CleanDepositAmtDelegAddr
+end
+
+transition CleanPendingWithdrawal(deleg_addr_list: List ByStr20)
+  forall deleg_addr_list CleanPendingWithdrawalDelegAddr
+end
+
+transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20)
+  forall deleg_addr_list CleanLastWithdrawCycleDelegAddr
 end
 
 (***************************************************)
