@@ -210,86 +210,6 @@ let map_to_stake_rewards =
     | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
-(* check if there are more than 1 entry *)
-let has_other_map_entries =
-  fun (m : Map Uint32 Uint128) =>
-  fun (cycle: Uint32) =>
-    let reward_val = builtin get m cycle in
-    match reward_val with
-    | Some reward =>
-      let m_size = builtin size m in
-      let has_other_records = uint32_gt m_size uint32_one in
-      match has_other_records with
-        | True => True
-        | False => False
-      end
-    | None => False
-    end
-
-(* used for clean removal of map-key values *)
-let remove_cycle_reward = 
-  fun (m : Map Uint32 Uint128) =>
-  fun (cycle: Uint32) =>
-    let reward_val = builtin get m cycle in
-      match reward_val with
-      | Some reward =>
-          builtin remove m cycle (* return map with entry removed *)
-      | None => m (* return original map *)
-      end
-
-(* used for clean removal of map-(map-key) values *)
-let remove_addr_cycle_reward =
-  fun (m : Map ByStr20 (Map Uint32 Uint128)) =>
-  fun (k1 : ByStr20) =>
-  fun (k2: Uint32) =>
-    (* fetch m[k1] inner map *)
-    let m_k1_map = builtin get m k1 in
-    match m_k1_map with
-      | Some m_k1_entry => 
-        (* check if m[k1] only has k2 and no other k2' *)
-        (* if only one k2, straight away remove m[k1] *)
-        let has_other_k2 = has_other_map_entries m_k1_entry k2 in
-        match has_other_k2 with
-        | True =>
-          (* contains other k2' *)
-          (* remove [k2] = val & k2 - returns new k2' *)
-          (* reassign m[k1] = k2' *)
-          let m_k1_x = remove_cycle_reward m_k1_entry k2 in
-          builtin put m k1 m_k1_x
-        | False =>
-            (* no more k2 for this k1 - remove entire k1 from m *)
-            builtin remove m k1
-        end
-      | None => m (* return original map *)
-    end
-
-(* used for clean removal of map-(map-(map-key)) *)
-(* e.g. buff_deposit_deleg *)
-let remove_addr_addr_cycle_reward =
-  fun (m : Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))) =>
-  fun (k1 : ByStr20) =>
-  fun (k2 : ByStr20) =>
-  fun (k3 : Uint32) =>
-    (* fetch m[k1] inner map *)
-    let m_k1_map = builtin get m k1 in
-    match m_k1_map with
-      | Some m_k1_entry =>
-        (* remove m[k1][k2][k3] = val, k2, k3 *)
-        let m_k1_x = remove_addr_cycle_reward m_k1_entry k2 k3 in
-        (* check if m[k1] has other k2' *)
-        let m_k1_x_size = builtin size m_k1_x in
-        let is_map_empty = builtin eq m_k1_x_size uint32_zero in
-        match is_map_empty with
-          | True =>
-            (* no other k2' - remove k1 *)
-            builtin remove m k1
-          | False =>
-            (* contains other k2' - reassign map *)
-            builtin put m k1 m_k1_x
-        end
-      | None => m (* return original map *)
-    end
-
 (* check if last_withdraw_cycle_deleg[deleg] is empty *)
 let is_ssn_cycle_map_empty =
   fun(m : Map ByStr20 Uint32) =>
@@ -310,6 +230,8 @@ let is_block_reward_map_empty =
 
 (* check if nested maps are empty *)
 (* buff_deposit_deleg[deleg] *)
+(* direct_deposit_deleg[deleg] *)
+(* deleg_stake_per_cycle[deleg] *)
 let is_ssn_cycle_reward_map_empty =
   fun(m : Map ByStr20 (Map Uint32 Uint128)) =>
     let map_size = builtin size m in
@@ -317,6 +239,8 @@ let is_ssn_cycle_reward_map_empty =
 
 (* check if final inner map is empty *)
 (* buff_deposit_deleg[deleg][ssn] *)
+(* direct_deposit_deleg[deleg][ssn] *)
+(* deleg_stake_per_cycle[deleg][ssn] *)
 let is_cycle_reward_map_empty =
   fun(m : Map Uint32 Uint128) =>
     let map_size = builtin size m in
@@ -471,49 +395,6 @@ field totalstakeamount: Uint128 = uint128_zero
 
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
-procedure RemoveBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
-  buff_deposit_deleg_o <- buff_deposit_deleg;
-  buff_deposit_deleg_x = remove_addr_addr_cycle_reward buff_deposit_deleg_o deleg ssnaddr cycle;
-  buff_deposit_deleg := buff_deposit_deleg_x;
-  e = { _eventname: "RemoveBuffDeposit"; deleg: deleg; ssnaddr: ssnaddr; cycle: cycle };
-  event e
-end
-
-procedure RemoveDirectDepositDeleg(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
-  direct_deposit_deleg_o <- direct_deposit_deleg;
-  direct_deposit_deleg_x = remove_addr_addr_cycle_reward direct_deposit_deleg_o deleg ssnaddr cycle;
-  direct_deposit_deleg := direct_deposit_deleg_x;
-  e = { _eventname: "RemoveDirectDepositDeleg"; deleg: deleg; ssnaddr: ssnaddr; cycle: cycle };
-  event e
-end
-
-procedure RemoveDelegStakePerCycle(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
-  deleg_stake_per_cycle_o <- deleg_stake_per_cycle;
-  deleg_stake_per_cycle_x = remove_addr_addr_cycle_reward deleg_stake_per_cycle_o deleg ssnaddr cycle;
-  deleg_stake_per_cycle := deleg_stake_per_cycle_x;
-  e = { _eventname: "RemoveDelegStakePerCycle"; deleg: deleg; ssnaddr: ssnaddr; cycle: cycle };
-  event e
-end
-
-procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
-  delete withdrawal_pending[deleg][withdraw_number];
-  deleg_withdraw_map <- withdrawal_pending[deleg];
-  match deleg_withdraw_map with
-  | Some deleg_withdraw_entry =>
-    deleg_withdraw_entry_size = builtin size deleg_withdraw_entry;
-    is_deleg_empty = builtin eq deleg_withdraw_entry_size uint32_zero;
-    match is_deleg_empty with
-    | True => 
-      (* no withdraw_number entries - remove deleg *)
-      delete withdrawal_pending[deleg]
-    | False => (* contains other withdraw_number map entries *)
-    end
-  | None =>
-    (* no withdraw_number entries - remove deleg *)
-    delete withdrawal_pending[deleg]
-  end
-end
-
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete deposit_amt_deleg[deleg][ssnaddr];
   delete ssn_deleg_amt[ssnaddr][deleg];
@@ -521,93 +402,7 @@ procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete direct_deposit_deleg[deleg][ssnaddr];
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
   delete deleg_stake_per_cycle[deleg][ssnaddr];
-  delete last_buf_deposit_cycle_deleg[deleg][ssnaddr];
-
-  (* no need to clean ssn_deleg_amt as there will always be some deleg *)
-
-  deposit_amt_deleg_map <- deposit_amt_deleg[deleg];
-  match deposit_amt_deleg_map with
-  | Some deposit_amt_deleg_entry =>
-    deposit_amt_deleg_entry_size = builtin size deposit_amt_deleg_entry;
-    is_empty = builtin eq deposit_amt_deleg_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete deposit_amt_deleg[deleg]
-    | False =>
-    end
-  | None =>
-    delete deposit_amt_deleg[deleg]
-  end;
-
-  buff_deposit_deleg_map <- buff_deposit_deleg[deleg];
-  match buff_deposit_deleg_map with
-  | Some buff_deposit_deleg_entry =>
-    buff_deposit_deleg_entry_size = builtin size buff_deposit_deleg_entry;
-    is_empty = builtin eq buff_deposit_deleg_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete buff_deposit_deleg[deleg]
-    | False =>
-    end
-  | None =>
-    delete buff_deposit_deleg[deleg]
-  end;
-
-  direct_deposit_deleg_map <- direct_deposit_deleg[deleg];
-  match direct_deposit_deleg_map with
-  | Some direct_deposit_deleg_entry =>
-    direct_deposit_deleg_entry_size = builtin size direct_deposit_deleg_entry;
-    is_empty = builtin eq direct_deposit_deleg_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete direct_deposit_deleg[deleg]
-    | False =>
-    end
-  | None =>
-    delete direct_deposit_deleg[deleg]
-  end;
-
-  deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg];
-  match deleg_stake_per_cycle_map with
-  | Some deleg_stake_per_cycle_entry =>
-    deleg_stake_per_cycle_entry_size = builtin size deleg_stake_per_cycle_entry;
-    is_empty = builtin eq deleg_stake_per_cycle_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete deleg_stake_per_cycle[deleg]
-    | False =>
-    end
-  | None =>
-    delete deleg_stake_per_cycle[deleg]
-  end;
-
-  last_withdraw_cycle_map <- last_withdraw_cycle_deleg[deleg];
-  match last_withdraw_cycle_map with
-  | Some last_withdraw_deleg_entry =>
-    last_withdraw_deleg_entry_size = builtin size last_withdraw_deleg_entry;
-    is_empty = builtin eq last_withdraw_deleg_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete last_withdraw_cycle_deleg[deleg]
-    | False =>
-    end
-  | None =>
-    delete last_withdraw_cycle_deleg[deleg]
-  end;
-  
-  last_buf_deposit_map <- last_buf_deposit_cycle_deleg[deleg];
-  match last_buf_deposit_map with
-  | Some last_buf_deposit_entry =>
-    last_buf_deposit_entry_size = builtin size last_buf_deposit_entry;
-    is_empty = builtin eq last_buf_deposit_entry_size uint32_zero;
-    match is_empty with
-    | True =>
-      delete last_buf_deposit_cycle_deleg[deleg]
-    | False =>
-    end
-  | None =>
-    delete last_buf_deposit_cycle_deleg[deleg]
-  end
+  delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
 end
 
 procedure ThrowError(err: Error)
@@ -760,10 +555,16 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       can_withdraw = builtin blt bnum current_bnum;
       match can_withdraw with
       | True =>
-          DeletePendingWithdrawal deleg withdraw_number;
+          delete withdrawal_pending[deleg][withdraw_number];
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          available_withdrawal := current_amt
+          available_withdrawal := current_amt;
+          has_other_records <- withdrawal_pending[deleg];
+          match has_other_records with
+          | Some inner =>
+          | None =>
+            delete withdrawal_pending[deleg]
+          end
       | False => 
       end
     end
@@ -1077,9 +878,9 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     last_amt = option_uint128_value last_amt_o;
     staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
     (* the rewards for this cycle also computed within this procedure, so we no long keep histric data *)
-    RemoveDelegStakePerCycle deleg ssn_operator last_reward_cycle;
-    RemoveDirectDepositDeleg deleg ssn_operator last_reward_cycle;
-    RemoveBuffDeposit deleg ssn_operator last2_reward_cycle;
+    delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
+    delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
+    delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
 
     staking_of_deleg = match comb_opt with
     | Some stake => builtin add last_amt stake
@@ -1206,150 +1007,6 @@ procedure Delegate(ssnaddr: ByStr20, initiator: ByStr20, amount: Uint128)
       end
     end
   end  
-end
-
-(***************************************************)
-(*                  Transition                     *)
-(***************************************************)
-
-(***************************************************)
-(*            House keeping transition             *)
-(***************************************************)
-
-(* @dev: pause the contract. Used by admin only. *)
-(* @param initiator: The original caller who called the proxy. *)
-transition Pause(initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  paused := bool_active
-end
-
-(* @dev: unpause/unfreeze the contract. Used by admin only. *)
-(* @param initiator: The original caller who called the proxy. *)
-transition UnPause(initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  paused := bool_inactive
-end
-
-(* @dev: Start a proposal for new contract admin. Used by admin only. *)
-(* @param admin: New admin value *)
-(* @param initiator: The original caller who called the proxy. *)
-transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  staging_admin = Some {ByStr20} admin;
-  stagingcontractadmin := staging_admin
-end
-
-
-(* @dev: Claim to be the new admin of contract. *)
-(* @param initiator: The original caller who called the proxy. *)
-transition ClaimAdmin(initiator: ByStr20)
-  IsProxy;
-  staging_admin <- stagingcontractadmin;
-  match staging_admin with
-  | Some admin =>
-    is_valid = builtin eq initiator admin;
-    match is_valid with
-    | True =>
-      contractadmin := admin;
-      staging_admin = None {ByStr20};
-      stagingcontractadmin := staging_admin;
-      e = { _eventname: "ClaimAdmin"; new_admin: admin };
-      event e
-    | False =>
-      e = StagingAdminValidationFailed;
-      ThrowError e
-    end
-  | None =>
-    e = StagingAdminNotExist;
-    ThrowError e
-  end
-end
-
-(* @dev: Set the verifier of the contract. Used by admin only. *)
-(* @param verif: New verifier value *)
-(* @param initiator: The original caller who called the proxy *)
-transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  newverifier = Some {ByStr20} verif;
-  verifier := newverifier
-end
-
-(* @dev: Set the verifier receiving address of the contract. Used by admin only. *)
-(* @param addr: New verifier receiving address *)
-(* @param initiator: The original caller who called the proxy *)
-transition UpdateVerifierRewardAddr(addr: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  newAddr = Some {ByStr20} addr;
-  verifier_receiving_addr := newAddr
-end
-
-(* @dev: Set the staking parameters of contract. Used by admin only. *)
-(* @param min_stake: New minstake value *)
-(* @param min_deleg_stake: New mindelegstake value *)
-(* @param initiator: The original caller who called the proxy *)
-transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  minstake := min_stake;
-  mindelegstake := min_deleg_stake;
-  maxcommchangerate := max_comm_change_rate
-end
-
-transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  bnum_req := input_bnum_req
-end
-
-transition UpdateGzilAddr(gzil_addr: ByStr20, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  gziladdr := gzil_addr
-end
-
-transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  already_exists <- exists ssnlist[ssnaddr];
-  match already_exists with
-  | True  =>
-    e = SSNAlreadyExist;
-    ThrowError e
-  | False =>
-    ValidateRate comm;
-    status = bool_inactive;
-    stake_amt = Uint128 0;
-    rewards = Uint128 0;
-    buff_deposit = Uint128 0;
-    comm_rewards = Uint128 0;
-    s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards ssnaddr;
-    ssnlist[ssnaddr] := s;
-    lrc <- lastrewardcycle;
-    comm_for_ssn[ssnaddr][lrc] := comm;
-    e = { _eventname: "SSN added"; ssn_addr: ssnaddr };
-    event e
-  end
-end
-
-transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator: ByStr20)
-  IsProxy;
-  IsAdmin initiator;
-  ssn_o <- ssnlist[ssnaddr];
-  match ssn_o with
-  | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
-    ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
-    ssnlist[ssnaddr] := ssn;
-    e = { _eventname: "UpdateSSN"; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: initiator };
-    event e
-  | None =>
-    e = SSNNotExist;
-    ThrowError e
-  end
 end
 
 procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
@@ -1511,38 +1168,219 @@ procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
   end
 end
 
+(***************************************************)
+(*                  Transition                     *)
+(***************************************************)
 
-transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+(***************************************************)
+(*            House keeping transition             *)
+(***************************************************)
+
+(* @dev: pause the contract. Used by admin only. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition Pause(initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  paused := bool_active
+end
+
+(* @dev: unpause/unfreeze the contract. Used by admin only. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition UnPause(initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  paused := bool_inactive
+end
+
+(* @dev: Start a proposal for new contract admin. Used by admin only. *)
+(* @param admin: New admin value *)
+(* @param initiator: The original caller who called the proxy. *)
+transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  staging_admin = Some {ByStr20} admin;
+  stagingcontractadmin := staging_admin
+end
+
+
+(* @dev: Claim to be the new admin of contract. *)
+(* @param initiator: The original caller who called the proxy. *)
+transition ClaimAdmin(initiator: ByStr20)
+  IsProxy;
+  staging_admin <- stagingcontractadmin;
+  match staging_admin with
+  | Some admin =>
+    is_valid = builtin eq initiator admin;
+    match is_valid with
+    | True =>
+      contractadmin := admin;
+      staging_admin = None {ByStr20};
+      stagingcontractadmin := staging_admin;
+      e = { _eventname: "ClaimAdmin"; new_admin: admin };
+      event e
+    | False =>
+      e = StagingAdminValidationFailed;
+      ThrowError e
+    end
+  | None =>
+    e = StagingAdminNotExist;
+    ThrowError e
+  end
+end
+
+(* @dev: Set the verifier of the contract. Used by admin only. *)
+(* @param verif: New verifier value *)
+(* @param initiator: The original caller who called the proxy *)
+transition UpdateVerifier(verif: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  newverifier = Some {ByStr20} verif;
+  verifier := newverifier
+end
+
+(* @dev: Set the verifier receiving address of the contract. Used by admin only. *)
+(* @param addr: New verifier receiving address *)
+(* @param initiator: The original caller who called the proxy *)
+transition UpdateVerifierRewardAddr(addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  newAddr = Some {ByStr20} addr;
+  verifier_receiving_addr := newAddr
+end
+
+(* @dev: Set the staking parameters of contract. Used by admin only. *)
+(* @param min_stake: New minstake value *)
+(* @param min_deleg_stake: New mindelegstake value *)
+(* @param initiator: The original caller who called the proxy *)
+transition UpdateStakingParameters(min_stake: Uint128, min_deleg_stake: Uint128, max_comm_change_rate: Uint128, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  minstake := min_stake;
+  mindelegstake := min_deleg_stake;
+  maxcommchangerate := max_comm_change_rate
+end
+
+transition ChangeBNumReq(input_bnum_req: Uint128, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  bnum_req := input_bnum_req
+end
+
+transition UpdateGzilAddr(gzil_addr: ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  gziladdr := gzil_addr
+end
+
+transition AddSSN(ssnaddr: ByStr20, name: String, urlraw: String, urlapi: String, comm: Uint128, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  already_exists <- exists ssnlist[ssnaddr];
+  match already_exists with
+  | True  =>
+    e = SSNAlreadyExist;
+    ThrowError e
+  | False =>
+    ValidateRate comm;
+    status = bool_inactive;
+    stake_amt = Uint128 0;
+    rewards = Uint128 0;
+    buff_deposit = Uint128 0;
+    comm_rewards = Uint128 0;
+    s = Ssn status stake_amt rewards name urlraw urlapi buff_deposit comm comm_rewards ssnaddr;
+    ssnlist[ssnaddr] := s;
+    lrc <- lastrewardcycle;
+    comm_for_ssn[ssnaddr][lrc] := comm;
+    e = { _eventname: "SSN added"; ssn_addr: ssnaddr };
+    event e
+  end
+end
+
+transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new_urlapi: String, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  ssn_o <- ssnlist[ssnaddr];
+  match ssn_o with
+  | Some (Ssn active_status staking_amt deleg_reward name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    ssn = Ssn active_status staking_amt deleg_reward new_name new_urlraw new_urlapi buffdeposit comm comm_rewards rec_addr;
+    ssnlist[ssnaddr] := ssn;
+    e = { _eventname: "UpdateSSN"; ssnaddr: ssnaddr; new_name: new_name; new_urlraw: new_urlraw; new_urlapi: new_urlapi; initiator: initiator };
+    event e
+  | None =>
+    e = SSNNotExist;
+    ThrowError e
+  end
+end
+
+(* @dev: delete empty maps {} for buff_deposit_deleg  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); buff_deposit_deleg[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); buff_deposit_deleg[deleg][ssn] *)
+transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   (* must clean all the inner maps before cleaning the outer maps *)
   forall ssn_addr_list CleanBuffDepositSSNAddr;
   forall deleg_addr_list CleanBuffDepositDelegAddr
 end
 
-transition CleanDirectDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+(* @dev: delete empty maps {} for direct_deposit_deleg  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); direct_deposit_deleg[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); direct_deposit_deleg[deleg][ssn] *)
+transition CleanDirectDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   (* must clean all the inner maps before cleaning the outer maps *)
   forall ssn_addr_list CleanDirectDepositSSNAddr;
   forall deleg_addr_list CleanDirectDepositDelegAddr
 end
 
-transition CleanDelegStakePerCycle(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+(* @dev: delete empty maps {} for deleg_stake_per_cycle  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); deleg_stake_per_cycle[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); deleg_stake_per_cycle[deleg][ssn] *)
+transition CleanDelegStakePerCycle(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   (* must clean all the inner maps before cleaning the outer maps *)
   forall ssn_addr_list CleanDelegStakePerCycleSSNAddr;
   forall deleg_addr_list CleanDelegStakePerCycleDelegAddr
 end
 
-transition CleanDepositAmt(deleg_addr_list: List ByStr20)
+(* @dev: delete empty maps {} for deposit_amt_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); deposit_amt_deleg[deleg] *)
+transition CleanDepositAmt(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   forall deleg_addr_list CleanDepositAmtDelegAddr
 end
 
-transition CleanPendingWithdrawal(deleg_addr_list: List ByStr20)
+(* @dev: delete empty maps {} for withdrawal_pending *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); withdrawal_pending[deleg] *)
+transition CleanPendingWithdrawal(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   forall deleg_addr_list CleanPendingWithdrawalDelegAddr
 end
 
-transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20)
+(* @dev: delete empty maps {} for last_withdraw_cycle_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); last_withdraw_cycle_deleg[deleg] *)
+transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   forall deleg_addr_list CleanLastWithdrawCycleDelegAddr
 end
 
-transition CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20)
+(* @dev: delete empty maps {} for last_buf_deposit_cycle_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); last_buf_deposit_cycle_deleg[deleg] *)
+transition CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
   forall deleg_addr_list CleanLastBuffDepositCycleDelegAddr
 end
 
