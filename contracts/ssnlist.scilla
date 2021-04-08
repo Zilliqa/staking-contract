@@ -1496,6 +1496,21 @@ procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
   end
 end
 
+procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
+  ssn_cycle_map <- last_buf_deposit_cycle_deleg[deleg];
+  match ssn_cycle_map with
+  | Some ssn_cycle_entry =>
+    is_map_empty = is_ssn_cycle_map_empty ssn_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete last_buf_deposit_cycle_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None =>
+    delete last_buf_deposit_cycle_deleg[deleg]
+  end
+end
+
 
 transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
   (* must clean all the inner maps before cleaning the outer maps *)
@@ -1525,6 +1540,10 @@ end
 
 transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20)
   forall deleg_addr_list CleanLastWithdrawCycleDelegAddr
+end
+
+transition CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20)
+  forall deleg_addr_list CleanLastBuffDepositCycleDelegAddr
 end
 
 (***************************************************)
