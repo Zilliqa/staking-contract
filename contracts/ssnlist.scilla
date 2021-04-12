@@ -2037,10 +2037,10 @@ procedure IsValidSwapAddr(requestor: ByStr20, new_deleg_addr: ByStr20)
 end
 
 (* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
-(* @param initiator: Address of the requestor; the one who call the proxy *)
 (* @param new_deleg_addr: Address of the new deleg that will be receiving all the stakes from requestor *)
+(* @param initiator: Address of the requestor; the one who call the proxy *)
 (* requestor can override the new deleg address by sending a new request *)
-transition RequestDelegatorSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+transition RequestDelegatorSwap(new_deleg_addr: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   IsNotSelfSwap initiator new_deleg_addr;
@@ -2052,10 +2052,10 @@ end
 
 (* @dev: Accepts a swap request from a requestor. *)
 (* Once confirmed, everything which was under the requestor would be transferred over to the new deleg *)
-(* @param initiator: Address of the new_deleg confirming the request *)
 (* @param requestor: Address of the one that creates the swap request *)
+(* @param initiator: Address of the new_deleg confirming the request *)
 (* Transfer cannot be reverted once confirmed *)
-transition ConfirmDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
+transition ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   IsValidSwapAddr requestor initiator;
@@ -2086,9 +2086,9 @@ end
 (* @dev: Rejects a swap request from a requestor. *)
 (* for swap recipient use *)
 (* Once rejected, requestor must create swap request again *)
-(* @param initiator: Address of the new_deleg rejecting the request *)
 (* @param requestor: Address of the one that creates the swap request *)
-transition RejectDelegatorSwap(initiator: ByStr20, requestor: ByStr20)
+(* @param initiator: Address of the new_deleg rejecting the request *)
+transition RejectDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   IsValidSwapAddr requestor initiator;

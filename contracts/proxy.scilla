@@ -254,9 +254,9 @@ transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
     send msgs
 end
 
-transition RequestDelegatorSwap(new_deleg: ByStr20)
+transition RequestDelegatorSwap(new_deleg_addr: ByStr20)
     current_impl <- implementation;
-    msg = {_tag: "RequestDelegatorSwap"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg; initiator: _sender};
+    msg = {_tag: "RequestDelegatorSwap"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
