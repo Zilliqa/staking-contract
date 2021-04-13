@@ -409,6 +409,13 @@ transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stak
     send msgs
 end
 
+transition PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateDelegSwapRequest"; _recipient: current_impl; _amount: zero; requestor: requestor; new_deleg_addr: new_deleg_addr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (* @dev: Set the admin of contract. Used by current admin only. *)
 transition DrainContractBalance(amt: Uint128)
     current_impl <- implementation;
