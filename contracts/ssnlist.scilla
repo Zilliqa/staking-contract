@@ -1628,9 +1628,7 @@ procedure SwapBuffDeposit(ssninfo: Pair ByStr20 Ssn)
       delete buff_deposit_deleg[deleg][ssn_address]
     | None => (* No buff deposit at this ssn *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
@@ -1696,9 +1694,7 @@ procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
       delete direct_deposit_deleg[deleg][ssn_address]
     | None => (* No direct deposit at this ssn *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
@@ -1764,9 +1760,7 @@ procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
       delete deleg_stake_per_cycle[deleg][ssn_address]
     | None => (* No deposit at this ssn *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
@@ -1805,9 +1799,7 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
       end
     | None => (* No deposit at this ssn *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
@@ -1845,9 +1837,7 @@ procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
       end
     | None => (* No deleg deposit for this ssn *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
