@@ -214,6 +214,9 @@ let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
 
+(* for SwapDelegator *)
+let reset_addr = 0x0000000000000000000000000000000000000000
+
 type Error =
   | ContractFrozenFailure
   | VerifierValidationFailed
@@ -1977,7 +1980,13 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
     | None => (* no pending withdrawal *)
     end
   | None => (* not possible to have no existing deleg *)
-  end
+  end;
+
+  (* clean up *)
+  r = Some {ByStr20} reset_addr;
+  current_deleg := r;
+  current_ssn := r;
+  new_deleg := r
 end
 
 (* checks if there exists A -> B to prevent B -> A due to potential cyclic swap issue *)
