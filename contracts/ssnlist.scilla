@@ -1913,28 +1913,28 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
 end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in withdrawal_pending *)
-procedure SwapPendingWithdrawal(blk_reward_cycle: Pair BNum Uint128)
+procedure SwapPendingWithdrawal(blk_deposit_cycle: Pair BNum Uint128)
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
   fst = @fst BNum Uint128;
   snd = @snd BNum Uint128;
-  blk_num = fst blk_reward_cycle;
-  reward = snd blk_reward_cycle;
+  blk_num = fst blk_deposit_cycle;
+  deposit = snd blk_deposit_cycle;
   
   match new_deleg_o with
   | Some new_deleg_addr =>
     new_deleg_pending_withdrawal <- withdrawal_pending[new_deleg_addr][blk_num];
     match new_deleg_pending_withdrawal with
-    | Some existing_reward =>
+    | Some existing_deposit =>
       (* new deleg has exisiting blk_num *)
-      new_reward = builtin add existing_reward reward;
-      withdrawal_pending[new_deleg_addr][blk_num] := new_reward;
-      e = { _eventname: "SwapPendingWithdrawalExists"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; existing_reward: existing_reward; new_reward: new_reward };
+      new_deposit = builtin add existing_deposit deposit;
+      withdrawal_pending[new_deleg_addr][blk_num] := new_deposit;
+      e = { _eventname: "SwapPendingWithdrawalExists"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; existing_deposit: existing_deposit; new_deposit: new_deposit };
       event e
     | None =>
       (* new deleg has no blk_num entry*)
-      withdrawal_pending[new_deleg_addr][blk_num] := reward;
-      e = { _eventname: "SwapPendingWithdrawalNewEntry"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; reward: reward };
+      withdrawal_pending[new_deleg_addr][blk_num] := deposit;
+      e = { _eventname: "SwapPendingWithdrawalNewEntry"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; deposit: deposit };
       event e
     end
   | None => (* no new deleg to transfer to *)
@@ -1969,9 +1969,7 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
       delete withdrawal_pending[initial_deleg]
     | None => (* no pending withdrawal *)
     end
-  | None =>
-    e = DelegDoesNotExistAtSSN;
-    ThrowError e
+  | None => (* not possible to have no existing deleg *)
   end
 end
 
