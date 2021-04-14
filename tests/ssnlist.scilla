@@ -3,6 +3,8 @@ import ListUtils IntUtils
 library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
+type SsnRewardShare =
+| SsnRewardShare of ByStr20 Uint128
 type SsnStakeRewardShare =
 | SsnStakeRewardShare of ByStr20 Uint128 Uint128
 type SSNCycleInfo =
@@ -121,9 +123,9 @@ res128
 end
 let map_to_stake_rewards =
 fun (total_stake: Uint128) =>
-fun (element: Pair ByStr20 Uint128) =>
+fun (element: SsnRewardShare) =>
 match element with
-| Pair ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake
+| SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake
 end
 let bool_active = True
 let bool_inactive = False
@@ -989,7 +991,7 @@ msg = one_msg msg_to_delegator;
 send msg
 end
 end
-transition AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
 IsNotPaused;
 IsProxy;
 CallerIsVerifier initiator;
@@ -1000,7 +1002,7 @@ lastrewardcycle := newLastRewardCycleNum;
 verifier_reward := _amount;
 total_stake_amt <- totalstakeamount;
 f = map_to_stake_rewards total_stake_amt;
-mapper = @list_map (Pair ByStr20 Uint128) SsnStakeRewardShare;
+mapper = @list_map SsnRewardShare SsnStakeRewardShare;
 ssn_stake_reward_list = mapper f ssnreward_list;
 forall ssn_stake_reward_list UpdateStakeReward;
 verifier_reward_amt <- verifier_reward;
