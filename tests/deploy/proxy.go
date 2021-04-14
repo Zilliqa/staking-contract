@@ -293,6 +293,24 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 	return p.Call("AssignStakeReward", args, percent)
 }
 
+func (p *Proxy) AssignStakeRewardFixed(ssn, percent string) (*transaction.Transaction, error) {
+	var pairArgType []interface{}
+	pairArgType = append(pairArgType, "ByStr20", "Uint128")
+	args := []core.ContractValue{{
+		VName: "ssnreward_list",
+		Type:  "List (Pair ByStr20 Uint128)",
+		Value: []core.ParamConstructor{
+			{
+				"Pair",
+				pairArgType,
+				[]string{ssn, percent},
+			},
+		},
+	}}
+
+	return p.Call("AssignStakeReward", args, percent)
+}
+
 func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
