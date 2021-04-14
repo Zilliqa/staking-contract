@@ -300,6 +300,7 @@ Each of these category of transitions are presented in further detail below.
 | `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20` | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20` | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateDelegSwapRequest` | `requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20` | To populate `deleg_swap_Request` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 
 ### Other Transitions
 
@@ -402,6 +403,7 @@ parameter `initiator` for the `SSNList` contract.
 |`PopulateLastRewardCycle(cycle: Uint32)` | `PopulateLastRewardCycle(cycle: Uint32, initiator : ByStr20)`|
 |`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator : ByStr20)`|
 |`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
+|`PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20)` | `PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
 > Note: Any transition in `SSNList` contract that accepts money will have the 
