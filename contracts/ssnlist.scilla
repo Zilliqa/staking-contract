@@ -1951,8 +1951,16 @@ procedure SwapPendingWithdrawal(blk_deposit_cycle: Pair BNum Uint128)
   end
 end
 
+(* @dev Clears the mutable addresses after use *)
+procedure SwapCleanUp()
+  r = Some {ByStr20} reset_addr;
+  current_deleg := r;
+  current_ssn := r;
+  new_deleg := r
+end
 
-(* @dev : Change a delegator's stake from initiator -> new_deleg_addr. *)
+
+(* @dev Change a delegator's stake from initiator -> new_deleg_addr. *)
 procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   c = Some {ByStr20} requestor;
   current_deleg := c;
@@ -1960,6 +1968,8 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   new_deleg := n;
   ssnlist_o <- ssnlist;
   ssninfo_list = builtin to_list ssnlist_o;
+
+  (* swap *)
   forall ssninfo_list SwapBuffDeposit;
   forall ssninfo_list SwapDirectDeposit;
   forall ssninfo_list SwapDelegStakePerCycle;
@@ -1980,13 +1990,7 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
     | None => (* no pending withdrawal *)
     end
   | None => (* not possible to have no existing deleg *)
-  end;
-
-  (* clean up *)
-  r = Some {ByStr20} reset_addr;
-  current_deleg := r;
-  current_ssn := r;
-  new_deleg := r
+  end
 end
 
 (* checks if there exists A -> B to prevent B -> A due to potential cyclic swap issue *)
@@ -2040,6 +2044,33 @@ procedure IsValidSwapAddr(requestor: ByStr20, new_deleg_addr: ByStr20)
   end
 end
 
+procedure AssertSwapNoBufferedAndRewards(ssninfo: Pair ByStr20 Ssn)
+  current_deleg_o <- current_deleg;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  ssn_o <- ssnlist[ssn_address];
+
+  match ssn_o with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    match current_deleg_o with
+    | Some requestor =>
+      AssertNoRewards ssn_address requestor rewards;
+      AsseertNoBufferedDeposit ssn_address requestor
+    | None =>
+    end
+  | None =>
+  end
+end
+
+(* checks if the requestor has buffered deposit or rewards *)
+procedure AssertNoBufferedAndRewards(requestor : ByStr20)
+  c = Some {ByStr20} requestor;
+  current_deleg := c;
+  ssnlist_o <- ssnlist;
+  ssninfo_list = builtin to_list ssnlist_o;
+  forall ssninfo_list AssertSwapNoBufferedAndRewards
+end
+
 (* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
 (* @param new_deleg_addr: Address of the new deleg that will be receiving all the stakes from requestor *)
 (* @param initiator: Address of the requestor; the one who call the proxy *)
@@ -2063,7 +2094,10 @@ transition ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   IsValidSwapAddr requestor initiator;
+  (* requestor should not have buffered deposit or rewards *)
+  AssertNoBufferedAndRewards requestor;
   SwapDelegator requestor initiator;
+  SwapCleanUp;
   delete deleg_swap_request[requestor];
   e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
   event e
