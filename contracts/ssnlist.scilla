@@ -396,7 +396,8 @@ field totalstakeamount: Uint128 = uint128_zero
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
 
-
+(* to erase buff_deposit_deleg outer keys *)
+(* see CleanBuffDeposit *)
 procedure CleanBuffDepositDelegAddr(deleg: ByStr20)
   buff_deposit_deleg_map <- buff_deposit_deleg[deleg];
   match buff_deposit_deleg_map with
@@ -412,6 +413,8 @@ procedure CleanBuffDepositDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase buff_deposit_deleg inner keys *)
+(* see CleanBuffDeposit *)
 procedure CleanBuffDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   match deleg_ssn_pair with
   | Pair deleg ssn =>
@@ -430,6 +433,7 @@ procedure CleanBuffDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   end
 end
 
+(* to erase direct_deposit_deleg inner keys  *)
 procedure CleanDirectDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   match deleg_ssn_pair with
   | Pair deleg ssn =>
@@ -448,6 +452,7 @@ procedure CleanDirectDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   end
 end
 
+(* to erase direct_deposit_deleg outer keys  *)
 procedure CleanDirectDepositDelegAddr(deleg: ByStr20)
   direct_deposit_deleg_map <- direct_deposit_deleg[deleg];
   match direct_deposit_deleg_map with
@@ -463,6 +468,7 @@ procedure CleanDirectDepositDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase deleg_stake_per_cycle inner keys  *)
 procedure CleanDelegStakePerCycleSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   match deleg_ssn_pair with
   | Pair deleg ssn =>
@@ -481,6 +487,7 @@ procedure CleanDelegStakePerCycleSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
   end
 end
 
+(* to erase deleg_stake_per_cycle outer keys  *)
 procedure CleanDelegStakePerCycleDelegAddr(deleg: ByStr20)
   deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg];
   match deleg_stake_per_cycle_map with
@@ -496,6 +503,7 @@ procedure CleanDelegStakePerCycleDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase deposit_amt_deleg outer keys  *)
 procedure CleanDepositAmtDelegAddr(deleg: ByStr20)
   ssn_deposit_map <- deposit_amt_deleg[deleg];
   match ssn_deposit_map with
@@ -511,6 +519,7 @@ procedure CleanDepositAmtDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase last_withdraw_cycle_deleg outer keys  *)
 procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
   ssn_cycle_map <- last_withdraw_cycle_deleg[deleg];
   match ssn_cycle_map with
@@ -526,6 +535,7 @@ procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase last_buf_deposit_cycle_deleg outer keys  *)
 procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
   ssn_cycle_map <- last_buf_deposit_cycle_deleg[deleg];
   match ssn_cycle_map with
@@ -541,6 +551,7 @@ procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
   end
 end
 
+(* to erase withdrawal_pending outer keys  *)
 procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
   block_deposit_map <- withdrawal_pending[deleg];
   match block_deposit_map with
@@ -557,6 +568,7 @@ procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
 end
 
 (* delete the cycle key and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
 procedure DeleteBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
   delete buff_deposit_deleg[deleg][ssnaddr][cycle];
   deleg_ssn_pair = Pair {ByStr20 ByStr20} deleg ssnaddr;
@@ -565,6 +577,7 @@ procedure DeleteBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
 end
 
 (* delete the cycle key and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
 procedure DeleteDirectDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
   delete direct_deposit_deleg[deleg][ssnaddr][cycle];
   deleg_ssn_pair = Pair {ByStr20 ByStr20} deleg ssnaddr;
@@ -573,6 +586,7 @@ procedure DeleteDirectDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
 end
 
 (* delete the blk num and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
 procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
   delete withdrawal_pending[deleg][withdraw_number];
   CleanPendingWithdrawalDelegAddr deleg
