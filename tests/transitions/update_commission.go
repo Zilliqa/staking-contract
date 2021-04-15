@@ -54,7 +54,7 @@ func (t *Testing) UpdateComm() {
 	ssnlist.LogContractStateJson()
 
 	// reward to increase cycle
-	proxy.AssignStakeReward("0x"+addr1, "52000000")
+	proxy.AssignStakeRewardFixed("0x"+addr1, "52000000")
 	ssnlist.LogContractStateJson()
 
 	// update commission with a legal number
