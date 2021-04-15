@@ -10,7 +10,7 @@ func (t *Testing) AssignStakeReward() {
 	// set staking parameters
 	min := "100000000000000"
 	delegMin := "50000"
-	proxy.UpdateStakingParameters(min,delegMin)
+	proxy.UpdateStakingParameters(min, delegMin)
 	// update verifier to addr2
 	proxy.UpdateVerifier("0x" + addr2)
 	// update verifier receiving addr to addr2
@@ -25,20 +25,20 @@ func (t *Testing) AssignStakeReward() {
 
 	// use addr2(which is verifier) to assign rewards
 	proxy.UpdateWallet(key2)
-	txn,err := proxy.AssignStakeReward("0x"+addr1, "52000000")
+	txn, err := proxy.AssignStakeRewardFixed("0x"+addr1, "52000000")
 	if err != nil {
-		t.LogError("AssignStakeReward",err)
+		t.LogError("AssignStakeReward", err)
 	}
-	receipt :=  t.GetReceiptString(txn)
+	receipt := t.GetReceiptString(txn)
 	log.Println(receipt)
 	state := ssnlist.LogContractStateJson()
-	t.AssertContain(state,"\"lastrewardcycle\":\"2\"")
-	t.AssertContain(state,"52000000")
+	t.AssertContain(state, "\"lastrewardcycle\":\"2\"")
+	t.AssertContain(state, "52000000")
 	// use addr1 (which is not verifier) to assign rewards
 	proxy.UpdateWallet(key1)
-	txn,err1 := proxy.AssignStakeReward("0x"+addr1, "52000000")
+	txn, err1 := proxy.AssignStakeRewardFixed("0x"+addr1, "52000000")
 	t.AssertError(err1)
-	receipt =  t.GetReceiptString(txn)
+	receipt = t.GetReceiptString(txn)
 	log.Println(receipt)
 
 	t.LogEnd("AssignStakeReward")

@@ -277,6 +277,7 @@ type SSNRewardShare struct {
 	RewardPercentage string
 }
 
+// pre-dismambigous ADT fix
 func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction, error) {
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
@@ -293,6 +294,7 @@ func (p *Proxy) AssignStakeReward(ssn, percent string) (*transaction.Transaction
 	return p.Call("AssignStakeReward", args, percent)
 }
 
+// post-disambigous ADT fix
 func (p *Proxy) AssignStakeRewardFixed(ssn, percent string) (*transaction.Transaction, error) {
 	var pairArgType []interface{}
 	pairArgType = append(pairArgType, "ByStr20", "Uint128")
@@ -312,18 +314,21 @@ func (p *Proxy) AssignStakeRewardFixed(ssn, percent string) (*transaction.Transa
 }
 
 func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
+	var pairArgType []interface{}
+	pairArgType = append(pairArgType, "ByStr20", "Uint128")
+
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
-		Type:  "List SsnRewardShare",
+		Type:  "List (Pair ByStr20 Uint128)",
 		Value: []core.ParamConstructor{
 			{
-				"SsnRewardShare",
-				make([]interface{}, 0),
+				"Pair",
+				pairArgType,
 				[]string{ssn1, percent1},
 			},
 			{
-				"SsnRewardShare",
-				make([]interface{}, 0),
+				"Pair",
+				pairArgType,
 				[]string{ssn2, percent2},
 			},
 		},
@@ -333,13 +338,16 @@ func (p *Proxy) AssignStakeReward3(ssn1, percent1, ssn2, percent2 string) (*tran
 }
 
 func (p *Proxy) AssignStakeRewardBatch(ssn, percent string) []account.BatchSendingResult {
+	var pairArgType []interface{}
+	pairArgType = append(pairArgType, "ByStr20", "Uint128")
+
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
-		Type:  "List SsnRewardShare",
+		Type:  "List (Pair ByStr20 Uint128)",
 		Value: []core.ParamConstructor{
 			{
-				"SsnRewardShare",
-				make([]interface{}, 0),
+				"Pair",
+				pairArgType,
 				[]string{ssn, percent},
 			},
 		},
@@ -348,18 +356,21 @@ func (p *Proxy) AssignStakeRewardBatch(ssn, percent string) []account.BatchSendi
 }
 
 func (p *Proxy) AssignStakeReward2(ssn1, percent1, ssn2, percent2 string) (*transaction.Transaction, error) {
+	var pairArgType []interface{}
+	pairArgType = append(pairArgType, "ByStr20", "Uint128")
+
 	args := []core.ContractValue{{
 		VName: "ssnreward_list",
-		Type:  "List SsnRewardShare",
+		Type:  "List (Pair ByStr20 Uint128)",
 		Value: []core.ParamConstructor{
 			{
-				"SsnRewardShare",
-				make([]interface{}, 0),
+				"Pair",
+				pairArgType,
 				[]string{ssn1, percent1},
 			},
 			{
-				"SsnRewardShare",
-				make([]interface{}, 0),
+				"Pair",
+				pairArgType,
 				[]string{ssn2, percent2},
 			},
 		},
