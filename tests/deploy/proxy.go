@@ -542,3 +542,36 @@ func NewProxy(key string) (*Proxy, error) {
 		return nil, errors.New("deploy failed")
 	}
 }
+
+func LoadRemoteProxy(key string, contractAddress string) (*Proxy error) {
+	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))
+	code, _ := ioutil.ReadFile("../contracts/proxy.scilla")
+	
+	init := []core.ContractValue{
+		{
+			VName: "_scilla_version",
+			Type:  "Uint32",
+			Value: "0",
+		}, {
+			VName: "init_admin",
+			Type:  "ByStr20",
+			Value: "0x" + adminAddr,
+		}, {
+			VName: "init_implementation",
+			Type:  "ByStr20",
+			Value: "0x" + adminAddr,
+		},
+	}
+
+	wallet := account.NewWallet()
+	wallet.AddByPrivateKey(key)
+	b32, _ := bech32.ToBech32Address(contractAddress)
+
+	return &Proxy{
+		Code: string(code),
+		Init: init,
+		Addr: contractAddress,
+		Wallet: wallet,
+		Bech32: b32,
+	}, nil
+}

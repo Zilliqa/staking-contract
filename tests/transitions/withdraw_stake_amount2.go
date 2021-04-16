@@ -3,7 +3,8 @@ package transitions
 func (t *Testing) WithDrawStakeAmount2() {
 	t.LogStart("WithDrawStakeAmount2")
 	// deploy
-	proxy, ssnlist := t.DeployAndUpgrade()
+	// proxy, ssnlist := t.DeployAndUpgrade()
+	proxy, ssnlist := t.LoadRemoteProxySSN()
 
 	// unpause
 	proxy.Unpause()

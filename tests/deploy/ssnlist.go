@@ -91,3 +91,35 @@ func NewSSNList(key string, proxy string) (*SSNList, error) {
 		return nil, errors.New("deploy failed")
 	}
 }
+
+func LoadRemoteSSN(key string, proxyAddress, SSNContractAddress string) (*SSNList, error) {
+	code, _ := ioutil.ReadFile("./ssnlist.scilla")
+	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))
+
+	init := []core.ContractValue{
+		{
+			VName: "_scilla_version",
+			Type:  "Uint32",
+			Value: "0",
+		}, {
+			VName: "init_admin",
+			Type:  "ByStr20",
+			Value: "0x" + adminAddr,
+		}, {
+			VName: "init_proxy_address",
+			Type:  "ByStr20",
+			Value: "0x" + proxyAddress,
+		},
+		{
+			VName: "init_gzil_address",
+			Type:  "ByStr20",
+			Value: "0x" + adminAddr,
+		},
+	}
+
+	return &SSNList{
+		Code: string(code),
+		Init: init,
+		Addr: SSNContractAddress,
+	}, nil
+}

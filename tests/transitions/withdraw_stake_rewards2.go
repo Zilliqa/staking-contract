@@ -5,7 +5,8 @@ import "log"
 // case for inactive => delegate => active => withdraw(one) => withdraw(none) => reward => reward => withdraw(two)
 func (t *Testing) WithdrawStakeReward2() {
 	t.LogStart("WithdrawStakeReward2")
-	proxy, ssnlist := t.DeployAndUpgrade()
+	// proxy, ssnlist := t.DeployAndUpgrade()
+	proxy, ssnlist := t.LoadRemoteProxySSN()
 	// unpause
 	proxy.Unpause()
 	// set staking parameters
