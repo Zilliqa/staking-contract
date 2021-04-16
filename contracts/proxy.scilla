@@ -207,3 +207,77 @@ transition AddFunds ()
     msgs = one_msg msg;
     send msgs
 end
+
+(***************************************************)
+(*           Contract state migration              *)
+(***************************************************)
+
+(* Shared logic for all migration transitions *)
+(* The address type of old_contract gets typechecked by ssnlist *)
+procedure Migrate (tag : String, keys : List ByStr20, old_contract : ByStr20, error_event : Event)
+  currentAdmin <- admin;
+  isAdmin = builtin eq currentAdmin _sender;
+  match isAdmin with
+  | True =>
+    current_impl <- implementation;
+    msg = {_tag : tag; _recipient : current_impl; _amount : zero; initiator : _sender; keys : keys; old_contract : old_contract};
+    msgs = one_msg msg;
+    send msgs
+  | False =>
+    event error_event
+  end
+end
+
+transition MigrateCommForSsn (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateCommForSsn";
+  e = {_eventname : "MigrateCommForSsn FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateDepositAmtDeleg (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateDepositAmtDeleg";
+  e = {_eventname : "MigrateDepositAmtDeleg FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateSsnDelegAmt (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateSsnDelegAmt";
+  e = {_eventname : "MigrateSsnDelegAmt FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateBuffDepositDeleg (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateBuffDepositDeleg";
+  e = {_eventname : "MigrateBuffDepositDeleg FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateDirectDepositDeleg (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateDirectDepositDeleg";
+  e = {_eventname : "MigrateDirectDepositDeleg FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateLastWithdrawCycleDeleg (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateLastWithdrawCycleDeleg";
+  e = {_eventname : "MigrateLastWithdrawCycleDeleg FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateLastBufDepositCycleDeleg (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateLastBufDepositCycleDeleg";
+  e = {_eventname : "MigrateLastBufDepositCycleDeleg FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateDelegStakePerCycle (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateDelegStakePerCycle";
+  e = {_eventname : "MigrateDelegStakePerCycle FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
+
+transition MigrateWithdrawalPending (keys : List ByStr20, old_contract : ByStr20)
+  tag = "MigrateWithdrawalPending";
+  e = {_eventname : "MigrateWithdrawalPending FailedNotAdmin"};
+  Migrate tag keys old_contract e
+end
