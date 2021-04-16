@@ -543,10 +543,10 @@ func NewProxy(key string) (*Proxy, error) {
 	}
 }
 
-func LoadRemoteProxy(key string, contractAddress string) (*Proxy error) {
+func LoadRemoteProxy(key string, contractAddress string) (*Proxy, error) {
 	adminAddr := keytools.GetAddressFromPrivateKey(util.DecodeHex(key))
 	code, _ := ioutil.ReadFile("../contracts/proxy.scilla")
-	
+
 	init := []core.ContractValue{
 		{
 			VName: "_scilla_version",
@@ -568,9 +568,9 @@ func LoadRemoteProxy(key string, contractAddress string) (*Proxy error) {
 	b32, _ := bech32.ToBech32Address(contractAddress)
 
 	return &Proxy{
-		Code: string(code),
-		Init: init,
-		Addr: contractAddress,
+		Code:   string(code),
+		Init:   init,
+		Addr:   contractAddress,
 		Wallet: wallet,
 		Bech32: b32,
 	}, nil

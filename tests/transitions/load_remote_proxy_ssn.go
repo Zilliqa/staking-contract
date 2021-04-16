@@ -14,6 +14,8 @@ func (t *Testing) LoadRemoteProxySSN() (*deploy.Proxy, *deploy.SSNList) {
 	log.Println("proxy: " + proxyAddress)
 	proxy, _ := deploy.LoadRemoteProxy(key1, proxyAddress)
 
+	log.Println("start to load remote impl")
+	log.Println("impl: " + implAddress)
 	impl, _ := deploy.LoadRemoteSSN(key1, proxyAddress, implAddress)
 
 	return proxy, impl
