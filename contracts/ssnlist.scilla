@@ -1852,6 +1852,8 @@ procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
 end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in last_withdraw_cycle_deleg *)
+(* Both parties have been asserted to have no buffered deposits or rewards; lwcd should be identical or one-off lrc *)
+(* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
 procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   fst = @fst ByStr20 Ssn;
   ssn_address = fst ssninfo;
@@ -1870,7 +1872,7 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
         | Some existing_lwcd =>
           (* new deleg has delegate same ssn as requestor *)
           (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
-          (* requestor lwcd should be equal to new_deleg lwcd *)
+          (* requestor lwcd should be similar to new_deleg lwcd *)
           delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
           e = { _eventname: "SwapLastWithdrawCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lwcd: existing_lwcd };
           event e
@@ -1890,6 +1892,8 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
 end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in last_buf_deposit_cycle_deleg *)
+(* Both parties have been asserted to have no buffered deposits or rewards; lbdc should be identical or one-off lrc *)
+(* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
 procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
   fst = @fst ByStr20 Ssn;
   ssn_address = fst ssninfo;
@@ -1908,7 +1912,6 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
         | Some existing_lbdc =>
           (* new deleg has delegate same ssn as requestor *)
           (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
-          (* requestor lbdc should be equal to new_deleg lbdc *)
           delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
           e = { _eventname: "SwapLastBuffDepositCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lbdc: existing_lbdc };
           event e
