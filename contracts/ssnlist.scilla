@@ -328,6 +328,7 @@ field stake_ssn_per_cycle: Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (
 (* AddressOfDeleg -> AddressOfSSN -> EffectCycleNum -> Deposit *)
 field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 
+(* AddressOfDeleg -> BlockNumber -> Deposit *)
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 
 (* AddressOfInitialDeleg -> AddressofNewDeleg *)
