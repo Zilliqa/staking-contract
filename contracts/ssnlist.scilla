@@ -708,7 +708,7 @@ procedure AsseertNoBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
   ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
-  (* in fact, lrc will only more than or equal to ldcd, equal means he delegates this around and withdraw this around as well *)
+  (* in fact, lrc will only more than or equal to ldcd, equal means he has delegated this round and withdrawn this round as well *)
   has_buffered = uint32_le lrc ldcd;
   match has_buffered with
   | True =>
