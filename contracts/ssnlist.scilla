@@ -718,6 +718,19 @@ procedure AsseertNoBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   end
 end
 
+(* corner case check for swap request process in which there is buff_deposit but zero reward after assign rewards *)
+procedure AssertNoBufferedDepositLessOneCycle(ssnaddr: ByStr20, deleg: ByStr20)
+  lrc <- lastrewardcycle;
+  last_reward_cycle = builtin sub lrc uint32_one;
+  has_buffered <- buff_deposit_deleg[deleg][ssnaddr][last_reward_cycle];
+  match has_buffered with
+  | Some buff_deposit =>
+    e = DelegHasBufferedDeposit;
+    ThrowError e
+  | None =>
+  end
+end
+
 procedure IsDelegstakeSufficient(amount: Uint128)
   mindelegstake_l <- mindelegstake;
   suffi =  uint128_le mindelegstake_l amount;
@@ -1993,7 +2006,8 @@ procedure AssertSwapNoBufferedAndRewards(ssninfo: Pair ByStr20 Ssn)
     match current_deleg_o with
     | Some requestor =>
       AssertNoRewards ssn_address requestor rewards;
-      AsseertNoBufferedDeposit ssn_address requestor
+      AsseertNoBufferedDeposit ssn_address requestor;
+      AssertNoBufferedDepositLessOneCycle ssn_address requestor
     | None =>
     end
   | None =>
