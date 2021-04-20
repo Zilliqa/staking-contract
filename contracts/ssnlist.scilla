@@ -89,7 +89,6 @@ let uint128_100 = Uint128 100
 let uint32_one = Uint32 1
 let uint32_zero = Uint32 0
 
-
 let option_value =
   tfun 'A =>
   fun (default: 'A) =>
@@ -900,8 +899,6 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
  
 end
 
-
-
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint32_value last_withdraw_cycle_deleg_m;
@@ -1029,7 +1026,6 @@ transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   staging_admin = Some {ByStr20} admin;
   stagingcontractadmin := staging_admin
 end
-
 
 (* @dev: Claim to be the new admin of contract. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -1901,7 +1897,6 @@ procedure SwapCleanUp()
   current_ssn := r;
   new_deleg := r
 end
-
 
 (* @dev Change a delegator's stake from initiator -> new_deleg_addr. *)
 (* not swapping buff_deposit_deleg because there is pre-assertion that requestor has no buff deposits *)
