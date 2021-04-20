@@ -331,7 +331,7 @@ field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Em
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
 
 (* AddressOfInitialDeleg -> AddressofNewDeleg *)
-(* used to transfer all stakes, rewards, pending withdrawal of deleg_A -> deleg_B *)
+(* used to transfer all stakes and pending withdrawal of deleg_A -> deleg_B *)
 (* see RequestDelegatorSwap *)
 field deleg_swap_request: Map ByStr20 ByStr20 = Emp ByStr20 ByStr20
 
