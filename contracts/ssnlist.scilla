@@ -408,8 +408,7 @@ procedure CleanBuffDepositDelegAddr(deleg: ByStr20)
       delete buff_deposit_deleg[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete buff_deposit_deleg[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -427,8 +426,7 @@ procedure CleanBuffDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
         delete buff_deposit_deleg[deleg][ssn]
       | False => (* contains other records *)
       end
-    | None =>
-      delete buff_deposit_deleg[deleg][ssn]
+    | None => (* nothing to delete *)
     end
   end
 end
@@ -446,8 +444,7 @@ procedure CleanDirectDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
         delete direct_deposit_deleg[deleg][ssn]
       | False => (* contains other records *)
       end
-    | None =>
-      delete direct_deposit_deleg[deleg][ssn]
+    | None => (* nothing to delete *)
     end
   end
 end
@@ -463,8 +460,7 @@ procedure CleanDirectDepositDelegAddr(deleg: ByStr20)
       delete direct_deposit_deleg[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete direct_deposit_deleg[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -481,8 +477,7 @@ procedure CleanDelegStakePerCycleSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
         delete deleg_stake_per_cycle[deleg][ssn]
       | False => (* contains other records *)
       end
-    | None =>
-      delete deleg_stake_per_cycle[deleg][ssn]
+    | None => (* nothing to delete *)
     end
   end
 end
@@ -498,8 +493,7 @@ procedure CleanDelegStakePerCycleDelegAddr(deleg: ByStr20)
       delete deleg_stake_per_cycle[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete deleg_stake_per_cycle[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -514,8 +508,7 @@ procedure CleanDepositAmtDelegAddr(deleg: ByStr20)
       delete deposit_amt_deleg[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete deposit_amt_deleg[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -530,8 +523,7 @@ procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
       delete last_withdraw_cycle_deleg[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete last_withdraw_cycle_deleg[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -546,8 +538,7 @@ procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
       delete last_buf_deposit_cycle_deleg[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete last_buf_deposit_cycle_deleg[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
@@ -562,8 +553,7 @@ procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
       delete withdrawal_pending[deleg]
     | False => (* contains other records *)
     end
-  | None =>
-    delete withdrawal_pending[deleg]
+  | None => (* nothing to delete *)
   end
 end
 
