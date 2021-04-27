@@ -3,12 +3,13 @@ package transitions
 import (
 	"Zilliqa/stake-test/deploy"
 	"encoding/json"
-	"github.com/Zilliqa/gozilliqa-sdk/core"
 	"log"
+
+	"github.com/Zilliqa/gozilliqa-sdk/core"
 )
 
-const adminChanged = "AdminChanged"
-const adminNotChanged = "changeAdmin FailedNotAdmin"
+const adminChanged = "ChangeProxyAdmin"
+const adminNotChanged = "ChangeProxyAdmin FailedNotAdmin"
 
 func (t *Testing) ChangeProxyAdmin() {
 	t.LogStart("ChangeProxyAdmin")
@@ -30,7 +31,7 @@ func (t *Testing) ChangeProxyAdmin() {
 		},
 	}
 
-	txn, err1 := proxy.Call("ChangeProxyAdmin", args,"0")
+	txn, err1 := proxy.Call("ChangeProxyAdmin", args, "0")
 	if err1 != nil {
 		t.LogError("ChangeProxyAdmin failed", err1)
 	}
@@ -42,7 +43,8 @@ func (t *Testing) ChangeProxyAdmin() {
 	proxy.LogContractStateJson()
 
 	// 2. as non-admin, change proxy admin
-	tnx, _ := proxy.Call("ChangeProxyAdmin", args,"0")
+	proxy.UpdateWallet(key2)
+	tnx, _ := proxy.Call("ChangeProxyAdmin", args, "0")
 	receipt, _ = json.Marshal(tnx.Receipt)
 	recp = string(receipt)
 	log.Println(recp)

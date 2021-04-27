@@ -251,6 +251,34 @@ transition ReDelegateStake(ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128)
     send msgs
 end
 
+transition RequestDelegatorSwap(new_deleg_addr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "RequestDelegatorSwap"; _recipient: current_impl; _amount: zero; new_deleg_addr: new_deleg_addr; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition ConfirmDelegatorSwap(requestor: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "ConfirmDelegatorSwap"; _recipient: current_impl; _amount: zero; requestor: requestor; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition RevokeDelegatorSwap()
+    current_impl <- implementation;
+    msg = {_tag: "RevokeDelegatorSwap"; _recipient: current_impl; _amount: zero; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition RejectDelegatorSwap(requestor: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "RejectDelegatorSwap"; _recipient: current_impl; _amount: zero; requestor: requestor; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (***************************************************)
 (*                 Verifier transition             *)
 (***************************************************)
@@ -374,6 +402,13 @@ end
 transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stake: Uint128)
     current_impl <- implementation;
     msg = {_tag: "PopulatePendingWithdrawal"; _recipient: current_impl; _amount: zero; ssn_addr: ssn_addr; block_number: block_number; stake: stake; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "PopulateDelegSwapRequest"; _recipient: current_impl; _amount: zero; requestor: requestor; new_deleg_addr: new_deleg_addr; initiator: _sender};
     msgs = one_msg msg;
     send msgs
 end
