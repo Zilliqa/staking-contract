@@ -3,6 +3,10 @@ package deploy
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
+	"strconv"
+
 	"github.com/Zilliqa/gozilliqa-sdk/account"
 	"github.com/Zilliqa/gozilliqa-sdk/bech32"
 	contract2 "github.com/Zilliqa/gozilliqa-sdk/contract"
@@ -11,9 +15,6 @@ import (
 	provider2 "github.com/Zilliqa/gozilliqa-sdk/provider"
 	"github.com/Zilliqa/gozilliqa-sdk/transaction"
 	"github.com/Zilliqa/gozilliqa-sdk/util"
-	"io/ioutil"
-	"log"
-	"strconv"
 )
 
 type Proxy struct {
@@ -378,7 +379,7 @@ func (p *Proxy) ClaimAdmin() (*transaction.Transaction, error) {
 }
 
 func (p *Proxy) GetBalance() string {
-	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
 	balAndNonce, _ := provider.GetBalance(p.Addr)
 	return balAndNonce.Balance
 }
@@ -390,7 +391,7 @@ func (p *Proxy) UpdateWallet(newKey string) {
 }
 
 func (p *Proxy) LogContractStateJson() {
-	provider := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
+	provider := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
 	rsp, _ := provider.GetSmartContractState(p.Addr)
 	j, _ := json.Marshal(rsp)
 	log.Println(string(j))
@@ -425,7 +426,7 @@ func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount
 			Params: params,
 		}
 		txn := &transaction.Transaction{
-			Version:      strconv.FormatInt(int64(util.Pack(1, 1)), 10),
+			Version:      strconv.FormatInt(int64(util.Pack(222, 1)), 10),
 			SenderPubKey: util.EncodeHex(p.Wallet.DefaultAccount.PublicKey),
 			ToAddr:       p.Bech32,
 			Amount:       amount,
@@ -438,7 +439,7 @@ func (p *Proxy) CallBatch(transition string, params []core.ContractValue, amount
 		transactions = append(transactions, txn)
 	}
 
-	rpc := provider2.NewProvider("https://stg-zilliqa-isolated-server.zilliqa.com/")
+	rpc := provider2.NewProvider("https://zilliqa-isolated-server.zilliqa.com/")
 	p.Wallet.SignBatch(transactions, *rpc)
 	return p.Wallet.SendBatch(transactions, *rpc)
 
@@ -472,7 +473,7 @@ func NewProxy(key string) (*Proxy, error) {
 		Signer: wallet,
 	}
 
-	tx, err := contract.DeployTo("isolated")
+	tx, err := contract.DeployTo("isolated", "40000")
 	if err != nil {
 		return nil, err
 	}
