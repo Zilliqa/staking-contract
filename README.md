@@ -114,24 +114,7 @@ type Ssn =
 (*                     Address to be used to receive commission. *)
 ```
 
-2. SSNRewardShare Data Type:
-
-```ocaml
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-``` 
-
-```ocaml
-(* SSNRewardShare has the following fields: *)
-
-(*  SSNAddress        : ByStr20 *)
-(*                      Address of the SSN. *)
-(*  RewardShare       : Uint128 *)
-(*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
-                        It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-```
-
-3. SsnStakeRewardShare Data Type:
+2. SsnStakeRewardShare Data Type:
 
 ```ocaml
 type SsnStakeRewardShare = 
@@ -146,7 +129,7 @@ type SsnStakeRewardShare =
 (*                      Total stake amount at a specific cycle.                                               *)
 ```
 
-4. SSNCycleInfo Data Type:
+3. SSNCycleInfo Data Type:
 
 ```ocaml
 type SSNCycleInfo =
@@ -160,7 +143,7 @@ type SSNCycleInfo =
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
-5. Error Data Type:
+4. Error Data Type:
 
 ```ocaml
 type Error =
@@ -282,7 +265,7 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
-| `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, available_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `available_reward` contains the rewards for all SSN as well as verifier. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | :heavy_check_mark: |
+| `AssignStakeReward` | `ssnreward_list : List (Pair ByStr20 Uint128), initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `_amount` contains the rewards for all SSN as well as verifier. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | :heavy_check_mark: |
 
 ### Contract Upgrade Transitions
 
@@ -388,7 +371,7 @@ parameter `initiator` for the `SSNList` contract.
 | `RevokeDelegatorSwap()` | `RevokeDelegatorSwap(initiator: ByStr20)` |
 | `ConfirmDelegatorSwap(requestor: ByStr20)` | `ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)` |
 | `RejectDelegatorSwap(requestor: ByStr20)` | `RejectDelegatorSwap(requestor: ByStr20, initiator: ByStr20)` |
-|`AssignStakeReward(ssnreward_list: List SsnRewardShare)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator : ByStr20)`|
+|`AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128))` | `AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator : ByStr20)`|
 |`AddFunds()` | `AddFunds(initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|

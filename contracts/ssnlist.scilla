@@ -35,20 +35,6 @@ library SSNList
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
 
-(* SSNRewardShare Data Type *)
-(* SSNRewardShare has the following fields: *)
-(* CycleReward is in Qa *)
-
-(*  SSNAddress        : ByStr20 *)
-(*                      Address of the SSN. *)
-(*  CycleReward       : Uint128 *)
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-(* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
-
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
 (*  CycleReward       : Uint128 *)
@@ -204,9 +190,9 @@ let muldiv : Uint128 -> Uint128 -> Uint128 -> Uint128 =
 
 let map_to_stake_rewards = 
   fun (total_stake: Uint128) =>
-  fun (element: SsnRewardShare) =>
+  fun (element: Pair ByStr20 Uint128) =>
     match element with
-    | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
+    | Pair ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
 let bool_active = True
@@ -1349,9 +1335,14 @@ end
 (***************************************************)
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param ssnrewardlist: List of SSN address and cycle rewards in Qa *)
+(*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
+(* https://github.com/Zilliqa/ZIP/blob/master/zips/zip-11.md#verifier *)
+
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   CallerIsVerifier initiator;
@@ -1365,7 +1356,7 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByS
   total_stake_amt <- totalstakeamount;
   f = map_to_stake_rewards total_stake_amt;
 
-  mapper = @list_map SsnRewardShare SsnStakeRewardShare;
+  mapper = @list_map (Pair ByStr20 Uint128) SsnStakeRewardShare;
   ssn_stake_reward_list = mapper f ssnreward_list;
   forall ssn_stake_reward_list UpdateStakeReward;
   verifier_reward_amt <- verifier_reward;
