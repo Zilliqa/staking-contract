@@ -297,6 +297,17 @@ let make_error =
       end
     in
     { _exception: "Error"; code: result_code }
+
+(* Utility used for migration *)
+let list_map_to_pair_with_constant : forall 'A. forall 'B. List 'A -> 'B -> List (Pair 'A 'B) =
+  tfun 'A =>
+  tfun 'B => 
+  fun (list : List 'A) =>
+  fun (const : 'B) =>
+    let f = fun (key : 'A) => Pair {'A 'B} key const in
+    let mapper = @list_map 'A (Pair 'A 'B) in
+    mapper f list
+    
 (***************************************************)
 (*             The contract definition             *)
 (***************************************************)
@@ -1869,6 +1880,296 @@ transition DrainContractBalance(amt: Uint128, initiator: ByStr20)
   | False =>
     TransferFunds addfunds_tag amt initiator
   end
+end
+
+(***************************************************)
+(*           Contract state migration              *)
+(***************************************************)
+
+(* Common validation procedure for all migration transitions *)
+procedure ValidateMigration (initiator : ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator
+end
+
+(***************************************************)
+
+procedure MigrateCommForSsnByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.comm_for_ssn[key];
+    match old_val_opt with
+    | Some old_val =>
+      comm_for_ssn[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateCommForSsn (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateCommForSsnByKey
+end
+
+(***************************************************)
+
+procedure MigrateDepositAmtDelegByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.deposit_amt_deleg[key];
+    match old_val_opt with
+    | Some old_val =>
+      deposit_amt_deleg[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateDepositAmtDeleg (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateDepositAmtDelegByKey
+end
+
+(***************************************************)
+
+procedure MigrateSsnDelegAmtByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.ssn_deleg_amt[key];
+    match old_val_opt with
+    | Some old_val =>
+      ssn_deleg_amt[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateSsnDelegAmt (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateSsnDelegAmtByKey
+end
+
+(***************************************************)
+
+procedure MigrateBuffDepositDelegByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.buff_deposit_deleg[key];
+    match old_val_opt with
+    | Some old_val =>
+      buff_deposit_deleg[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateBuffDepositDeleg (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateBuffDepositDelegByKey
+end
+
+(***************************************************)
+
+procedure MigrateDirectDepositDelegByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.direct_deposit_deleg[key];
+    match old_val_opt with
+    | Some old_val =>
+      direct_deposit_deleg[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateDirectDepositDeleg (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateDirectDepositDelegByKey
+end
+
+(***************************************************)
+
+procedure MigrateLastWithdrawCycleDelegByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.last_withdraw_cycle_deleg[key];
+    match old_val_opt with
+    | Some old_val =>
+      last_withdraw_cycle_deleg[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateLastWithdrawCycleDeleg (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateLastWithdrawCycleDelegByKey
+end
+
+(***************************************************)
+
+procedure MigrateLastBufDepositCycleDelegByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.last_buf_deposit_cycle_deleg[key];
+    match old_val_opt with
+    | Some old_val =>
+      last_buf_deposit_cycle_deleg[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateLastBufDepositCycleDeleg (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateLastBufDepositCycleDelegByKey
+end
+
+(***************************************************)
+
+procedure MigrateDelegStakePerCycleByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.deleg_stake_per_cycle[key];
+    match old_val_opt with
+    | Some old_val =>
+      deleg_stake_per_cycle[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateDelegStakePerCycle (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128))
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateDelegStakePerCycleByKey
+end
+
+(***************************************************)
+
+procedure MigrateWithdrawalPendingByKey (
+  arg : Pair ByStr20 (ByStr20 with contract
+                                     field withdrawal_pending: Map ByStr20 (Map BNum Uint128)
+                              end))
+  match arg with
+  | Pair key old_contract =>                          
+    old_val_opt <-& old_contract.withdrawal_pending[key];
+    match old_val_opt with
+    | Some old_val =>
+      withdrawal_pending[key] := old_val
+    | None => (* Nothing to migrate *)
+    end
+  end
+end
+
+transition MigrateWithdrawalPending (
+  initiator : ByStr20,
+  keys : List ByStr20,
+  old_contract : ByStr20 with contract
+                                field withdrawal_pending: Map ByStr20 (Map BNum Uint128)
+                         end)
+  ValidateMigration initiator;
+  mapper = @list_map_to_pair_with_constant ByStr20 (ByStr20 with contract
+                                                                   field withdrawal_pending: Map ByStr20 (Map BNum Uint128)
+                                                            end);
+  paired_list = mapper keys old_contract;
+  forall paired_list MigrateWithdrawalPendingByKey
 end
 
 (***************************************************)
