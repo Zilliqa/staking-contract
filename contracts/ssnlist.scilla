@@ -195,6 +195,42 @@ let map_to_stake_rewards =
     | Pair ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
+(* check if last_withdraw_cycle_deleg[deleg] is empty *)
+let is_ssn_cycle_map_empty =
+  fun(m : Map ByStr20 Uint32) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if deposit_amt_deleg[deleg] is empty *)
+let is_ssn_deposit_map_empty =
+  fun(m : Map ByStr20 Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if withdrawal_pending[deleg] is empty *)
+let is_block_deposit_map_empty =
+  fun(m : Map BNum Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if nested maps are empty *)
+(* buff_deposit_deleg[deleg] *)
+(* direct_deposit_deleg[deleg] *)
+(* deleg_stake_per_cycle[deleg] *)
+let is_ssn_cycle_deposit_map_empty =
+  fun(m : Map ByStr20 (Map Uint32 Uint128)) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
+(* check if final inner map is empty *)
+(* buff_deposit_deleg[deleg][ssn] *)
+(* direct_deposit_deleg[deleg][ssn] *)
+(* deleg_stake_per_cycle[deleg][ssn] *)
+let is_cycle_deposit_map_empty =
+  fun(m : Map Uint32 Uint128) =>
+    let map_size = builtin size m in
+    builtin eq map_size uint32_zero
+
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
@@ -378,6 +414,193 @@ field totalstakeamount: Uint128 = uint128_zero
 
 (* Procedures *)
 (* Internal functions, used like Solidity modifiers *)
+
+(* to erase buff_deposit_deleg outer keys *)
+(* see CleanBuffDeposit *)
+procedure CleanBuffDepositDelegAddr(deleg: ByStr20)
+  buff_deposit_deleg_map <- buff_deposit_deleg[deleg];
+  match buff_deposit_deleg_map with
+  | Some buff_deposit_deleg_entry =>
+    is_map_empty = is_ssn_cycle_deposit_map_empty buff_deposit_deleg_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete buff_deposit_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase buff_deposit_deleg inner keys *)
+(* see CleanBuffDeposit *)
+procedure CleanBuffDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    inner_map <- buff_deposit_deleg[deleg][ssn];
+    match inner_map with
+    | Some inner_entry =>
+      is_map_empty = is_cycle_deposit_map_empty inner_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete buff_deposit_deleg[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None => (* nothing to delete *)
+    end
+  end
+end
+
+(* to erase direct_deposit_deleg inner keys  *)
+procedure CleanDirectDepositSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    inner_map <- direct_deposit_deleg[deleg][ssn];
+    match inner_map with
+    | Some inner_entry =>
+      is_map_empty = is_cycle_deposit_map_empty inner_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete direct_deposit_deleg[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None => (* nothing to delete *)
+    end
+  end
+end
+
+(* to erase direct_deposit_deleg outer keys  *)
+procedure CleanDirectDepositDelegAddr(deleg: ByStr20)
+  direct_deposit_deleg_map <- direct_deposit_deleg[deleg];
+  match direct_deposit_deleg_map with
+  | Some direct_deposit_deleg_entry =>
+    is_map_empty = is_ssn_cycle_deposit_map_empty direct_deposit_deleg_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete direct_deposit_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase deleg_stake_per_cycle inner keys  *)
+procedure CleanDelegStakePerCycleSSNAddr(deleg_ssn_pair: Pair ByStr20 ByStr20)
+  match deleg_ssn_pair with
+  | Pair deleg ssn =>
+    inner_map <- deleg_stake_per_cycle[deleg][ssn];
+    match inner_map with
+    | Some inner_entry =>
+      is_map_empty = is_cycle_deposit_map_empty inner_entry;
+      match is_map_empty with
+      | True => (* empty map *)
+        delete deleg_stake_per_cycle[deleg][ssn]
+      | False => (* contains other records *)
+      end
+    | None => (* nothing to delete *)
+    end
+  end
+end
+
+(* to erase deleg_stake_per_cycle outer keys  *)
+procedure CleanDelegStakePerCycleDelegAddr(deleg: ByStr20)
+  deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg];
+  match deleg_stake_per_cycle_map with
+  | Some deleg_stake_per_cycle_entry =>
+    is_map_empty = is_ssn_cycle_deposit_map_empty deleg_stake_per_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete deleg_stake_per_cycle[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase deposit_amt_deleg outer keys  *)
+procedure CleanDepositAmtDelegAddr(deleg: ByStr20)
+  ssn_deposit_map <- deposit_amt_deleg[deleg];
+  match ssn_deposit_map with
+  | Some ssn_deposit_entry =>
+    is_map_empty = is_ssn_deposit_map_empty ssn_deposit_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete deposit_amt_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase last_withdraw_cycle_deleg outer keys  *)
+procedure CleanLastWithdrawCycleDelegAddr(deleg: ByStr20)
+  ssn_cycle_map <- last_withdraw_cycle_deleg[deleg];
+  match ssn_cycle_map with
+  | Some ssn_cycle_entry =>
+    is_map_empty = is_ssn_cycle_map_empty ssn_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete last_withdraw_cycle_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase last_buf_deposit_cycle_deleg outer keys  *)
+procedure CleanLastBuffDepositCycleDelegAddr(deleg: ByStr20)
+  ssn_cycle_map <- last_buf_deposit_cycle_deleg[deleg];
+  match ssn_cycle_map with
+  | Some ssn_cycle_entry =>
+    is_map_empty = is_ssn_cycle_map_empty ssn_cycle_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete last_buf_deposit_cycle_deleg[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* to erase withdrawal_pending outer keys  *)
+procedure CleanPendingWithdrawalDelegAddr(deleg: ByStr20)
+  block_deposit_map <- withdrawal_pending[deleg];
+  match block_deposit_map with
+  | Some block_deposit_entry =>
+    is_map_empty = is_block_deposit_map_empty block_deposit_entry;
+    match is_map_empty with
+    | True => (* empty map *)
+      delete withdrawal_pending[deleg]
+    | False => (* contains other records *)
+    end
+  | None => (* nothing to delete *)
+  end
+end
+
+(* delete the cycle key and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
+procedure DeleteBuffDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  delete buff_deposit_deleg[deleg][ssnaddr][cycle];
+  deleg_ssn_pair = Pair {ByStr20 ByStr20} deleg ssnaddr;
+  CleanBuffDepositSSNAddr deleg_ssn_pair;
+  CleanBuffDepositDelegAddr deleg
+end
+
+(* delete the cycle key and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
+procedure DeleteDirectDeposit(deleg: ByStr20, ssnaddr: ByStr20, cycle: Uint32)
+  delete direct_deposit_deleg[deleg][ssnaddr][cycle];
+  deleg_ssn_pair = Pair {ByStr20 ByStr20} deleg ssnaddr;
+  CleanDirectDepositSSNAddr deleg_ssn_pair;
+  CleanDirectDepositDelegAddr deleg
+end
+
+(* delete the blk num and any other external keys if the inner map is empty *)
+(* for use in replace of normal delete operation to erase empty nested maps *)
+procedure DeletePendingWithdrawal(deleg: ByStr20, withdraw_number: BNum)
+  delete withdrawal_pending[deleg][withdraw_number];
+  CleanPendingWithdrawalDelegAddr deleg
+end
+
 procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete deposit_amt_deleg[deleg][ssnaddr];
   delete ssn_deleg_amt[ssnaddr][deleg];
@@ -385,7 +608,15 @@ procedure TruncateDeleg(deleg: ByStr20, ssnaddr: ByStr20)
   delete direct_deposit_deleg[deleg][ssnaddr];
   delete last_withdraw_cycle_deleg[deleg][ssnaddr];
   delete deleg_stake_per_cycle[deleg][ssnaddr];
-  delete last_buf_deposit_cycle_deleg[deleg][ssnaddr]
+  delete last_buf_deposit_cycle_deleg[deleg][ssnaddr];
+
+  (* ssn_deleg_amt won't have empty maps *)
+  CleanDepositAmtDelegAddr deleg;
+  CleanBuffDepositDelegAddr deleg;
+  CleanDirectDepositDelegAddr deleg;
+  CleanDelegStakePerCycleDelegAddr deleg;
+  CleanLastWithdrawCycleDelegAddr deleg;
+  CleanLastBuffDepositCycleDelegAddr deleg
 end
 
 procedure ThrowError(err: Error)
@@ -538,16 +769,10 @@ procedure CalculateTotalWithdrawal(withdraw: Pair BNum Uint128)
       can_withdraw = builtin blt bnum current_bnum;
       match can_withdraw with
       | True =>
-          delete withdrawal_pending[deleg][withdraw_number];
+          DeletePendingWithdrawal deleg withdraw_number;
           current_amt <- available_withdrawal;
           current_amt = builtin add current_amt amt;
-          available_withdrawal := current_amt;
-          has_other_records <- withdrawal_pending[deleg];
-          match has_other_records with
-          | Some inner =>
-          | None =>
-            delete withdrawal_pending[deleg]
-          end
+          available_withdrawal := current_amt
       | False => 
       end
     end
@@ -873,17 +1098,19 @@ procedure CalcStakeRewards(tmp_arg: TmpArg)
     last_amt_o <- deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
     last_amt = option_uint128_value last_amt_o;
     staking_and_rewards_per_cycle_for_ssn_opt <- stake_ssn_per_cycle[ssn_operator][reward_cycle];
+
     (* the rewards for this cycle also computed within this procedure, so we no long keep histric data *)
+    (* delete empty keys if need to *)
+    (* no need to remove deleg_stake_per_cycle empty keys as assigning it with other cycle later *)
     delete deleg_stake_per_cycle[deleg][ssn_operator][last_reward_cycle];
-    delete direct_deposit_deleg[deleg][ssn_operator][last_reward_cycle];
-    delete buff_deposit_deleg[deleg][ssn_operator][last2_reward_cycle];
+    DeleteDirectDeposit deleg ssn_operator last_reward_cycle;
+    DeleteBuffDeposit deleg ssn_operator last2_reward_cycle;
 
     staking_of_deleg = match comb_opt with
     | Some stake => builtin add last_amt stake
     | None => last_amt
     end;
     deleg_stake_per_cycle[deleg][ssn_operator][reward_cycle] := staking_of_deleg;
-    
     
     match staking_and_rewards_per_cycle_for_ssn_opt with
     | Some (SSNCycleInfo total_staking total_rewards) =>
@@ -906,7 +1133,6 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
     msgs = one_msg msg_to_gzil;
     send msgs
   end
- 
 end
 
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
@@ -1144,6 +1370,78 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     e = SSNNotExist;
     ThrowError e
   end
+end
+
+(* @dev: delete empty maps {} for buff_deposit_deleg  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); buff_deposit_deleg[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); buff_deposit_deleg[deleg][ssn] *)
+transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanBuffDepositSSNAddr;
+  forall deleg_addr_list CleanBuffDepositDelegAddr
+end
+
+(* @dev: delete empty maps {} for direct_deposit_deleg  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); direct_deposit_deleg[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); direct_deposit_deleg[deleg][ssn] *)
+transition CleanDirectDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanDirectDepositSSNAddr;
+  forall deleg_addr_list CleanDirectDepositDelegAddr
+end
+
+(* @dev: delete empty maps {} for deleg_stake_per_cycle  *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); deleg_stake_per_cycle[deleg] *)
+(* @param ssn_addr_list: the list of ssn address to be deleted (2nd layer map); deleg_stake_per_cycle[deleg][ssn] *)
+transition CleanDelegStakePerCycle(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20), initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  (* must clean all the inner maps before cleaning the outer maps *)
+  forall ssn_addr_list CleanDelegStakePerCycleSSNAddr;
+  forall deleg_addr_list CleanDelegStakePerCycleDelegAddr
+end
+
+(* @dev: delete empty maps {} for deposit_amt_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); deposit_amt_deleg[deleg] *)
+transition CleanDepositAmt(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  forall deleg_addr_list CleanDepositAmtDelegAddr
+end
+
+(* @dev: delete empty maps {} for withdrawal_pending *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); withdrawal_pending[deleg] *)
+transition CleanPendingWithdrawal(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  forall deleg_addr_list CleanPendingWithdrawalDelegAddr
+end
+
+(* @dev: delete empty maps {} for last_withdraw_cycle_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); last_withdraw_cycle_deleg[deleg] *)
+transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  forall deleg_addr_list CleanLastWithdrawCycleDelegAddr
+end
+
+(* @dev: delete empty maps {} for last_buf_deposit_cycle_deleg *)
+(* invoked by staking-tool purge script *)
+(* @param deleg_addr_list: the list of deleg address to be deleted (1st layer map); last_buf_deposit_cycle_deleg[deleg] *)
+transition CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)
+  IsProxy;
+  IsAdmin initiator;
+  forall deleg_addr_list CleanLastBuffDepositCycleDelegAddr
 end
 
 (***************************************************)
