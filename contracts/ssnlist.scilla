@@ -1,6 +1,6 @@
 scilla_version 0
 
-import ListUtils IntUtils
+import ListUtils IntUtils PairUtils
 
 library SSNList
 
@@ -34,20 +34,6 @@ library SSNList
 
 type Ssn =
 | Ssn of Bool Uint128 Uint128 String String String Uint128 Uint128 Uint128 ByStr20
-
-(* SSNRewardShare Data Type *)
-(* SSNRewardShare has the following fields: *)
-(* CycleReward is in Qa *)
-
-(*  SSNAddress        : ByStr20 *)
-(*                      Address of the SSN. *)
-(*  CycleReward       : Uint128 *)
-(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
-(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-(* https://github.com/Zilliqa/ZIP/blob/zip-11-author-fix/zips/zip-11.md#verifier *)
-
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
 
 (*  SSNAddress        : ByStr20 *)
 (*                      Address of the SSN. *)
@@ -88,7 +74,6 @@ let uint128_100 = Uint128 100
 
 let uint32_one = Uint32 1
 let uint32_zero = Uint32 0
-
 
 let option_value =
   tfun 'A =>
@@ -205,14 +190,17 @@ let muldiv : Uint128 -> Uint128 -> Uint128 -> Uint128 =
 
 let map_to_stake_rewards = 
   fun (total_stake: Uint128) =>
-  fun (element: SsnRewardShare) =>
+  fun (element: Pair ByStr20 Uint128) =>
     match element with
-    | SsnRewardShare ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
+    | Pair ssnaddr cycle_reward => SsnStakeRewardShare ssnaddr cycle_reward total_stake 
     end
 
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
+
+(* for SwapDelegator *)
+let reset_addr = 0x0000000000000000000000000000000000000000
 
 type Error =
   | ContractFrozenFailure
@@ -237,6 +225,9 @@ type Error =
   | VerifierRecvAddrNotSet
   | ReDelegInvalidSSNAddr
   | AvailableRewardsError
+  | InvalidSwapAddr
+  | SwapAddrValidationFailed
+  | SwapAddrAlreadyExistsAsRequest
 
 let make_error =
   fun (result: Error) =>
@@ -264,6 +255,9 @@ let make_error =
       | VerifierRecvAddrNotSet => Int32 -20
       | ReDelegInvalidSSNAddr => Int32 -21
       | AvailableRewardsError => Int32 -22
+      | InvalidSwapAddr => Int32 -23
+      | SwapAddrValidationFailed => Int32 -24
+      | SwapAddrAlreadyExistsAsRequest => Int32 -25
       end
     in
     { _exception: "Error"; code: result_code }
@@ -330,7 +324,13 @@ field stake_ssn_per_cycle: Map ByStr20 (Map Uint32 SSNCycleInfo) = Emp ByStr20 (
 (* AddressOfDeleg -> AddressOfSSN -> EffectCycleNum -> Deposit *)
 field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) = Emp ByStr20 (Map ByStr20 (Map Uint32 Uint128))
 
+(* AddressOfDeleg -> BlockNumber -> Deposit *)
 field withdrawal_pending: Map ByStr20 (Map BNum Uint128) = Emp ByStr20 (Map BNum Uint128)
+
+(* AddressOfInitialDeleg -> AddressOfNewDeleg *)
+(* used to transfer all stakes and pending withdrawal of deleg_A -> deleg_B *)
+(* see RequestDelegatorSwap *)
+field deleg_swap_request: Map ByStr20 ByStr20 = Emp ByStr20 ByStr20
 
 field bnum_req: Uint128 = Uint128 24000
 
@@ -344,6 +344,14 @@ field verifier_reward: Uint128 = uint128_zero
 field available_withdrawal: Uint128 = uint128_zero
 
 field current_deleg: Option ByStr20 = None {ByStr20}
+
+(* Used during SwapDelegator *)
+(* Keeps tracks of the ssn address to pass to other procedures in forall calls *)
+field current_ssn: Option ByStr20 = None {ByStr20}
+
+(* Used during SwapDelegator *)
+(* Keeps tracks of the new deleg address to pass to other procedures*)
+field new_deleg: Option ByStr20 = None {ByStr20}
 
 field verifier: Option ByStr20 = None {ByStr20}
 
@@ -697,13 +705,26 @@ procedure AsseertNoBufferedDeposit(ssnaddr: ByStr20, deleg: ByStr20)
   ldcd_o <- last_buf_deposit_cycle_deleg[deleg][ssnaddr];
   ldcd = option_uint32_value ldcd_o;
   lrc <- lastrewardcycle;
-  (* in fact, lrc will only more than or equal to ldcd, equal means he delegates this around and withdraw this around as well *)
+  (* in fact, lrc will only more than or equal to ldcd, equal means he has delegated this round and withdrawn this round as well *)
   has_buffered = uint32_le lrc ldcd;
   match has_buffered with
   | True =>
     e = DelegHasBufferedDeposit;
     ThrowError e
   | False =>
+  end
+end
+
+(* corner case check for swap request process in which there is buff_deposit but zero reward after assign rewards *)
+procedure AssertNoBufferedDepositLessOneCycle(ssnaddr: ByStr20, deleg: ByStr20)
+  lrc <- lastrewardcycle;
+  last_reward_cycle = builtin sub lrc uint32_one;
+  has_buffered <- buff_deposit_deleg[deleg][ssnaddr][last_reward_cycle];
+  match has_buffered with
+  | Some buff_deposit =>
+    e = DelegHasBufferedDeposit;
+    ThrowError e
+  | None =>
   end
 end
 
@@ -888,8 +909,6 @@ procedure MintCall(recipient: ByStr20, amount: Uint128)
  
 end
 
-
-
 procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   last_withdraw_cycle_deleg_m <- last_withdraw_cycle_deleg[deleg][ssn_operator];
   last_withdraw_cycle = option_uint32_value last_withdraw_cycle_deleg_m;
@@ -1017,7 +1036,6 @@ transition UpdateAdmin(admin: ByStr20, initiator: ByStr20)
   staging_admin = Some {ByStr20} admin;
   stagingcontractadmin := staging_admin
 end
-
 
 (* @dev: Claim to be the new admin of contract. *)
 (* @param initiator: The original caller who called the proxy. *)
@@ -1328,9 +1346,14 @@ end
 (***************************************************)
 
 (* @dev: Assign stake reward to all ssn from ssnlist. Used by verifier only. *)
-(* @param ssnrewardlist: List of SsnRewardShare *)
+(* @param ssnrewardlist: List of SSN address and cycle rewards in Qa *)
+(*  CycleReward       : Uint128 *)
+(*                      Integer representation of reward assigned by the verifier to this SSN for this cycle. *)
+(*                      It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
+(* https://github.com/Zilliqa/ZIP/blob/master/zips/zip-11.md#verifier *)
+
 (* @param initiator: The original caller who called the proxy *)
-transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByStr20)
+transition AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator: ByStr20)
   IsNotPaused;
   IsProxy;
   CallerIsVerifier initiator;
@@ -1344,7 +1367,7 @@ transition AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator: ByS
   total_stake_amt <- totalstakeamount;
   f = map_to_stake_rewards total_stake_amt;
 
-  mapper = @list_map SsnRewardShare SsnStakeRewardShare;
+  mapper = @list_map (Pair ByStr20 Uint128) SsnStakeRewardShare;
   ssn_stake_reward_list = mapper f ssnreward_list;
   forall ssn_stake_reward_list UpdateStakeReward;
   verifier_reward_amt <- verifier_reward;
@@ -1535,6 +1558,13 @@ transition PopulatePendingWithdrawal(ssn_addr: ByStr20, block_number: BNum, stak
   IsProxy;
   IsAdmin initiator;
   withdrawal_pending[ssn_addr][block_number] := stake
+end
+
+transition PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20)
+  IsPaused;
+  IsProxy;
+  IsAdmin initiator;
+  deleg_swap_request[requestor] := new_deleg_addr
 end
 
 (* @dev:  Drain the contract's balance. Used by current admin only *)
@@ -1843,4 +1873,512 @@ transition MigrateWithdrawalPending (
   paired_list = mapper keys old_contract;
   forall paired_list MigrateWithdrawalPendingByKey
 end
+
+(***************************************************)
+(*                  Swap transition                *)
+(***************************************************)
+
+procedure ActualSwapDirectDeposit(direct_deposit_cycle: Pair Uint32 Uint128)
+  current_ssn_o <- current_ssn;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  fst = @fst Uint32 Uint128;
+  snd = @snd Uint32 Uint128;
+  reward_cycle = fst direct_deposit_cycle;
+  current_direct_deposit_amt = snd direct_deposit_cycle;
+
+  match new_deleg_o with
+  | Some new_deleg_addr =>
+    match current_deleg_o with
+    | Some initial_deleg =>
+      match current_ssn_o with
+      | Some ssn =>
+        (* new deleg already has existing direct deposit on ssn *)
+        new_deleg_direct_deposit_amt <- direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle];
+        match new_deleg_direct_deposit_amt with
+        | Some new_deleg_direct_deposit =>
+          new_amt = builtin add new_deleg_direct_deposit current_direct_deposit_amt;
+          direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := new_amt;
+          e = { _eventname: "SwapDirectDepositExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_direct_deposit_amt; transferred_amt: new_deleg_direct_deposit; new_amt: new_amt };
+          event e
+        | None =>
+          (* new deleg has no direct deposit on ssn *)
+          (* take amount from current deleg and give to new deleg *)
+          direct_deposit_deleg[new_deleg_addr][ssn][reward_cycle] := current_direct_deposit_amt;
+          e = { _eventname: "SwapDirectDepositNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_direct_deposit_amt };
+          event e
+        end
+      | None =>
+        (* no ssn to get info from *)
+      end
+    | None =>
+      (* no current deleg to get info from *)
+    end
+  | None =>
+    (* no new deleg to transfer to *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in direct_deposit_deleg *)
+(* @see ActualSwapDirectDeposit *)
+procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+
+  match current_deleg_o with
+  | Some deleg =>
+    direct_deposit_cycle_map <- direct_deposit_deleg[deleg][ssn_address];
+    match direct_deposit_cycle_map with
+    | Some direct_deposit_cycle_map_o =>
+      direct_deposit_list = builtin to_list direct_deposit_cycle_map_o;
+      ssn = Some {ByStr20} ssn_address;
+      current_ssn := ssn;
+      forall direct_deposit_list ActualSwapDirectDeposit;
+      (* delete after add operation *)
+      delete direct_deposit_deleg[deleg][ssn_address]
+    | None => (* No direct deposit at this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+procedure ActualSwapDelegStakePerCycle(deleg_stake_cycle: Pair Uint32 Uint128)
+  current_ssn_o <- current_ssn;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  fst = @fst Uint32 Uint128;
+  snd = @snd Uint32 Uint128;
+  cycle_no = fst deleg_stake_cycle;
+  current_deposit_amt = snd deleg_stake_cycle;
+
+  match new_deleg_o with
+  | Some new_deleg_addr =>
+    match current_deleg_o with
+    | Some initial_deleg =>
+      match current_ssn_o with
+      | Some ssn =>
+        (* new deleg already has existing deleg stake per cycle on ssn *)
+        deleg_stake_deposit <- deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no];
+        match deleg_stake_deposit with
+        | Some stake_deposit =>
+          new_amt = builtin add stake_deposit current_deposit_amt;
+          deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := new_amt;
+          e = { _eventname: "SwapDelegStakePerCycleExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; existing_amt: current_deposit_amt; transferred_amt: stake_deposit; new_amt: new_amt };
+          event e
+        | None =>
+          (* new deleg has no deleg stake per cycle on ssn *)
+          (* take amount from current deleg and give to new deleg *)
+          deleg_stake_per_cycle[new_deleg_addr][ssn][cycle_no] := current_deposit_amt;
+          e = { _eventname: "SwapDelegStakePerCycleNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn; amt: current_deposit_amt };
+          event e
+        end
+      | None =>
+        (* no ssn to get info from *)
+      end
+    | None =>
+      (* no current deleg to get info from *)
+    end
+  | None =>
+    (* no new deleg to transfer to *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in deleg_stake_cycle *)
+(* @see ActualSwapDelegStakePerCycle *)
+procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+
+  match current_deleg_o with
+  | Some deleg =>
+    deleg_stake_per_cycle_map <- deleg_stake_per_cycle[deleg][ssn_address];
+    match deleg_stake_per_cycle_map with
+    | Some deleg_stake_per_cycle_map_o =>
+      deleg_stake_per_cycle_list = builtin to_list deleg_stake_per_cycle_map_o;
+      ssn = Some {ByStr20} ssn_address;
+      current_ssn := ssn;
+      forall deleg_stake_per_cycle_list ActualSwapDelegStakePerCycle;
+      (* delete after add operation *)
+      delete deleg_stake_per_cycle[deleg][ssn_address]
+    | None => (* No deposit at this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in deposit_amt_deleg *)
+procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    deposit_deleg_amt <- deposit_amt_deleg[initial_deleg][ssn_address];
+    match deposit_deleg_amt with
+    | Some deposit_amt =>
+      match new_deleg_o with
+      | Some new_deleg_addr =>
+        current_deposit_deleg_amt <- deposit_amt_deleg[new_deleg_addr][ssn_address];
+        match current_deposit_deleg_amt with
+        | Some existing_deposit_amt =>
+          (* new deleg already has an existing deposit_amt_deleg entry *)
+          new_amt = builtin add existing_deposit_amt deposit_amt;
+          deposit_amt_deleg[new_deleg_addr][ssn_address] := new_amt;
+          delete deposit_amt_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapDepositAmtDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
+          event e
+        | None =>
+          (* new deleg has no deposit deleg amt on ssn *)
+          (* take amount from current deleg and give to new deleg *)
+          deposit_amt_deleg[new_deleg_addr][ssn_address] := deposit_amt;
+          delete deposit_amt_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapDepositAmtDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: deposit_amt };
+          event e
+        end
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* No deposit at this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in ssn_deleg_amt *)
+procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    ssn_deleg_deposit <- ssn_deleg_amt[ssn_address][initial_deleg];
+    match ssn_deleg_deposit with
+    | Some ssn_deleg_deposit_amt =>
+      match new_deleg_o with
+      | Some new_deleg_addr =>
+        new_ssn_deleg_amt <- ssn_deleg_amt[ssn_address][new_deleg_addr];
+        match new_ssn_deleg_amt with
+        | Some existing_deleg_amt =>
+          new_amt = builtin add existing_deleg_amt ssn_deleg_deposit_amt;
+          ssn_deleg_amt[ssn_address][new_deleg_addr] := new_amt;
+          delete ssn_deleg_amt[ssn_address][initial_deleg];
+          e = { _eventname: "SwapSSNDelegAmtExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deleg_amt; transferred_amt: ssn_deleg_deposit_amt; new_amt: new_amt };
+          event e
+        | None =>
+          (* new deleg has no deposit deleg amt on ssn *)
+          (* take amount from current deleg and give to new deleg *)
+          ssn_deleg_amt[ssn_address][new_deleg_addr] := ssn_deleg_deposit_amt;
+          delete ssn_deleg_amt[ssn_address][initial_deleg];
+          e = { _eventname: "SwapSSNDelegAmtNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: ssn_deleg_deposit_amt };
+          event e
+        end
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* No deleg deposit for this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in last_withdraw_cycle_deleg *)
+(* Both parties have been asserted to have no buffered deposits or rewards; lwcd should be identical or one-off lrc *)
+(* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
+procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    lwcd <- last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+    match lwcd with
+    | Some requestor_lwcd =>
+      match new_deleg_o with
+      | Some new_deleg_addr =>
+        new_deleg_lwcd <- last_withdraw_cycle_deleg[new_deleg_addr][ssn_address];
+        match new_deleg_lwcd with
+        | Some existing_lwcd =>
+          (* new deleg has delegate same ssn as requestor *)
+          (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
+          (* requestor lwcd should be similar to new_deleg lwcd *)
+          delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapLastWithdrawCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lwcd: existing_lwcd };
+          event e
+        | None =>
+          (* new deleg has no last withdraw cycle for this ssn *)
+          last_withdraw_cycle_deleg[new_deleg_addr][ssn_address] := requestor_lwcd;
+          delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; lwcd: requestor_lwcd };
+          event e
+        end
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* No last withdraw cycle for this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in last_buf_deposit_cycle_deleg *)
+(* Both parties have been asserted to have no buffered deposits or rewards; lbdc should be identical or one-off lrc *)
+(* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
+procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+
+  match current_deleg_o with
+  | Some initial_deleg =>
+    lbdc <- last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+    match lbdc with
+    | Some requestor_lbdc =>
+      match new_deleg_o with
+      | Some new_deleg_addr =>
+        new_deleg_lbdc <- last_buf_deposit_cycle_deleg[new_deleg_addr][ssn_address];
+        match new_deleg_lbdc with
+        | Some existing_lbdc =>
+          (* new deleg has delegate same ssn as requestor *)
+          (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
+          delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapLastBuffDepositCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lbdc: existing_lbdc };
+          event e
+        | None =>
+          (* new deleg has no last buff deposit for this ssn *)
+          last_buf_deposit_cycle_deleg[new_deleg_addr][ssn_address] := requestor_lbdc;
+          delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
+          e = { _eventname: "SwapLastBuffDepositCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; lbdc: requestor_lbdc };
+          event e
+        end
+      | None => (* no new deleg to transfer to *)
+      end
+    | None => (* requestor has no last buff deposit cycle at this ssn *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* @dev Swap deleg address from current_deleg -> new_deleg in withdrawal_pending *)
+procedure SwapPendingWithdrawal(blk_deposit_cycle: Pair BNum Uint128)
+  current_deleg_o <- current_deleg;
+  new_deleg_o <- new_deleg;
+  fst = @fst BNum Uint128;
+  snd = @snd BNum Uint128;
+  blk_num = fst blk_deposit_cycle;
+  deposit = snd blk_deposit_cycle;
   
+  match new_deleg_o with
+  | Some new_deleg_addr =>
+    new_deleg_pending_withdrawal <- withdrawal_pending[new_deleg_addr][blk_num];
+    match new_deleg_pending_withdrawal with
+    | Some existing_deposit =>
+      (* new deleg has exisiting blk_num *)
+      new_deposit = builtin add existing_deposit deposit;
+      withdrawal_pending[new_deleg_addr][blk_num] := new_deposit;
+      e = { _eventname: "SwapPendingWithdrawalExists"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; existing_deposit: existing_deposit; new_deposit: new_deposit };
+      event e
+    | None =>
+      (* new deleg has no blk_num entry*)
+      withdrawal_pending[new_deleg_addr][blk_num] := deposit;
+      e = { _eventname: "SwapPendingWithdrawalNewEntry"; initial_deleg: current_deleg_o; new_deleg: new_deleg_addr; deposit: deposit };
+      event e
+    end
+  | None => (* no new deleg to transfer to *)
+  end
+end
+
+(* @dev Clears the mutable addresses after use *)
+procedure SwapCleanUp()
+  r = Some {ByStr20} reset_addr;
+  current_deleg := r;
+  current_ssn := r;
+  new_deleg := r
+end
+
+(* @dev Change a delegator's stake from initiator -> new_deleg_addr. *)
+(* not swapping buff_deposit_deleg because there is pre-assertion that requestor has no buff deposits *)
+procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
+  c = Some {ByStr20} requestor;
+  current_deleg := c;
+  n = Some {ByStr20} new_deleg_addr;
+  new_deleg := n;
+  ssnlist_o <- ssnlist;
+  ssninfo_list = builtin to_list ssnlist_o;
+
+  (* swap *)
+  forall ssninfo_list SwapDirectDeposit;
+  forall ssninfo_list SwapDelegStakePerCycle;
+  forall ssninfo_list SwapDepositAmtDeleg;
+  forall ssninfo_list SwapSSNDelegAmt;
+  forall ssninfo_list SwapLastBuffDepositCycleDeleg;
+  forall ssninfo_list SwapLastWithdrawCycleDeleg;
+  
+  (* swap pending withdrawal *)
+  match c with
+  | Some initial_deleg =>
+    deleg_blk_map <- withdrawal_pending[initial_deleg];
+    match deleg_blk_map with
+    | Some deleg_blk_entry =>
+      cycle_reward_list = builtin to_list deleg_blk_entry;
+      forall cycle_reward_list SwapPendingWithdrawal;
+      delete withdrawal_pending[initial_deleg]
+    | None => (* no pending withdrawal *)
+    end
+  | None => (* not possible to have no existing deleg *)
+  end
+end
+
+(* checks if there exists A -> B to prevent B -> A due to potential cyclic swap issue *)
+(* if there is A -> B, and B -> A, then a cyclic swap issue may occur deppending on who accepts first *)
+(* A -> (B) -> A, A is final inheritor *)
+(* B -> (A) -> B, B is final inheritor *)
+(* to prevent this scenario, prevent B -A from happening *)
+procedure IsNotCyclicSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+ cyclic_initiator <- deleg_swap_request[new_deleg_addr];
+ match cyclic_initiator with
+ | Some addr =>
+   (* is there a B -> X, where X == A? *)
+   is_cyclic_request = builtin eq addr initiator;
+   match is_cyclic_request with
+   | True =>
+     e = SwapAddrAlreadyExistsAsRequest;
+     ThrowError e
+   | False =>
+   end
+ | None =>
+ end
+end
+
+(* check for A -> A request *)
+procedure IsNotSelfSwap(initiator: ByStr20, new_deleg_addr: ByStr20)
+  is_identical_addr = builtin eq initiator new_deleg_addr;
+  match is_identical_addr with
+  | True =>
+    e = InvalidSwapAddr;
+    ThrowError e
+  | False =>
+  end
+end
+
+(* checks if new delegator matches that of stored request *)
+procedure IsValidSwapAddr(requestor: ByStr20, new_deleg_addr: ByStr20)
+  swap_addr <- deleg_swap_request[requestor];
+  match swap_addr with
+  | Some requestor_swap_addr =>
+    is_new_deleg_valid = builtin eq requestor_swap_addr new_deleg_addr;
+    match is_new_deleg_valid with
+    | True => (* new_deleg address matches requestor swap address *)
+    | False =>
+      (* throw error - requestor swap address is different *)
+      e = SwapAddrValidationFailed;
+      ThrowError e
+    end
+  | None => (* throw error *)
+    e = InvalidSwapAddr;
+    ThrowError e
+  end
+end
+
+procedure AssertSwapNoBufferedAndRewards(ssninfo: Pair ByStr20 Ssn)
+  current_deleg_o <- current_deleg;
+  fst = @fst ByStr20 Ssn;
+  ssn_address = fst ssninfo;
+  ssn_o <- ssnlist[ssn_address];
+
+  match ssn_o with
+  | Some (Ssn active_status stake_amt rewards name urlraw urlapi buffdeposit comm comm_rewards rec_addr) =>
+    match current_deleg_o with
+    | Some requestor =>
+      AssertNoRewards ssn_address requestor rewards;
+      AsseertNoBufferedDeposit ssn_address requestor;
+      AssertNoBufferedDepositLessOneCycle ssn_address requestor
+    | None =>
+    end
+  | None =>
+  end
+end
+
+(* checks if the requestor has buffered deposit or rewards *)
+procedure AssertNoBufferedAndRewards(requestor : ByStr20)
+  c = Some {ByStr20} requestor;
+  current_deleg := c;
+  ssnlist_o <- ssnlist;
+  ssninfo_list = builtin to_list ssnlist_o;
+  forall ssninfo_list AssertSwapNoBufferedAndRewards
+end
+
+(* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
+(* @param new_deleg_addr: Address of the new deleg that will be receiving all the stakes from requestor *)
+(* @param initiator: Address of the requestor; the one who call the proxy *)
+(* requestor can override the new deleg address by sending a new request *)
+transition RequestDelegatorSwap(new_deleg_addr: ByStr20, initiator: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  IsNotSelfSwap initiator new_deleg_addr;
+  IsNotCyclicSwap initiator new_deleg_addr;
+  (* both requestor and new_deleg should not have buffered deposit or rewards, mitigate lbcd and lwcd issues *)
+  AssertNoBufferedAndRewards initiator;
+  AssertNoBufferedAndRewards new_deleg_addr;
+  deleg_swap_request[initiator] := new_deleg_addr;
+  e = { _eventname: "RequestDelegatorSwap"; initial_deleg: initiator; new_deleg: new_deleg_addr };
+  event e
+end
+
+(* @dev: Accepts a swap request from a requestor. *)
+(* Once confirmed, everything which was under the requestor would be transferred over to the new deleg *)
+(* @param requestor: Address of the one that creates the swap request *)
+(* @param initiator: Address of the new_deleg confirming the request *)
+(* Transfer cannot be reverted once confirmed *)
+transition ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  IsValidSwapAddr requestor initiator;
+  (* both requestor and new_deleg should not have buffered deposit or rewards, mitigate lbcd and lwcd issues *)
+  AssertNoBufferedAndRewards requestor;
+  AssertNoBufferedAndRewards initiator;
+  SwapDelegator requestor initiator;
+  SwapCleanUp;
+  delete deleg_swap_request[requestor];
+  e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
+  event e
+end
+
+(* @dev: Revokes a swap request. *)
+(* for requestor use *)
+(* @param initiator: Address of requestor who wants to revoke the swap process *)
+transition RevokeDelegatorSwap(initiator: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  swap_addr <- deleg_swap_request[initiator];
+  match swap_addr with
+  | Some requestor_swap_addr =>
+    delete deleg_swap_request[initiator];
+    e = { _eventname: "RevokeDelegatorSwap"; initial_deleg: initiator; new_deleg: requestor_swap_addr };
+    event e
+  | None =>
+    e = InvalidSwapAddr;
+    ThrowError e
+  end
+end
+
+(* @dev: Rejects a swap request from a requestor. *)
+(* for swap recipient use *)
+(* Once rejected, requestor must create swap request again *)
+(* @param requestor: Address of the one that creates the swap request *)
+(* @param initiator: Address of the new_deleg rejecting the request *)
+transition RejectDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
+  IsNotPaused;
+  IsProxy;
+  IsValidSwapAddr requestor initiator;
+  delete deleg_swap_request[requestor];
+  e = { _eventname: "RejectDelegatorSwap"; requestor: requestor; new_deleg: initiator };
+  event e
+end

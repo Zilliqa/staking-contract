@@ -114,24 +114,7 @@ type Ssn =
 (*                     Address to be used to receive commission. *)
 ```
 
-2. SSNRewardShare Data Type:
-
-```ocaml
-type SsnRewardShare =
-| SsnRewardShare of ByStr20 Uint128
-``` 
-
-```ocaml
-(* SSNRewardShare has the following fields: *)
-
-(*  SSNAddress        : ByStr20 *)
-(*                      Address of the SSN. *)
-(*  RewardShare       : Uint128 *)
-(*                      This is the integer representation of the reward assigned by the verifier to this SSN for this cycle. *) 
-                        It's floor(NumberOfDSEpochsInCurrentCycle * 110,000 * VerificationPassed) *)
-```
-
-3. SsnStakeRewardShare Data Type:
+2. SsnStakeRewardShare Data Type:
 
 ```ocaml
 type SsnStakeRewardShare = 
@@ -146,7 +129,7 @@ type SsnStakeRewardShare =
 (*                      Total stake amount at a specific cycle.                                               *)
 ```
 
-4. SSNCycleInfo Data Type:
+3. SSNCycleInfo Data Type:
 
 ```ocaml
 type SSNCycleInfo =
@@ -160,7 +143,7 @@ type SSNCycleInfo =
 (*                                         Represents the total reward earned during this cycle for the given SSN. *)
 ```
 
-5. Error Data Type:
+4. Error Data Type:
 
 ```ocaml
 type Error =
@@ -265,6 +248,10 @@ Each of these category of transitions are presented in further detail below.
 | `WithdrawStakeAmt` | `ssnaddr : ByStr20, amt : Uint128, initiator : ByStr20` | To withdraw stake amount from a given SSN. `initiator` is the address of the delegator. No stake amount can be withdrawn if the delegator has unwithdrawn reward or buffered deposit. If the amount withdrawn is less than or equal to the stake deposited, then the withdrawal request is accepted and the field `withdrawal_pending` is updated accordingly. A delegator may request multiple withdrawals in the same cycle. Once this transition is called, the delegator enters into an unbonding period of 24,000 blocks. Only at the expiry of the unbonding period, the delegator can claim the funds via `CompleteWithdrawal` transition. During the unbonding period, the delegator will not earn any reward. | <center>:x:</center> | :heavy_check_mark: |
 | `CompleteWithdrawal` | `initiator : ByStr20` | This is to be called after the delegator has called `WithdrawStakeAmt`. `initiator` is the address of the delegator. The transition processing all the pending withdrawals as recorded in `withdrawal_pending`. Only those pending requests for which the bonding period has expired will be processed. Upon success, all the funds get transferred from the contract to the `initiator`. | <center>:x:</center> | :heavy_check_mark: |
 | `ReDelegateStake` | `ssnaddr: ByStr20, to_ssn: ByStr20, amount: Uint128, initiator: ByStr20` | To re-delagate the stake from a SSN to another SSN. `initiator` is the address of the delegator. `ssnaddr` is the original SSN, `to_ssn` is the new SSN the delegator wants to delegate to. The re-delegate amount is specificed by `amount`. | <center>:x:</center> | :heavy_check_mark: |
+| `RequestDelegatorSwap` | `new_deleg_addr: ByStr20, initiator: ByStr20` | Creates a request to another delegator to indicate transferring all existing stakes, rewards, etc., to this new delegator. `initiator` is the address of the delegator who wants to transfer his/her stakes. `new_deleg_addr` is the address of the recipient that would be receiving all the staked amount, rewards, pending withdrawals, etc., of the `initiator` (original owner). The `initiator` is allowed to change the recipient by sending the request with another `new_deleg_addr`. The `initiator` can also revoke the request via `RevokeDelegatorSwap`. On the recipient end, the `new_deleg_addr` can either `ConfirmDelegatorSwap` to accept the swap or `RejectDelegatorSwap` to reject the swap. To avoid either parties from gaining or losing rewards after the swap, both parties must not have buffered deposits or unwithdrawn rewards at the time of request and confirming. Also, the `initiator` is not allowed to make a request to `new_deleg_addr` if there is an existing request made by `new_deleg_addr` to the `initiator`; i.e., if there exists a `A -> B` request, then `B` cannot make a request to `A` unless `B` accepts or rejects the existing request first. However, `B` can make other swap requests to other delegators. **Change is irreversible once the recipient accepts the swap request, please be cautious of the `new_deleg_addr`.** | <center>:x:</center> | :heavy_check_mark: |
+| `RevokeDelegatorSwap` | `initiator: ByStr20` | Revokes a swap request. This is used only by the `initiator` who has made an existing swap request and wishes to cancel it. |  <center>:x:</center> | :heavy_check_mark: |
+| `ConfirmDelegatorSwap` | `requestor: ByStr20, initiator: ByStr20` |  Accepts a swap request from a requestor. `initiator` is the new delegator that would be inheriting all the staked amount, withdrawals, rewards from `requestor`. `requestor` is the delegator who has initiated a swap request via `RequestDelegatorSwap`. To avoid either parties from gaining or losing rewards after the swap, both parties must not have buffered deposits or unwithdrawn rewards at the time of comfirming. | <center>:x:</center> | :heavy_check_mark: |
+| `RejectDelegatorSwap` | `requestor: ByStr20, initiator: ByStr20` | Rejects a swap request from a requestor. Once rejected, the requestor must create the swap request again if he/she wishes to revert the rejection. `initiator` is the new delegator that would be inheriting all the staked amount, withdrawals, rewards from `requestor`. `requestor` is the delegator who has initiated a swap request via `RequestDelegatorSwap`. | <center>:x:</center> | :heavy_check_mark: |
 
 ### SSN Operation Transitions
 
@@ -278,7 +265,7 @@ Each of these category of transitions are presented in further detail below.
 
 | Name        | Params     | Description | Callable when paused? | Callable when not paused? |
 | ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
-| `AssignStakeReward` | `ssnreward_list : List SsnRewardShare, available_reward : Uint128, initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `available_reward` contains the rewards for all SSN as well as verifier. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | :heavy_check_mark: |
+| `AssignStakeReward` | `ssnreward_list : List (Pair ByStr20 Uint128), initiator : ByStr20`| To assign reward to each SSN for this cycle. `ssnreward_list` contains the reward factor for each SSN. In more precise terms, it contains the value `(floor((NumberOfDSEpochsInCurrentCycle x 110,000 x VerificationPassed)))`. This input is then multiplied by `(floor(TotalStakeAtSSN / TotalStakeAcrossAllSSNs))` to compute the reward earned by each SSN. `initiator` is the verifier. The `_amount` contains the rewards for all SSN as well as verifier. Post this call, any buffered deposit with any SSN must be converted to unbuffered stake deposit. The commission earned by the SSNs must also get updated.  | <center>:x:</center> | :heavy_check_mark: |
 
 ### Contract Upgrade Transitions
 
@@ -296,6 +283,7 @@ Each of these category of transitions are presented in further detail below.
 | `PopulateDirectDeposit` | `deleg_addr: ByStr20, ssn_addr: ByStr20, cycle: Uint32, amt: Uint128, initiator: ByStr20` | To populate `direct_deposit_deleg` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20` | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+| `PopulateDelegSwapRequest` | `requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20` | To populate `deleg_swap_Request` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 
 ### Other Transitions
 
@@ -379,7 +367,11 @@ parameter `initiator` for the `SSNList` contract.
 |`WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128)` | `WithdrawStakeAmt(ssnaddr: ByStr20, amt: Uint128, initiator : ByStr20)`|
 |`CompleteWithdrawal()` | `CompleteWithdrawal(initiator : ByStr20)`|
 |`ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128)` | `ReDelegateStake(ssnaddr : ByStr20, to_ssn : ByStr20, amount : Uint128, initiator : ByStr20)`|
-|`AssignStakeReward(ssnreward_list: List SsnRewardShare)` | `AssignStakeReward(ssnreward_list: List SsnRewardShare, initiator : ByStr20)`|
+| `RequestDelegatorSwap(new_deleg_addr: ByStr20)` | `RequestDelegatorSwap(new_deleg_addr: ByStr20, initiator: ByStr20)` |
+| `RevokeDelegatorSwap()` | `RevokeDelegatorSwap(initiator: ByStr20)` |
+| `ConfirmDelegatorSwap(requestor: ByStr20)` | `ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)` |
+| `RejectDelegatorSwap(requestor: ByStr20)` | `RejectDelegatorSwap(requestor: ByStr20, initiator: ByStr20)` |
+|`AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128))` | `AssignStakeReward(ssnreward_list: List (Pair ByStr20 Uint128), initiator : ByStr20)`|
 |`AddFunds()` | `AddFunds(initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
 |`AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20)` | `AddSSNAfterUpgrade(ssnaddr: ByStr20, stake_amt: Uint128, rewards: Uint128, name: String, urlraw: String, urlapi: String, buff_deposit: Uint128,  comm: Uint128, comm_rewards: Uint128, rec_addr: ByStr20, initiator : ByStr20)`|
@@ -394,6 +386,7 @@ parameter `initiator` for the `SSNList` contract.
 |`PopulateLastRewardCycle(cycle: Uint32)` | `PopulateLastRewardCycle(cycle: Uint32, initiator : ByStr20)`|
 |`PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128)` | `PopulateCommForSSN(ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator : ByStr20)`|
 |`PopulateTotalStakeAmt(amt: Uint128)` | `PopulateTotalStakeAmt(amt: Uint128, initiator : ByStr20)`|
+|`PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20)` | `PopulateDelegSwapRequest(requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20)`|
 |`DrainContractBalance(amt: Uint128)` | `DrainContractBalance(amt: Uint128, initiator : ByStr20)`|
 
 > Note: Any transition in `SSNList` contract that accepts money will have the 
