@@ -177,6 +177,69 @@ transition UpdateSSN(ssnaddr: ByStr20, new_name: String, new_urlraw: String, new
     send msgs
 end
 
+(* @dev: delete empty maps {} for buff_deposit_deleg  *)
+(* to be invoked with staking-tool purge script *)
+transition CleanBuffDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+    current_impl <- implementation;
+    msg = {_tag: "CleanBuffDeposit"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; ssn_addr_list: ssn_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for direct_deposit_deleg  *)
+(* to be invoked with staking-tool purge script *)
+transition CleanDirectDeposit(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+    current_impl <- implementation;
+    msg = {_tag: "CleanDirectDeposit"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; ssn_addr_list: ssn_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for deleg_stake_per_cycle  *)
+(* to be invoked with staking-tool purge script *)
+transition CleanDelegStakePerCycle(deleg_addr_list: List ByStr20, ssn_addr_list: List (Pair ByStr20 ByStr20))
+    current_impl <- implementation;
+    msg = {_tag: "CleanDelegStakePerCycle"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; ssn_addr_list: ssn_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for deposit_amt_deleg *)
+(* to be invoked with staking-tool purge script *)
+transition CleanDepositAmt(deleg_addr_list: List ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "CleanDepositAmt"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for withdrawal_pending *)
+(* to be invoked with staking-tool purge script *)
+transition CleanPendingWithdrawal(deleg_addr_list: List ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "CleanPendingWithdrawal"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for last_withdraw_cycle_deleg *)
+(* to be invoked with staking-tool purge script *)
+transition CleanLastWithdrawCycle(deleg_addr_list: List ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "CleanLastWithdrawCycle"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* @dev: delete empty maps {} for last_buf_deposit_cycle_deleg *)
+(* to be invoked with staking-tool purge script *)
+transition CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20)
+    current_impl <- implementation;
+    msg = {_tag: "CleanLastBuffDepositCycle"; _recipient: current_impl; _amount: zero; deleg_addr_list: deleg_addr_list; initiator: _sender};
+    msgs = one_msg msg;
+    send msgs
+end
+
 (***************************************************)
 (*             SSN operator transition             *)
 (***************************************************)
