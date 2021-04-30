@@ -166,6 +166,10 @@ type Error =
   | VerifierNotSet (* Verifier's address is not set in the field *)
   | VerifierRecvAddrNotSet (* Verifier's reward address address is not set in the field *)
   | ReDelegInvalidSSNAddr (* Delegator cannot redelegate to same SSN address *)
+  | AvailableRewardsError (* Verifier reward does not match computed SSN reward *)
+  | InvalidSwapAddr (* Swap address is invalid; either the address is does not match the one in the request map or the address does not exists  *)
+  | SwapAddrValidationFailed (* Requestor swap address is different *)
+  | SwapAddrAlreadyExistsAsRequest (* There exists another swap request that is the inverse of this swap address pair; causing a cyclic request *)
 ```
 ## Immutable Parameters
 
@@ -193,6 +197,7 @@ The table below presents the mutable fields of the contract and their initial va
 | `last_buf_deposit_cycle_deleg`   | `Map ByStr20 (Map ByStr20  Uint32))` | `Emp ByStr20 (Map ByStr20 Uint32))` | `Map (DelegatorAddress -> Map (SSNAddress -> RewardCycleWhenLastDeposited))` |
 | `stake_ssn_per_cycle`   | `Map ByStr20 (Map Uint32  SSNCycleInfo))` | `Emp ByStr20 (Map Uint32 SSNCycleInfo))` | `Map (SSNAddress -> Map (RewardCycleNum -> SSNCycleInfo))`. **Note that this data type contains information that corresponds to the end of the cycle when the verifier has distributed the reward. It could therefore be different from the information stored in `ssnlist` particularly its `stake` field which gets updated in the middle of a cycle.** |
 |`withdrawal_pending` | `Map ByStr20 (Map BNum Uint128)` | `Emp ByStr20 (Map BNum Uint128)` | `Map (DelegatorAddress -> (BlockNumberWhenRewardWithdrawalRequested -> Amount ))` |
+| `deleg_swap_request` | `Map ByStr20 ByStr20` | `Emp ByStr20 ByStr20` | `Map (DelegatorAddress_A -> DelegatorAddress_B)` This map stores requestor and recipient addresses that are involved in the swap requests.  |
 | `bnum_req`  | `Uint128` | `Uin128 24000`       | Bonding period in terms of number of blocks. Set to be equivalent to 14 days. |
 | `verifier`   | `Option ByStr20` | `None {ByStr20}` | The address of the `verifier`. |
 | `verifier_receiving_addr`   | `Option ByStr20` | `None {ByStr20}` | The address to receive verifier's rewards. |
@@ -290,6 +295,20 @@ Each of these category of transitions are presented in further detail below.
 | `PopulateCommForSSN` | `ssn_addr: ByStr20, cycle: Uint32, comm: Uint128, initiator: ByStr20` | To populate `comm_for_ssn` map. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateTotalStakeAmt` | `amt: Uint128, initiator: ByStr20` | To populate `totalstakeamount` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
 | `PopulateDelegSwapRequest` | `requestor: ByStr20, new_deleg_addr: ByStr20, initiator: ByStr20` | To populate `deleg_swap_Request` field. <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract.  | :heavy_check_mark: | <center>:x:</center> |
+
+### Contract State Migration Transitions
+
+| Name        | Params     | Description | Callable when paused? | Callable when not paused? |
+| ----------- | -----------|-------------|:--------------------------:|:--------------------------:|
+| `MigrateCommForSsn` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) end` | To migrate the map `comm_for_ssn` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `comm_for_ssn[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateDepositAmtDeleg` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) end` | To migrate the map `deposit_amt_deleg` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `deposit_amt_deleg[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateSsnDelegAmt` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) end` | To migrate the map `ssn_deleg_amt` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `ssn_deleg_amt[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateBuffDepositDeleg` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` | To migrate the map `buff_deposit_deleg` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `buff_deposit_deleg[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateDirectDepositDeleg` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` | To migrate the map `direct_deposit_deleg` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `direct_deposit_deleg[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateLastWithdrawCycleDeleg` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) end` | To migrate the map `last_withdraw_cycle_deleg` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `last_withdraw_cycle_deleg[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateLastBufDepositCycleDeleg` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) end` | To migrate the map `last_buf_deposit_cycle_deleg` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `last_buf_deposit_cycle_deleg[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateDelegStakePerCycle` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` | To migrate the map `deleg_stake_per_cycle` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `deleg_stake_per_cycle[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
+| `MigrateWithdrawalPending` | `initiator : ByStr20, keys : List ByStr20, old_contract : ByStr20 with contract field withdrawal_pending: Map ByStr20 (Map BNum Uint128) end` | To migrate the map `withdrawal_pending` from the old contract to a new contract via the remote state read feature. `keys` is the list of external keys in the map, i.e. `withdrawal_pending[key]` <br>  :warning: **Note:** `initiator` must be the current `contractadmin` of the contract. | <center>:x:</center> | :heavy_check_mark: |
 
 ### Other Transitions
 
@@ -401,6 +420,15 @@ parameter `initiator` for the `SSNList` contract.
 |`CleanPendingWithdrawal(deleg_addr_list: List ByStr20)` | `CleanPendingWithdrawal(deleg_addr_list: List ByStr20, initiator: ByStr20)`|
 |`CleanLastWithdrawCycle(deleg_addr_list: List ByStr20)` | `CleanLastWithdrawCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)`|
 |`CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20)` | `CleanLastBuffDepositCycle(deleg_addr_list: List ByStr20, initiator: ByStr20)`|
+| `MigrateCommForSsn(keys: List ByStr20, old_contract: ByStr20)` | `MigrateCommForSsn(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field comm_for_ssn: Map ByStr20 (Map Uint32 Uint128) end` |
+| `MigrateDepositAmtDeleg(keys: List ByStr20, old_contract: ByStr20)` | `MigrateDepositAmtDeleg(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field deposit_amt_deleg: Map ByStr20 (Map ByStr20 Uint128) end` |
+| `MigrateSsnDelegAmt(keys: List ByStr20, old_contract: ByStr20)` | `MigrateSsnDelegAmt(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field ssn_deleg_amt: Map ByStr20 (Map ByStr20 Uint128) end` |
+| `MigrateBuffDepositDeleg(keys: List ByStr20, old_contract: ByStr20)` | `MigrateBuffDepositDeleg(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field buff_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` |
+| `MigrateDirectDepositDeleg(keys: List ByStr20, old_contract: ByStr20)` | `MigrateDirectDepositDeleg(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field direct_deposit_deleg: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` |
+| `MigrateLastWithdrawCycleDeleg(keys: List ByStr20, old_contract: ByStr20)` | `MigrateLastWithdrawCycleDeleg(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field last_withdraw_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) end` |
+| `MigrateLastBufDepositCycleDeleg(keys: List ByStr20, old_contract: ByStr20)` | `MigrateLastBufDepositCycleDeleg(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field last_buf_deposit_cycle_deleg: Map ByStr20 (Map ByStr20 Uint32) end` |
+| `MigrateDelegStakePerCycle(keys: List ByStr20, old_contract: ByStr20)` | `MigrateDelegStakePerCycle(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field deleg_stake_per_cycle: Map ByStr20 (Map ByStr20 (Map Uint32 Uint128)) end` |
+| `MigrateWithdrawalPending(keys: List ByStr20, old_contract: ByStr20)` | `MigrateWithdrawalPending(initiator: ByStr20, keys: List ByStr20, old_contract: ByStr20 with contract field withdrawal_pending: Map ByStr20 (Map BNum Uint128) end` |
 
 > Note: Any transition in `SSNList` contract that accepts money will have the 
 corresponding transition in `SSNListProxy` accept the amount and then pass it 
