@@ -2220,9 +2220,9 @@ end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in direct_deposit_deleg *)
 (* @see ActualSwapDirectDeposit *)
-procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapDirectDeposit(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
 
   match current_deleg_o with
@@ -2286,9 +2286,9 @@ end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in deleg_stake_cycle *)
 (* @see ActualSwapDelegStakePerCycle *)
-procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapDelegStakePerCycle(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
 
   match current_deleg_o with
@@ -2309,9 +2309,9 @@ procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
 end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in deposit_amt_deleg *)
-procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapDepositAmtDeleg(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -2348,9 +2348,9 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
 end
 
 (* @dev Swap deleg address from current_deleg -> new_deleg in ssn_deleg_amt *)
-procedure SwapSSNDelegAmt(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapSSNDelegAmt(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -2388,9 +2388,9 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in last_withdraw_cycle_deleg *)
 (* Both parties have been asserted to have no buffered deposits or rewards; lwcd should be identical or one-off lrc *)
 (* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
-procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapLastWithdrawCycleDeleg(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -2428,9 +2428,9 @@ end
 (* @dev Swap deleg address from current_deleg -> new_deleg in last_buf_deposit_cycle_deleg *)
 (* Both parties have been asserted to have no buffered deposits or rewards; lbdc should be identical or one-off lrc *)
 (* If current_deleg and new_deleg has same ssn, don't replace new_deleg entry *)
-procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+procedure SwapLastBuffDepositCycleDeleg(ssndeposit: Pair ByStr20 Uint128)
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   current_deleg_o <- current_deleg;
   new_deleg_o <- new_deleg;
 
@@ -2508,16 +2508,21 @@ procedure SwapDelegator(requestor: ByStr20, new_deleg_addr: ByStr20)
   current_deleg := c;
   n = Some {ByStr20} new_deleg_addr;
   new_deleg := n;
-  ssnlist_o <- ssnlist;
-  ssninfo_list = builtin to_list ssnlist_o;
 
-  (* swap *)
-  forall ssninfo_list SwapDirectDeposit;
-  forall ssninfo_list SwapDelegStakePerCycle;
-  forall ssninfo_list SwapDepositAmtDeleg;
-  forall ssninfo_list SwapSSNDelegAmt;
-  forall ssninfo_list SwapLastBuffDepositCycleDeleg;
-  forall ssninfo_list SwapLastWithdrawCycleDeleg;
+  (* get the list of requestor's ssn *)
+  ssn_deposit_map <- deposit_amt_deleg[requestor];
+  match ssn_deposit_map with
+   | Some ssn_deposit_entry =>
+     ssn_deposit_list = builtin to_list ssn_deposit_entry;
+     (* swap *)
+     forall ssn_deposit_list SwapDirectDeposit;
+     forall ssn_deposit_list SwapDelegStakePerCycle;
+     forall ssn_deposit_list SwapDepositAmtDeleg;
+     forall ssn_deposit_list SwapSSNDelegAmt;
+     forall ssn_deposit_list SwapLastBuffDepositCycleDeleg;
+     forall ssn_deposit_list SwapLastWithdrawCycleDeleg
+   | None => (* nothing to swap *)
+  end;
   
   (* swap pending withdrawal *)
   match c with
@@ -2585,10 +2590,10 @@ procedure IsValidSwapAddr(requestor: ByStr20, new_deleg_addr: ByStr20)
   end
 end
 
-procedure AssertSwapNoBufferedAndRewards(ssninfo: Pair ByStr20 Ssn)
+procedure AssertSwapNoBufferedAndRewards(ssndeposit: Pair ByStr20 Uint128)
   current_deleg_o <- current_deleg;
-  fst = @fst ByStr20 Ssn;
-  ssn_address = fst ssninfo;
+  fst = @fst ByStr20 Uint128;
+  ssn_address = fst ssndeposit;
   ssn_o <- ssnlist[ssn_address];
 
   match ssn_o with
@@ -2608,9 +2613,14 @@ end
 procedure AssertNoBufferedAndRewards(requestor : ByStr20)
   c = Some {ByStr20} requestor;
   current_deleg := c;
-  ssnlist_o <- ssnlist;
-  ssninfo_list = builtin to_list ssnlist_o;
-  forall ssninfo_list AssertSwapNoBufferedAndRewards
+  (* get the list of requestor's ssn *)
+  ssn_deposit_map <- deposit_amt_deleg[requestor];
+  match ssn_deposit_map with
+   | Some ssn_deposit_entry =>
+     ssn_deposit_list = builtin to_list ssn_deposit_entry;
+     forall ssn_deposit_list AssertSwapNoBufferedAndRewards
+   | None =>
+  end
 end
 
 (* @dev: Creates a request to another delegator to indicate interest in transferring all stakes, rewards etc to the delegator *)
