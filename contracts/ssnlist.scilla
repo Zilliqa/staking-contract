@@ -2235,8 +2235,7 @@ procedure SwapDirectDeposit(ssninfo: Pair ByStr20 Ssn)
       current_ssn := ssn;
       forall direct_deposit_list ActualSwapDirectDeposit;
       (* delete after add operation *)
-      delete direct_deposit_deleg[deleg][ssn_address];
-      CleanDirectDepositDelegAddr deleg
+      delete direct_deposit_deleg[deleg][ssn_address]
     | None => (* No direct deposit at this ssn *)
     end
   | None => (* not possible to have no existing deleg *)
@@ -2302,8 +2301,7 @@ procedure SwapDelegStakePerCycle(ssninfo: Pair ByStr20 Ssn)
       current_ssn := ssn;
       forall deleg_stake_per_cycle_list ActualSwapDelegStakePerCycle;
       (* delete after add operation *)
-      delete deleg_stake_per_cycle[deleg][ssn_address];
-      CleanDelegStakePerCycleDelegAddr deleg
+      delete deleg_stake_per_cycle[deleg][ssn_address]
     | None => (* No deposit at this ssn *)
     end
   | None => (* not possible to have no existing deleg *)
@@ -2331,7 +2329,6 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
           new_amt = builtin add existing_deposit_amt deposit_amt;
           deposit_amt_deleg[new_deleg_addr][ssn_address] := new_amt;
           delete deposit_amt_deleg[initial_deleg][ssn_address];
-          CleanDepositAmtDelegAddr initial_deleg;
           e = { _eventname: "SwapDepositAmtDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_amt: existing_deposit_amt; transferred_amt: deposit_amt; new_amt: new_amt };
           event e
         | None =>
@@ -2339,7 +2336,6 @@ procedure SwapDepositAmtDeleg(ssninfo: Pair ByStr20 Ssn)
           (* take amount from current deleg and give to new deleg *)
           deposit_amt_deleg[new_deleg_addr][ssn_address] := deposit_amt;
           delete deposit_amt_deleg[initial_deleg][ssn_address];
-          CleanDepositAmtDelegAddr initial_deleg;
           e = { _eventname: "SwapDepositAmtDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; amt: deposit_amt };
           event e
         end
@@ -2412,14 +2408,12 @@ procedure SwapLastWithdrawCycleDeleg(ssninfo: Pair ByStr20 Ssn)
           (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
           (* requestor lwcd should be similar to new_deleg lwcd *)
           delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
-          CleanLastWithdrawCycleDelegAddr initial_deleg;
           e = { _eventname: "SwapLastWithdrawCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lwcd: existing_lwcd };
           event e
         | None =>
           (* new deleg has no last withdraw cycle for this ssn *)
           last_withdraw_cycle_deleg[new_deleg_addr][ssn_address] := requestor_lwcd;
           delete last_withdraw_cycle_deleg[initial_deleg][ssn_address];
-          CleanLastWithdrawCycleDelegAddr initial_deleg;
           e = { _eventname: "SwapLastWithdrawCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; lwcd: requestor_lwcd };
           event e
         end
@@ -2453,14 +2447,12 @@ procedure SwapLastBuffDepositCycleDeleg(ssninfo: Pair ByStr20 Ssn)
           (* new deleg has delegate same ssn as requestor *)
           (* don't replace; already assert no buffered deposit and rewards for both requestor and new_deleg  *)
           delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
-          CleanLastBuffDepositCycleDelegAddr initial_deleg;
           e = { _eventname: "SwapLastBuffDepositCycleDelegExists"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; existing_lbdc: existing_lbdc };
           event e
         | None =>
           (* new deleg has no last buff deposit for this ssn *)
           last_buf_deposit_cycle_deleg[new_deleg_addr][ssn_address] := requestor_lbdc;
           delete last_buf_deposit_cycle_deleg[initial_deleg][ssn_address];
-          CleanLastBuffDepositCycleDelegAddr initial_deleg;
           e = { _eventname: "SwapLastBuffDepositCycleDelegNewEntry"; initial_deleg: initial_deleg; new_deleg: new_deleg_addr; ssn_addr: ssn_address; lbdc: requestor_lbdc };
           event e
         end
@@ -2652,6 +2644,12 @@ transition ConfirmDelegatorSwap(requestor: ByStr20, initiator: ByStr20)
   AssertNoBufferedAndRewards initiator;
   SwapDelegator requestor initiator;
   SwapCleanUp;
+  (* delete the requestor's deleg key from these maps; requestor's ssnaddr key already deleted in the Swap proc *)
+  CleanDirectDepositDelegAddr requestor;
+  CleanDelegStakePerCycleDelegAddr requestor;
+  CleanDepositAmtDelegAddr requestor;
+  CleanLastWithdrawCycleDelegAddr requestor;
+  CleanLastBuffDepositCycleDelegAddr requestor;
   delete deleg_swap_request[requestor];
   e = { _eventname: "ConfirmDelegatorSwap"; initial_deleg: requestor; new_deleg: initiator };
   event e
