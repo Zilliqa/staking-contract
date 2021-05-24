@@ -231,6 +231,18 @@ let is_cycle_deposit_map_empty =
     let map_size = builtin size m in
     builtin eq map_size uint32_zero
 
+let decide_n = 
+  fun(m : Uint32) =>
+  fun(n : Uint32) =>
+  fun(upper: Uint32) =>
+  let k = builtin sub n m in
+  let more_than_upper = uint32_gt k upper in
+  match more_than_upper with
+  | True =>
+    builtin add m upper
+  | False => n
+  end
+
 let bool_active = True
 let bool_inactive = False
 let addfunds_tag = "AddFunds"
@@ -1141,7 +1153,16 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   lrc <- lastrewardcycle;
 
   m = builtin add last_withdraw_cycle uint32_one;
-  n = builtin add lrc uint32_one;
+  n_o = builtin add lrc uint32_one;
+
+
+  (* Keep cycle number in between not grate than 5 *)
+  uint32_5 = Uint32 5;
+  n = decide_n m n_o uint32_5;
+
+  uint32_1 = Uint32 1;
+  lrc_used = builtin sub n uint32_1;
+  
   list_need_compute_rewards = iota m n;
   
   (* Combine deleg and ssn_operator with list_need_compute_rewards *)
@@ -1168,7 +1189,7 @@ procedure WithdrawalStakeRewards(deleg: ByStr20, ssn_operator: ByStr20)
   end;
   e = { _eventname: "WithdrawalStakeRewards"; rewards: reward};
   event e;
-  last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc;
+  last_withdraw_cycle_deleg[deleg][ssn_operator] := lrc_used;
   msg_to_delegator = {_tag : "WithdrawStakeRewardsSuccessCallBack"; _recipient : deleg; _amount : uint128_zero; 
   ssnaddr : ssn_operator; rewards : reward};
   msg = one_msg msg_to_delegator;
